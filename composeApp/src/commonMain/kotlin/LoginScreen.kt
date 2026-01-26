@@ -54,10 +54,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
         scope.launch {
             try {
-                // Note: Sur l'émulateur Android, localhost pointe vers l'émulateur lui-même.
-                // Pour accéder à la machine hôte, il faut utiliser 10.0.2.2
-                // Si vous testez sur un vrai device, il faut l'IP locale de votre PC.
-                val response: HttpResponse = client.post("http://10.0.2.2:8081/api/auth/login") {
+                val response: HttpResponse = client.post("${Config.BASE_URL}/api/auth/login") {
                     contentType(ContentType.Application.Json)
                     setBody(LoginRequest(login = username, motDePasse = password))
                 }
@@ -65,7 +62,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 if (response.status.isSuccess()) {
                     onLoginSuccess()
                 } else {
-                    errorMessage = "Échec de la connexion: ${response.status}"
+                    errorMessage = "Échec de la connexion: Login ou mot de passe incorrect"
                 }
             } catch (e: Exception) {
                 errorMessage = "Erreur réseau: ${e.message}"

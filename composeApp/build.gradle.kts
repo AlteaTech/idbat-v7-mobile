@@ -1,6 +1,7 @@
 @file:OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
 
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -78,6 +79,9 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        
+        // Définition de la variable BASE_URL pour Android
+        buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8081\"")
     }
     packaging {
         resources {
@@ -92,6 +96,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    buildFeatures {
+        buildConfig = true
     }
     dependencies {
         debugImplementation(libs.compose.ui.tooling)
