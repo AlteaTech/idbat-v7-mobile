@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -36,6 +37,11 @@ kotlin {
                 implementation(compose.material)
                 implementation(compose.ui)
                 implementation(compose.components.resources)
+
+                implementation(libs.ktor.client.core)
+                implementation(libs.ktor.client.content.negotiation)
+                implementation(libs.ktor.serialization.kotlinx.json)
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
         val androidMain by getting {
@@ -43,12 +49,15 @@ kotlin {
                 implementation(libs.androidx.activity.compose)
                 implementation(libs.androidx.appcompat)
                 implementation(libs.androidx.core.ktx)
+                implementation(libs.ktor.client.okhttp)
+                implementation(libs.compose.ui.tooling.preview)
             }
         }
 
         /*
         val iosMain by getting {
             dependencies {
+                implementation(libs.ktor.client.darwin)
             }
         }
         */
