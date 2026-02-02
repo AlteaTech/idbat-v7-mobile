@@ -10,6 +10,7 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.example.project.BuildKonfig
 
 // 1. Modèles de données (Request / Response)
 @Serializable
@@ -37,25 +38,18 @@ class AuthService {
         }
     }
 
-    // URL de l'API (À adapter selon votre environnement : localhost, IP locale, ou URL de prod)
-    // Note: Pour Android Emulator, localhost est 10.0.2.2
-    // Pour iOS Simulator, localhost est 127.0.0.1
-    // Il faudra idéalement gérer cela via la config
-    private val baseUrl = "https://votre-api.com/api" 
+    // URL de l'API injectée depuis la configuration de build
+    private val baseUrl = BuildKonfig.BASE_URL
 
     suspend fun login(request: LoginRequest): Result<LoginResponse> {
         return try {
-            // Simulation d'appel API pour l'exemple (à remplacer par le vrai appel ci-dessous)
-            // val response: LoginResponse = client.post("$baseUrl/auth/login") {
-            //     contentType(ContentType.Application.Json)
-            //     setBody(request)
-            // }.body()
-            
-            // Simulation d'un délai réseau
-            kotlinx.coroutines.delay(1000)
-            
+            val response: LoginResponse = client.post("$baseUrl/api/auth/login") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }.body()
+
             if (request.username.isNotEmpty() && request.password.isNotEmpty()) {
-                Result.success(LoginResponse(token = "fake-jwt-token", userId = "123"))
+                Result.success(response)
             } else {
                 Result.failure(Exception("Nom d'utilisateur ou mot de passe incorrect"))
             }

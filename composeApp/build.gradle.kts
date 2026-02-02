@@ -1,5 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.codingfeline.buildkonfig.compiler.FieldSpec
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.buildkonfig)
 }
 
 kotlin {
@@ -53,6 +55,14 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+    }
+}
+
+buildkonfig {
+    packageName = "org.example.project"
+
+    defaultConfigs {
+        buildConfigField(FieldSpec.Type.STRING, "BASE_URL", "http://10.0.2.2:8081")
     }
 }
 
