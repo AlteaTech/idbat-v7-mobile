@@ -42,16 +42,16 @@ class MainActivity : ComponentActivity() {
                             onLoginClick = { username, password ->
                                 scope.launch {
                                     val database = (context.applicationContext as IdbatApplication).database
-                                    val userDao = database.userDao()
+                                    val utilisateurDao = database.utilisateurTPDao()
                                     
-                                    val user = userDao.getUserByLogin(username)
+                                    val utilisateur = utilisateurDao.getUtilisateurByLogin(username)
                                     
-                                    if (user != null && user.pin == password) {
+                                    if (utilisateur != null && utilisateur.pin == password) {
                                         // Connexion réussie
                                         loginError = null
                                         
                                         // Mettre à jour la date de dernière connexion
-                                        userDao.insertUser(user.copy(lastLoginDate = System.currentTimeMillis()))
+                                        utilisateurDao.insertUtilisateur(utilisateur.copy(lastLoginDate = System.currentTimeMillis()))
                                         
                                         isLoggedIn = true
                                     } else {
