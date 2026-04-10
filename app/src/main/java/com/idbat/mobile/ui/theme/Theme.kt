@@ -16,9 +16,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = VeoliaRed,
+    primary = VeoliaPrincipal,
     secondary = VeoliaLightGray,
-    tertiary = VeoliaDarkRed,
+    tertiary = VeoliaLightGray,
     background = VeoliaGray,
     surface = Black,
     onPrimary = White,
@@ -29,9 +29,9 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = VeoliaRed,
+    primary = VeoliaPrincipal,
     secondary = VeoliaGray,
-    tertiary = VeoliaDarkRed,
+    tertiary = VeoliaLightGray,
     background = VeoliaLightGray,
     surface = White,
     onPrimary = White,

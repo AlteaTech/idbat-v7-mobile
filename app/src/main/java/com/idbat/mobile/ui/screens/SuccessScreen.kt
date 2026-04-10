@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.VeoliaRed
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
 
 @Composable
 fun SuccessScreen() {
@@ -43,7 +43,7 @@ fun SuccessScreen() {
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = "Succès",
-            tint = VeoliaRed,
+            tint = VeoliaPrincipal,
             modifier = Modifier.size(80.dp)
         )
 
@@ -70,7 +70,7 @@ fun SuccessScreen() {
             text = deviceId ?: "Non disponible",
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            color = VeoliaRed,
+            color = VeoliaPrincipal,
             textAlign = TextAlign.Center
         )
     }

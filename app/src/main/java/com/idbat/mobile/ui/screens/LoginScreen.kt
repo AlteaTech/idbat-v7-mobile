@@ -12,16 +12,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.VeoliaRed
+import com.idbat.mobile.ui.theme.VeoliaBorderGray
+import com.idbat.mobile.ui.theme.VeoliaCardBackground
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.VeoliaScreenBackground
+import com.idbat.mobile.ui.theme.VeoliaTextDark
+import com.idbat.mobile.ui.theme.White
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(onLoginClick: (String, String) -> Unit) {
+fun LoginScreen(
+    errorMessage: String? = null,
+    onLoginClick: (String, String) -> Unit
+) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -29,52 +38,52 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(VeoliaScreenBackground)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Veolia IDBAT",
-            color = VeoliaRed,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Text(
-            text = "Connexion à votre espace",
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-            fontSize = 16.sp,
-            modifier = Modifier.padding(bottom = 32.dp)
+            text = "VEOLIA IDBAT", // En majuscules
+            color = VeoliaPrincipal,
+            fontSize = 36.sp, // Plus grand
+            fontWeight = FontWeight.ExtraBold, // Plus gras
+            letterSpacing = 1.5.sp, // Espacement
+            modifier = Modifier.padding(bottom = 32.dp) // Plus de marge
         )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = VeoliaCardBackground),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(vertical = 32.dp, horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Identifiant") },
+                    placeholder = { Text("Identifiant", color = VeoliaBorderGray) },
                     leadingIcon = {
-                        Icon(imageVector = Icons.Default.Person, contentDescription = "Identifiant")
+                        Icon(imageVector = Icons.Default.Person, contentDescription = "Identifiant", tint = VeoliaBorderGray)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    // Configuration pour avoir un fond blanc et des bordures grises
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = VeoliaRed,
-                        focusedLabelColor = VeoliaRed,
-                        cursorColor = VeoliaRed
-                    )
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White,
+                        focusedBorderColor = VeoliaPrincipal,
+                        unfocusedBorderColor = Color.Transparent, // Pas de bordure si pas sélectionné
+                        cursorColor = VeoliaPrincipal,
+                        focusedTextColor = VeoliaTextDark,
+                        unfocusedTextColor = VeoliaTextDark
+                    ),
+                    shape = RoundedCornerShape(8.dp)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -82,9 +91,9 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Mot de passe") },
+                    placeholder = { Text("Mot de passe", color = VeoliaBorderGray) },
                     leadingIcon = {
-                        Icon(imageVector = Icons.Default.Lock, contentDescription = "Mot de passe")
+                        Icon(imageVector = Icons.Default.Lock, contentDescription = "Mot de passe", tint = VeoliaBorderGray)
                     },
                     trailingIcon = {
                         val image = if (passwordVisible)
@@ -92,18 +101,32 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
                         else Icons.Filled.VisibilityOff
 
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(imageVector = image, contentDescription = "Afficher le mot de passe")
+                            Icon(imageVector = image, contentDescription = "Afficher le mot de passe", tint = VeoliaBorderGray)
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = VeoliaRed,
-                        focusedLabelColor = VeoliaRed,
-                        cursorColor = VeoliaRed
-                    )
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White,
+                        focusedBorderColor = VeoliaPrincipal,
+                        unfocusedBorderColor = Color.Transparent,
+                        cursorColor = VeoliaPrincipal,
+                        focusedTextColor = VeoliaTextDark,
+                        unfocusedTextColor = VeoliaTextDark
+                    ),
+                    shape = RoundedCornerShape(8.dp)
                 )
+
+                if (errorMessage != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 14.sp
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -111,15 +134,16 @@ fun LoginScreen(onLoginClick: (String, String) -> Unit) {
                     onClick = { onLoginClick(username, password) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = VeoliaRed),
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "Se connecter",
+                        text = "CONNEXION", // Majuscules
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        letterSpacing = 1.sp,
+                        color = White
                     )
                 }
             }

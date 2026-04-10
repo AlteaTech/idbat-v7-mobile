@@ -10,12 +10,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.idbat.mobile.ui.screens.LoginScreen
 import com.idbat.mobile.ui.screens.SuccessScreen
 import com.idbat.mobile.ui.theme.IdbatTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,17 +30,37 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var isLoggedIn by remember { mutableStateOf(false) }
+                    var loginError by remember { mutableStateOf<String?>(null) }
+                    val scope = rememberCoroutineScope()
+                    val context = LocalContext.current
 
                     if (isLoggedIn) {
                         SuccessScreen()
                     } else {
-                        LoginScreen(onLoginClick = { username, password ->
-                            // Ici on simule une connexion réussie
-                            // TODO: Remplacer par un vrai appel API
-                            if (username.isNotBlank() && password.isNotBlank()) {
-                                isLoggedIn = true
+                        LoginScreen(
+                            errorMessage = loginError,
+                            onLoginClick = { username, password ->
+                                scope.launch {
+                                    val database = (context.applicationContext as IdbatApplication).database
+                                    val userDao = database.userDao()
+                                    
+                                    val user = userDao.getUserByLogin(username)
+                                    
+                                    if (user != null && user.pin == password) {
+                                        // Connexion réussie
+                                        loginError = null
+                                        
+                                        // Mettre à jour la date de dernière connexion
+                                        userDao.insertUser(user.copy(lastLoginDate = System.currentTimeMillis()))
+                                        
+                                        isLoggedIn = true
+                                    } else {
+                                        // Identifiants incorrects
+                                        loginError = "Identifiant ou mot de passe incorrect"
+                                    }
+                                }
                             }
-                        })
+                        )
                     }
                 }
             }
@@ -49,6 +72,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LoginPreview() {
     IdbatTheme {
-        LoginScreen(onLoginClick = { _, _ -> })
+        LoginScreen(errorMessage = null, onLoginClick = { _, _ -> })
     }
 }
