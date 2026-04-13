@@ -16,11 +16,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import com.idbat.mobile.data.entities.LastSynchroHistoryEntity
 import com.idbat.mobile.data.entities.SiteEntity
+import com.idbat.mobile.data.entities.TypeSynchro
 import com.idbat.mobile.ui.screens.HomeScreen
 import com.idbat.mobile.ui.screens.LoginScreen
 import com.idbat.mobile.ui.theme.IdbatTheme
 import kotlinx.coroutines.launch
+import java.util.Date
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,8 +38,9 @@ class MainActivity : ComponentActivity() {
                     var loginError by remember { mutableStateOf<String?>(null) }
                     
                     var availableSites by remember { mutableStateOf<List<SiteEntity>>(emptyList()) }
-                    // On garde en mémoire le site sélectionné lors de la connexion
                     var loggedInSite by remember { mutableStateOf<SiteEntity?>(null) }
+                    var lastSynchroDateEnvoi by remember { mutableStateOf<Date?>(null) }
+                    var lastSynchroDateReception by remember { mutableStateOf<Date?>(null) }
                     
                     val scope = rememberCoroutineScope()
                     val context = LocalContext.current
@@ -48,14 +52,31 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // A chaque fois que le site de connexion change (ex: suite à un login)
+                    LaunchedEffect(loggedInSite) {
+                        loggedInSite?.let { site ->
+                            val database = (context.applicationContext as IdbatApplication).database
+                            val dao = database.lastSynchroHistoryDao()
+                            val lastEnvoi = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.ENVOI)
+                            val lastReception = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.RECEPTION)
+                            lastSynchroDateEnvoi = lastEnvoi?.date
+                            lastSynchroDateReception = lastReception?.date
+                        }
+                    }
+
                     if (isLoggedIn) {
-                        // On affiche le nouvel écran HomeScreen au lieu de SuccessScreen
+                        // Utiliser la date la plus récente entre envoi et réception pour l'affichage global
+
                         HomeScreen(
                             selectedSite = loggedInSite,
+                            lastSynchroDateEnvoi = lastSynchroDateEnvoi,
+                            lastSynchroDateReception = lastSynchroDateReception,
                             onLogoutClick = {
                                 isLoggedIn = false
                                 loginError = null
                                 loggedInSite = null
+                                lastSynchroDateEnvoi = null
+                                lastSynchroDateReception = null
                             }
                         )
                     } else {
@@ -73,7 +94,6 @@ class MainActivity : ComponentActivity() {
                                         loginError = null
                                         utilisateurDao.insertUtilisateur(utilisateur.copy(lastLoginDate = System.currentTimeMillis()))
                                         
-                                        // On sauvegarde le site complet correspondant à l'ID
                                         loggedInSite = availableSites.find { it.id == siteId }
                                         isLoggedIn = true
                                     } else {

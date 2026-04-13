@@ -4,22 +4,26 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.idbat.mobile.data.converters.Converters
 import com.idbat.mobile.data.dao.CarteContratDao
 import com.idbat.mobile.data.dao.ContratDao
+import com.idbat.mobile.data.dao.LastSynchroHistoryDao
 import com.idbat.mobile.data.dao.MatiereSiteDao
 import com.idbat.mobile.data.dao.MotifListeNoireContratDao
 import com.idbat.mobile.data.dao.SiteDao
 import com.idbat.mobile.data.dao.UtilisateurTPDao
 import com.idbat.mobile.data.entities.CarteContratEntity
 import com.idbat.mobile.data.entities.ContratEntity
+import com.idbat.mobile.data.entities.LastSynchroHistoryEntity
 import com.idbat.mobile.data.entities.MatiereSiteEntity
 import com.idbat.mobile.data.entities.MotifListeNoireContratEntity
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.data.entities.UtilisateurTPEntity
 
-// On passe à la version 9 de la base de données
+// On passe à la version 11 de la base de données
 @Database(
     entities = [
         UtilisateurTPEntity::class, 
@@ -27,11 +31,13 @@ import com.idbat.mobile.data.entities.UtilisateurTPEntity
         SiteEntity::class, 
         MotifListeNoireContratEntity::class,
         CarteContratEntity::class,
-        MatiereSiteEntity::class
+        MatiereSiteEntity::class,
+        LastSynchroHistoryEntity::class
     ],
-    version = 9,
+    version = 11,
     exportSchema = true
 )
+@TypeConverters(Converters::class) // Ajout des converters pour la Date et l'Enum TypeSynchro
 abstract class AppDatabase : RoomDatabase() {
     abstract fun utilisateurTPDao(): UtilisateurTPDao
     abstract fun contratDao(): ContratDao
@@ -39,12 +45,13 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun motifListeNoireContratDao(): MotifListeNoireContratDao
     abstract fun carteContratDao(): CarteContratDao
     abstract fun matiereSiteDao(): MatiereSiteDao
+    abstract fun lastSynchroHistoryDao(): LastSynchroHistoryDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        // ... (MIGRATION_1_2 à MIGRATION_7_8)
+        // ... (MIGRATION_1_2 à MIGRATION_8_9)
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE new_users (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, login TEXT NOT NULL, pin TEXT NOT NULL, token TEXT, lastLoginDate INTEGER NOT NULL)")
@@ -160,7 +167,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        // Migration manuelle de la version 8 à 9 pour ajouter des colonnes à carte_contrat
         private val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Ajout des colonnes à la table carte_contrat
@@ -177,6 +183,32 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Migration de la version 9 à 10 pour ajouter la table last_synchro_history_sites
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `last_synchro_history_sites` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                        `siteId` INTEGER NOT NULL, 
+                        `date` INTEGER NOT NULL, 
+                        FOREIGN KEY(`siteId`) REFERENCES `sites`(`id`) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_last_synchro_history_sites_siteId` ON `last_synchro_history_sites` (`siteId`)")
+            }
+        }
+
+        // Migration de la version 10 à 11 pour ajouter la colonne type à la table last_synchro_history_sites
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Ajout de la colonne type. Comme c'est un NOT NULL, il faut fournir une valeur par défaut.
+                // Ici on choisit 'ENVOI' comme valeur par défaut pour les éventuelles lignes existantes.
+                db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN type TEXT NOT NULL DEFAULT 'ENVOI'")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -187,7 +219,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, 
                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, 
-                    MIGRATION_7_8, MIGRATION_8_9
+                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11
                 )
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

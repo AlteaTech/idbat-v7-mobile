@@ -6,34 +6,30 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.entities.SiteEntity
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
-import com.idbat.mobile.ui.theme.VeoliaScreenBackground
-import com.idbat.mobile.ui.theme.White
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     selectedSite: SiteEntity?,
+    lastSynchroDateReception: Date?,
+    lastSynchroDateEnvoi: Date?,
     onLogoutClick: () -> Unit
 ) {
     Box(
@@ -54,13 +50,39 @@ fun HomeScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header: Heure et Batterie (Simulés ici par le système ou ignorés)
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Carte Principale (Gennevilliers)
+            // Bouton de déconnexion en haut à droite
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                IconButton(onClick = onLogoutClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Se déconnecter",
+                        tint = Color.White
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
+
+            // Format de la date ou texte par défaut
+            val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
+            val lastTransferText = if (lastSynchroDate != null) {
+                "Dernier transfert le ${formatter.format(lastSynchroDate)}"
+            } else {
+                "Jamais synchronisé"
+            }
+
+            // Carte Principale (Site)
             MainSiteCard(
                 siteName = selectedSite?.nom ?: "Gennevilliers",
-                lastTransfer = "10/07/2024 à 10h23"
+                lastTransfer = lastTransferText,
+                lastSynchroDateReception= lastSynchroDateReception,
+                lastSynchroDateEnvoi = lastSynchroDateEnvoi,
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -85,7 +107,9 @@ fun HomeScreen(
 }
 
 @Composable
-fun MainSiteCard(siteName: String, lastTransfer: String) {
+fun MainSiteCard(siteName: String, lastTransfer: String,
+                 lastSynchroDateReception: Date?,
+                 lastSynchroDateEnvoi: Date?) {
     Card(
         shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
@@ -103,7 +127,7 @@ fun MainSiteCard(siteName: String, lastTransfer: String) {
                 color = Color.Black
             )
             Text(
-                text = "Dernier transfert le $lastTransfer",
+                text = lastTransfer,
                 fontSize = 13.sp,
                 color = Color.Gray
             )
@@ -112,8 +136,8 @@ fun MainSiteCard(siteName: String, lastTransfer: String) {
 
             // Badges Envoi/Réception
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusBadge(text = "Envoi", isSuccess = false)
-                StatusBadge(text = "Réception", isSuccess = true)
+                StatusBadge(text = "Envoi", isSuccess = lastSynchroDateEnvoi != null && (lastSynchroDateReception == null || lastSynchroDateReception == lastSynchroDateEnvoi) )
+                StatusBadge(text = "Réception", isSuccess = lastSynchroDateReception != null  && (lastSynchroDateEnvoi == null  || lastSynchroDateReception == lastSynchroDateEnvoi ))
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -187,7 +211,6 @@ fun ActionRowButton(title: String, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(150.dp)
             )
-            // Ici vous devriez utiliser un Painter pour l'icône de l'agenda
             Icon(
                 imageVector = Icons.Default.EditNote,
                 contentDescription = null,
