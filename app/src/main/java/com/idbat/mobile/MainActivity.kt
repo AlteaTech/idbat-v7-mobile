@@ -17,8 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.idbat.mobile.data.entities.SiteEntity
+import com.idbat.mobile.ui.screens.HomeScreen
 import com.idbat.mobile.ui.screens.LoginScreen
-import com.idbat.mobile.ui.screens.SuccessScreen
 import com.idbat.mobile.ui.theme.IdbatTheme
 import kotlinx.coroutines.launch
 
@@ -34,26 +34,28 @@ class MainActivity : ComponentActivity() {
                     var isLoggedIn by remember { mutableStateOf(false) }
                     var loginError by remember { mutableStateOf<String?>(null) }
                     
-                    // État pour stocker la liste des sites venant de la base de données
                     var availableSites by remember { mutableStateOf<List<SiteEntity>>(emptyList()) }
+                    // On garde en mémoire le site sélectionné lors de la connexion
+                    var loggedInSite by remember { mutableStateOf<SiteEntity?>(null) }
                     
                     val scope = rememberCoroutineScope()
                     val context = LocalContext.current
 
-                    // Récupérer la liste des sites au démarrage
                     LaunchedEffect(Unit) {
                         val database = (context.applicationContext as IdbatApplication).database
-                        // On écoute le Flow une première fois pour obtenir la liste initiale
                         database.siteDao().getAllSitesFlow().collect { sites ->
                             availableSites = sites
                         }
                     }
 
                     if (isLoggedIn) {
-                        SuccessScreen(
+                        // On affiche le nouvel écran HomeScreen au lieu de SuccessScreen
+                        HomeScreen(
+                            selectedSite = loggedInSite,
                             onLogoutClick = {
                                 isLoggedIn = false
                                 loginError = null
+                                loggedInSite = null
                             }
                         )
                     } else {
@@ -67,17 +69,14 @@ class MainActivity : ComponentActivity() {
                                     
                                     val utilisateur = utilisateurDao.getUtilisateurByLogin(username)
                                     
-                                    // Dans une vraie app, on vérifierait aussi le siteId
                                     if (utilisateur != null && utilisateur.pin == password && siteId != null) {
-                                        // Connexion réussie
                                         loginError = null
-                                        
-                                        // Mettre à jour la date de dernière connexion
                                         utilisateurDao.insertUtilisateur(utilisateur.copy(lastLoginDate = System.currentTimeMillis()))
                                         
+                                        // On sauvegarde le site complet correspondant à l'ID
+                                        loggedInSite = availableSites.find { it.id == siteId }
                                         isLoggedIn = true
                                     } else {
-                                        // Identifiants incorrects
                                         loginError = "Identifiant, mot de passe ou site incorrect"
                                     }
                                 }
@@ -94,6 +93,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LoginPreview() {
     IdbatTheme {
-        LoginScreen(errorMessage = null, onLoginClick = { _, _, _ -> })
+        LoginScreen(errorMessage = null, availableSites = emptyList(), onLoginClick = { _, _, _ -> })
     }
 }
