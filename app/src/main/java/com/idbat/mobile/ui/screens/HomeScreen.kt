@@ -30,7 +30,8 @@ fun HomeScreen(
     selectedSite: SiteEntity?,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onTransferClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -83,6 +84,7 @@ fun HomeScreen(
                 lastTransfer = lastTransferText,
                 lastSynchroDateReception= lastSynchroDateReception,
                 lastSynchroDateEnvoi = lastSynchroDateEnvoi,
+                onTransferClick = onTransferClick
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -109,7 +111,8 @@ fun HomeScreen(
 @Composable
 fun MainSiteCard(siteName: String, lastTransfer: String,
                  lastSynchroDateReception: Date?,
-                 lastSynchroDateEnvoi: Date?) {
+                 lastSynchroDateEnvoi: Date?,
+                 onTransferClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
@@ -156,7 +159,7 @@ fun MainSiteCard(siteName: String, lastTransfer: String,
                     Text("Suivi", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
                 Button(
-                    onClick = { /* TODO */ },
+                    onClick = onTransferClick,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                     shape = RoundedCornerShape(20.dp)

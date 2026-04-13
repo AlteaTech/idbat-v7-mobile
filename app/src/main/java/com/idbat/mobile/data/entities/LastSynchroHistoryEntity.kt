@@ -27,6 +27,6 @@ data class LastSynchroHistoryEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val siteId: Long,
-    val date: Date,
+    var date: Date,
     val type: TypeSynchro
 )

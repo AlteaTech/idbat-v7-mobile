@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.idbat.mobile.data.entities.LastSynchroHistoryEntity
 import com.idbat.mobile.data.entities.TypeSynchro
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +22,11 @@ interface LastSynchroHistoryDao {
 
     @Query("SELECT * FROM last_synchro_history_sites")
     fun getAllSynchroHistoryFlow(): Flow<List<LastSynchroHistoryEntity>>
-    
-    @Query("DELETE FROM last_synchro_history_sites")
-    suspend fun clearHistory()
+    // 2. Méthode pour insérer (si nouveau)
+    @Insert
+    suspend fun insertSynchro(synchro: LastSynchroHistoryEntity)
+
+    // 3. Méthode pour mettre à jour (si existant)
+    @Update
+    suspend fun updateSynchro(synchro: LastSynchroHistoryEntity)
 }

@@ -77,6 +77,31 @@ class MainActivity : ComponentActivity() {
                                 loggedInSite = null
                                 lastSynchroDateEnvoi = null
                                 lastSynchroDateReception = null
+                            },
+                            onTransferClick = { ->
+                                scope.launch {
+                                    val dateExec = Date()
+                                    val database = (context.applicationContext as IdbatApplication).database
+                                    val dao = database.lastSynchroHistoryDao()
+                                    val lastEnvoi = dao.getLastSynchroForSiteAndType(loggedInSite!!.id, TypeSynchro.ENVOI)
+                                    val lastReception = dao.getLastSynchroForSiteAndType(loggedInSite!!.id, TypeSynchro.RECEPTION)
+
+                                    if(lastEnvoi != null){
+                                        lastEnvoi.date = dateExec
+                                        dao.updateSynchro(lastEnvoi)
+                                    }else{
+                                        dao.insertSynchro(LastSynchroHistoryEntity(siteId = loggedInSite!!.id, date = dateExec, type = TypeSynchro.ENVOI))
+                                    }
+
+                                    if(lastReception != null){
+                                        lastReception.date = dateExec
+                                        dao.updateSynchro(lastReception)
+                                    }else{
+                                        dao.insertSynchro(LastSynchroHistoryEntity(siteId = loggedInSite!!.id, date = dateExec, type = TypeSynchro.RECEPTION))
+                                    }
+                                    lastSynchroDateEnvoi = dateExec
+                                    lastSynchroDateReception = dateExec
+                                }
                             }
                         )
                     } else {
