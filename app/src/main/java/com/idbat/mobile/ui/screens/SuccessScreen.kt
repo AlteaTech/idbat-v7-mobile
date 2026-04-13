@@ -31,6 +31,8 @@ fun SuccessScreen(onLogoutClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Spacer(modifier = Modifier.weight(1f))
+        
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = "Succès",
@@ -78,14 +80,18 @@ fun SuccessScreen(onLogoutClick: () -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Logout,
                 contentDescription = "Déconnexion",
-                modifier = Modifier.size(ButtonDefaults.IconSize)
+                modifier = Modifier.size(ButtonDefaults.IconSize),
+                tint = MaterialTheme.colorScheme.onSecondary
             )
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
             Text(
                 text = "Déconnexion",
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondary
             )
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }

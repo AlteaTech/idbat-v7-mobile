@@ -1,11 +1,14 @@
 package com.idbat.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -18,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.ui.theme.VeoliaBorderGray
 import com.idbat.mobile.ui.theme.VeoliaCardBackground
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
@@ -29,11 +33,16 @@ import com.idbat.mobile.ui.theme.White
 @Composable
 fun LoginScreen(
     errorMessage: String? = null,
-    onLoginClick: (String, String) -> Unit
+    availableSites: List<SiteEntity> = emptyList(),
+    onLoginClick: (String, String, Long?) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    
+    // État pour le dropdown des sites
+    var expanded by remember { mutableStateOf(false) }
+    var selectedSite by remember { mutableStateOf<SiteEntity?>(null) }
 
     Column(
         modifier = Modifier
@@ -44,12 +53,12 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "VEOLIA IDBAT", // En majuscules
+            text = "VEOLIA IDBAT",
             color = VeoliaPrincipal,
-            fontSize = 36.sp, // Plus grand
-            fontWeight = FontWeight.ExtraBold, // Plus gras
-            letterSpacing = 1.5.sp, // Espacement
-            modifier = Modifier.padding(bottom = 32.dp) // Plus de marge
+            fontSize = 36.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.5.sp,
+            modifier = Modifier.padding(bottom = 32.dp)
         )
 
         Card(
@@ -64,6 +73,65 @@ fun LoginScreen(
                     .padding(vertical = 32.dp, horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                
+                // --- DROPDOWN SITES ---
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = selectedSite?.nom ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        placeholder = { Text("Sélectionner un site", color = VeoliaBorderGray) },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Default.Place, contentDescription = "Site", tint = VeoliaBorderGray)
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = White,
+                            unfocusedContainerColor = White,
+                            focusedBorderColor = VeoliaPrincipal,
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = VeoliaPrincipal,
+                            focusedTextColor = VeoliaTextDark,
+                            unfocusedTextColor = VeoliaTextDark
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(White)
+                    ) {
+                        availableSites.forEach { site ->
+                            DropdownMenuItem(
+                                text = { Text(site.nom, color = VeoliaTextDark) },
+                                onClick = {
+                                    selectedSite = site
+                                    expanded = false
+                                }
+                            )
+                        }
+                        if (availableSites.isEmpty()) {
+                             DropdownMenuItem(
+                                text = { Text("Aucun site disponible", color = VeoliaBorderGray) },
+                                onClick = { expanded = false },
+                                enabled = false
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- IDENTIFIANT ---
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
@@ -73,12 +141,11 @@ fun LoginScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    // Configuration pour avoir un fond blanc et des bordures grises
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = White,
                         unfocusedContainerColor = White,
                         focusedBorderColor = VeoliaPrincipal,
-                        unfocusedBorderColor = Color.Transparent, // Pas de bordure si pas sélectionné
+                        unfocusedBorderColor = Color.Transparent,
                         cursorColor = VeoliaPrincipal,
                         focusedTextColor = VeoliaTextDark,
                         unfocusedTextColor = VeoliaTextDark
@@ -88,6 +155,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // --- MOT DE PASSE ---
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -130,20 +198,23 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // --- BOUTON CONNEXION ---
                 Button(
-                    onClick = { onLoginClick(username, password) },
+                    onClick = { onLoginClick(username, password, selectedSite?.id) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    // Désactiver le bouton si le site n'est pas sélectionné
+                    enabled = selectedSite != null && username.isNotBlank() && password.isNotBlank()
                 ) {
                     Text(
-                        text = "CONNEXION", // Majuscules
+                        text = "CONNEXION",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
-                        color = White
+                        color = if (selectedSite != null && username.isNotBlank() && password.isNotBlank()) White else Color.LightGray
                     )
                 }
             }
