@@ -221,6 +221,8 @@ abstract class AppDatabase : RoomDatabase() {
                         db.execSQL("INSERT OR IGNORE INTO motifs_liste_noire_contrat (id, libelle, contratId, motifListeNoireId) VALUES (2, 'Refus de paiement', 1, 102)")
                         
                         // Sécurité pour l'ouverture
+                        db.execSQL("INSERT OR IGNORE INTO contrats (id, trigramme, nom) VALUES (2, 'ALT', 'Altea')")
+
                         db.execSQL("INSERT OR IGNORE INTO carte_contrat (id, libelle, contratId, carteId, type, valeur, uidRfid, isCreationByQRCode, carteGriseJ1, carteGriseF3) VALUES (1, 'Carte Accès Principal', 1, 501, 'Paiement', '100', 'A1B2C3D4', 1, 'VP', 1500)")
                         db.execSQL("INSERT OR IGNORE INTO carte_contrat (id, libelle, contratId, carteId, type, valeur, uidRfid, isCreationByQRCode, carteGriseJ1, carteGriseF3) VALUES (2, 'Carte Déchetterie', 1, 502, 'Acces', 'Illimite', 'E5F6G7H8', 0, 'CTTE', 3500)")
                         db.execSQL("INSERT OR IGNORE INTO matiere_site (id, libelle, siteId, matiereId) VALUES (1, 'Gravats', 1, 201)")

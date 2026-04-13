@@ -35,7 +35,12 @@ class MainActivity : ComponentActivity() {
                     val context = LocalContext.current
 
                     if (isLoggedIn) {
-                        SuccessScreen()
+                        SuccessScreen(
+                            onLogoutClick = {
+                                isLoggedIn = false
+                                loginError = null
+                            }
+                        )
                     } else {
                         LoginScreen(
                             errorMessage = loginError,
