@@ -1,0 +1,414 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 9,
+    "identityHash": "f1ffa1ed99b22ed63b8814716eecbbcc",
+    "entities": [
+      {
+        "tableName": "utilisateurs_tp",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `login` TEXT NOT NULL, `pin` TEXT NOT NULL, `token` TEXT, `lastLoginDate` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "login",
+            "columnName": "login",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pin",
+            "columnName": "pin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "token",
+            "columnName": "token",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastLoginDate",
+            "columnName": "lastLoginDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "contrats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `trigramme` TEXT NOT NULL, `nom` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trigramme",
+            "columnName": "trigramme",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nom",
+            "columnName": "nom",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sites",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `trigramme` TEXT NOT NULL, `nom` TEXT NOT NULL, `adresse1` TEXT, `adresse2` TEXT, `codePostal` TEXT, `ville` TEXT, `typeImprimante` TEXT, `macImprimante` TEXT, `horairesOuverture` TEXT, `destinatairesMailTransfertTP` TEXT, `contratId` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`contratId`) REFERENCES `contrats`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trigramme",
+            "columnName": "trigramme",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nom",
+            "columnName": "nom",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adresse1",
+            "columnName": "adresse1",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "adresse2",
+            "columnName": "adresse2",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "codePostal",
+            "columnName": "codePostal",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "ville",
+            "columnName": "ville",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "typeImprimante",
+            "columnName": "typeImprimante",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "macImprimante",
+            "columnName": "macImprimante",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "horairesOuverture",
+            "columnName": "horairesOuverture",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "destinatairesMailTransfertTP",
+            "columnName": "destinatairesMailTransfertTP",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "contratId",
+            "columnName": "contratId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sites_contratId",
+            "unique": false,
+            "columnNames": [
+              "contratId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sites_contratId` ON `${TABLE_NAME}` (`contratId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "contrats",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "contratId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "motifs_liste_noire_contrat",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `libelle` TEXT NOT NULL, `contratId` INTEGER NOT NULL, `motifListeNoireId` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`contratId`) REFERENCES `contrats`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "libelle",
+            "columnName": "libelle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contratId",
+            "columnName": "contratId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "motifListeNoireId",
+            "columnName": "motifListeNoireId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_motifs_liste_noire_contrat_contratId",
+            "unique": false,
+            "columnNames": [
+              "contratId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_motifs_liste_noire_contrat_contratId` ON `${TABLE_NAME}` (`contratId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "contrats",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "contratId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "carte_contrat",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `libelle` TEXT NOT NULL, `type` TEXT, `valeur` TEXT, `uidRfid` TEXT, `isCreationByQRCode` INTEGER NOT NULL, `carteGriseJ1` TEXT, `carteGriseF3` INTEGER, `contratId` INTEGER NOT NULL, `carteId` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`contratId`) REFERENCES `contrats`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "libelle",
+            "columnName": "libelle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "valeur",
+            "columnName": "valeur",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "uidRfid",
+            "columnName": "uidRfid",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isCreationByQRCode",
+            "columnName": "isCreationByQRCode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carteGriseJ1",
+            "columnName": "carteGriseJ1",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "carteGriseF3",
+            "columnName": "carteGriseF3",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "contratId",
+            "columnName": "contratId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carteId",
+            "columnName": "carteId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_carte_contrat_contratId",
+            "unique": false,
+            "columnNames": [
+              "contratId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_carte_contrat_contratId` ON `${TABLE_NAME}` (`contratId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "contrats",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "contratId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "matiere_site",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `libelle` TEXT NOT NULL, `siteId` INTEGER NOT NULL, `matiereId` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`siteId`) REFERENCES `sites`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "libelle",
+            "columnName": "libelle",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "siteId",
+            "columnName": "siteId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "matiereId",
+            "columnName": "matiereId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_matiere_site_siteId",
+            "unique": false,
+            "columnNames": [
+              "siteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_matiere_site_siteId` ON `${TABLE_NAME}` (`siteId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "sites",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "siteId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f1ffa1ed99b22ed63b8814716eecbbcc')"
+    ]
+  }
+}
