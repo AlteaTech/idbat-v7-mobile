@@ -2,13 +2,7 @@ package com.idbat.mobile.di
 
 import android.content.Context
 import com.idbat.mobile.data.AppDatabase
-import com.idbat.mobile.data.dao.CarteContratDao
-import com.idbat.mobile.data.dao.ContratDao
-import com.idbat.mobile.data.dao.LastSynchroHistoryDao
-import com.idbat.mobile.data.dao.MatiereSiteDao
-import com.idbat.mobile.data.dao.MotifListeNoireContratDao
-import com.idbat.mobile.data.dao.SiteDao
-import com.idbat.mobile.data.dao.UtilisateurTPDao
+import com.idbat.mobile.data.dao.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

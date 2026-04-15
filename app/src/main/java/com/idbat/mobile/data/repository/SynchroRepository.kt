@@ -3,8 +3,7 @@ package com.idbat.mobile.data.repository
 import com.idbat.mobile.data.dao.LastSynchroHistoryDao
 import com.idbat.mobile.data.entities.LastSynchroHistoryEntity
 import com.idbat.mobile.data.entities.TypeSynchro
-import kotlinx.coroutines.flow.Flow
-import java.util.Date
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 

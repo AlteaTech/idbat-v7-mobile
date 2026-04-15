@@ -8,20 +8,8 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.idbat.mobile.data.converters.Converters
-import com.idbat.mobile.data.dao.CarteContratDao
-import com.idbat.mobile.data.dao.ContratDao
-import com.idbat.mobile.data.dao.LastSynchroHistoryDao
-import com.idbat.mobile.data.dao.MatiereSiteDao
-import com.idbat.mobile.data.dao.MotifListeNoireContratDao
-import com.idbat.mobile.data.dao.SiteDao
-import com.idbat.mobile.data.dao.UtilisateurTPDao
-import com.idbat.mobile.data.entities.CarteContratEntity
-import com.idbat.mobile.data.entities.ContratEntity
-import com.idbat.mobile.data.entities.LastSynchroHistoryEntity
-import com.idbat.mobile.data.entities.MatiereSiteEntity
-import com.idbat.mobile.data.entities.MotifListeNoireContratEntity
-import com.idbat.mobile.data.entities.SiteEntity
-import com.idbat.mobile.data.entities.UtilisateurTPEntity
+import com.idbat.mobile.data.dao.*
+import com.idbat.mobile.data.entities.*
 
 // On passe à la version 11 de la base de données
 @Database(

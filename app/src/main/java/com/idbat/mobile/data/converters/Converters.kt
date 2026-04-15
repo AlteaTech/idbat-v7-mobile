@@ -2,7 +2,7 @@ package com.idbat.mobile.data.converters
 
 import androidx.room.TypeConverter
 import com.idbat.mobile.data.entities.TypeSynchro
-import java.util.Date
+import java.util.*
 
 class Converters {
     @TypeConverter

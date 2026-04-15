@@ -17,6 +17,9 @@ interface ContratDao {
 
     @Query("SELECT * FROM contrats")
     fun getAllContratsFlow(): Flow<List<ContratEntity>>
+
+    @Query("SELECT count(1) FROM contrats")
+    suspend fun count(): Long
     
     @Query("SELECT * FROM contrats WHERE id = :id LIMIT 1")
     suspend fun getContratById(id: Long): ContratEntity?

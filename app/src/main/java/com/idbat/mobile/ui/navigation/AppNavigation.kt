@@ -7,8 +7,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.idbat.mobile.ui.screens.LoginScreen
 import com.idbat.mobile.ui.screens.HomeScreen
+import com.idbat.mobile.ui.screens.LoginScreen
 import com.idbat.mobile.ui.viewmodel.HomeViewModel
 import com.idbat.mobile.ui.viewmodel.LoginViewModel
 
