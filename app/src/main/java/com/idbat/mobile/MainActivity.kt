@@ -9,10 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.intl.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.ui.screens.HomeScreen
@@ -20,7 +21,7 @@ import com.idbat.mobile.ui.screens.LoginScreen
 import com.idbat.mobile.ui.theme.IdbatTheme
 import com.idbat.mobile.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.Date
+import java.util.*
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -87,7 +88,13 @@ fun MainScreen(
     }
 }
 
-private fun buildSuiviContent(siteId: Long, lastEnvoi: Date?, lastReception: Date?, operation : Long, operationFailed: Long): String {
+private fun buildSuiviContent(
+    siteId: Long,
+    lastEnvoi: Date?,
+    lastReception: Date?,
+    operation: Long,
+    operationFailed: Long
+): String {
     val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", java.util.Locale.FRANCE)
 
     return buildString {

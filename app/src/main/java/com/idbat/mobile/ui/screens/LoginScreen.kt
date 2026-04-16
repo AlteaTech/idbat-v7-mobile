@@ -27,15 +27,11 @@ fun LoginScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    // Dans ce design, le mot de passe est masqué par défaut et n'a pas d'icône pour l'afficher,
-    // mais vous pouvez rajouter l'état si nécessaire.
     val passwordVisible by remember { mutableStateOf(false) }
 
     var expanded by remember { mutableStateOf(false) }
     var selectedSite by remember { mutableStateOf<SiteEntity?>(null) }
 
-    // Couleurs du dégradé et du thème (à ajuster selon vos codes hex exacts)
     val GradientTop = Color(0xFFF8A282) // Orange clair
     val GradientBottom = Color(0xFFE96D71) // Rose corail
     val CoralText = Color(0xFFEA6E72) // Couleur du texte du bouton et des flèches

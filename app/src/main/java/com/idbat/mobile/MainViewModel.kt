@@ -11,8 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -56,6 +55,7 @@ class MainViewModel @Inject constructor(
             }
         }
     }
+
     suspend fun getSuiviContentAsync(siteId: Long): String {
         val operationsTentees = database.lastSynchroHistoryDao().getTotalOperationsTentees(siteId) ?: 0L
         val operationsReussies = database.lastSynchroHistoryDao().getTotalOperationsReussies(siteId) ?: 0L
@@ -71,8 +71,13 @@ class MainViewModel @Inject constructor(
     }
 
 
-
-    private fun buildSuiviContent(siteId: Long, lastEnvoi: Date?, lastReception: Date?, operation: Long, operationFailed: Long): String {
+    private fun buildSuiviContent(
+        siteId: Long,
+        lastEnvoi: Date?,
+        lastReception: Date?,
+        operation: Long,
+        operationFailed: Long
+    ): String {
         val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
 
         val content = buildString {

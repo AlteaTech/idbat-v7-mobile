@@ -10,5 +10,5 @@ val VeoliaBorderGray = Color(0xFFB0B0B0) // Gris pour les bordures
 
 val VeoliaGray = Color(0xFF333333)
 val VeoliaLightGray = Color(0xFFF5F5F5)
-val White =  Color(red = 255, green = 255, blue = 255, alpha = 255)
-val Black =  Color(red = 0, green = 0, blue = 0, alpha = 255)
+val White = Color(red = 255, green = 255, blue = 255, alpha = 255)
+val Black = Color(red = 0, green = 0, blue = 0, alpha = 255)

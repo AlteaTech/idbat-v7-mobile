@@ -27,13 +27,13 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param idMobile 
+ *
+ * @param idMobile
  */
 
 
-data class LoginMobileRequest (
+data class LoginMobileRequest(
 
     @Json(name = "idMobile")
     val idMobile: kotlin.String

@@ -60,7 +60,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    
+
     // Ajout pour les icônes Material complètes
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")

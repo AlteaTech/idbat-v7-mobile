@@ -14,12 +14,13 @@ interface UtilisateurTPDao {
 
     @Query("SELECT * FROM utilisateurs_tp WHERE login = :login LIMIT 1")
     suspend fun getUtilisateurByLogin(login: String): UtilisateurTPEntity?
+
     @Query("delete FROM utilisateurs_tp")
     suspend fun purge()
 
     @Query("SELECT * FROM utilisateurs_tp ORDER BY lastLoginDate DESC LIMIT 1")
     fun getLastLoggedInUtilisateurFlow(): Flow<UtilisateurTPEntity?>
-    
+
     @Query("DELETE FROM utilisateurs_tp")
     suspend fun clearUtilisateurs()
 }

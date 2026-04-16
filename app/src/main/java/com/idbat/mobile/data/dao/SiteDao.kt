@@ -17,9 +17,10 @@ interface SiteDao {
 
     @Query("SELECT * FROM sites")
     fun getAllSitesFlow(): Flow<List<SiteEntity>>
-    
+
     @Query("SELECT * FROM sites WHERE id = :id LIMIT 1")
     suspend fun getSiteById(id: Long): SiteEntity?
+
     @Query("delete FROM sites")
     suspend fun purge()
 

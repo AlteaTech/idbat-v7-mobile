@@ -17,7 +17,7 @@ interface MotifListeNoireContratDao {
 
     @Query("SELECT * FROM motifs_liste_noire_contrat WHERE contratId = :contratId")
     fun getMotifsByContratFlow(contratId: Long): Flow<List<MotifListeNoireContratEntity>>
-    
+
     @Query("DELETE FROM motifs_liste_noire_contrat")
     suspend fun clearMotifs()
 }

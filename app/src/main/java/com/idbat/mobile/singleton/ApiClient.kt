@@ -19,7 +19,7 @@ object ApiClient {
     private val authInterceptor = Interceptor { chain ->
         val request = chain.request()
         val token = ConfigSingleton.tokenApi
-        
+
         val authenticatedRequest = if (token.isNotEmpty()) {
             request.newBuilder()
                 .header("Authorization", "Bearer $token")
@@ -27,7 +27,7 @@ object ApiClient {
         } else {
             request
         }
-        
+
         chain.proceed(authenticatedRequest)
     }
 

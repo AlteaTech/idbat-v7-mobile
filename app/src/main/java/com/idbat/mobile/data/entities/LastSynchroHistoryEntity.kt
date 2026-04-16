@@ -6,11 +6,6 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.*
 
-enum class TypeSynchro {
-    ENVOI,
-    RECEPTION
-}
-
 @Entity(
     tableName = "last_synchro_history_sites",
     foreignKeys = [

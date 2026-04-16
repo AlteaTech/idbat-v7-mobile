@@ -17,7 +17,7 @@ interface CarteContratDao {
 
     @Query("SELECT * FROM carte_contrat WHERE contratId = :contratId")
     fun getCartesByContratFlow(contratId: Long): Flow<List<CarteContratEntity>>
-    
+
     @Query("DELETE FROM carte_contrat")
     suspend fun clearCartes()
 }

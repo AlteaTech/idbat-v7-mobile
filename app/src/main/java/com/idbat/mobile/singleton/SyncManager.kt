@@ -7,7 +7,7 @@ import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.data.entities.TypeSynchro
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.Date
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random

@@ -9,12 +9,12 @@ import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class IdbatApplication : Application() {
-    
+
     val database by lazy { AppDatabase.getDatabase(this) }
-    
+
     override fun onCreate() {
         super.onCreate()
-        
+
         CoroutineScope(Dispatchers.IO).launch {
             database.openHelper.writableDatabase
         }

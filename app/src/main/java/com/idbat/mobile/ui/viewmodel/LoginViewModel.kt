@@ -61,11 +61,11 @@ class LoginViewModel @Inject constructor(
                 utilisateurRepository.updateLastLogin(user)
                 _uiState.update { it.copy(isLoading = false, isLoginSuccessful = true) }
             } else {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        isLoading = false, 
+                        isLoading = false,
                         errorMessage = "Identifiant ou mot de passe incorrect"
-                    ) 
+                    )
                 }
             }
         }

@@ -7,7 +7,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,10 +107,16 @@ private fun formatContent(content: String) = buildAnnotatedString {
                     line.contains("Dernière réception réussie le:") ||
                     line.contains("Opérations:") ||
                     line.contains("Opérations non transférées:") -> {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.Black)) {
+                withStyle(
+                    style = SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                ) {
                     append(line)
                 }
             }
+
             else -> {
                 append(line)
             }
@@ -142,11 +150,6 @@ class ToastState {
         _currentToast = null
     }
 }
-
-data class ToastData(
-    val title: String,
-    val content: String
-)
 
 @Composable
 fun rememberToastState(): ToastState {
