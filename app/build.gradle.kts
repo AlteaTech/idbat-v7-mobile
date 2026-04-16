@@ -63,7 +63,8 @@ dependencies {
     
     // Ajout pour les icônes Material complètes
     implementation("androidx.compose.material:material-icons-extended:1.6.1")
-    
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
