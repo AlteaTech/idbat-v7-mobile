@@ -9,19 +9,22 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EditNote
-import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.foundation.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.entities.SiteEntity
 import java.text.SimpleDateFormat
 import java.util.*
+import com.idbat.mobile.R
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -213,11 +216,11 @@ fun ActionRowButton(title: String, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(150.dp)
             )
-            Icon(
-                imageVector = Icons.Default.EditNote,
+
+            Image(
+                painter = painterResource(id = R.drawable.book1), // ← NOUVELLE ICÔNE
                 contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = Color(0xFFF27059)
+                modifier = Modifier.size(40.dp)
             )
         }
     }
@@ -244,12 +247,12 @@ fun BottomLargeButton(title: String, onClick: () -> Unit) {
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
-            Icon(
-                imageVector = Icons.Default.LocalShipping,
+            Image(
+                painter = painterResource(id = R.drawable.truck1), // ← NOUVELLE ICÔNE
                 contentDescription = null,
-                tint = Color.White,
                 modifier = Modifier.size(40.dp)
             )
+
         }
     }
 }
