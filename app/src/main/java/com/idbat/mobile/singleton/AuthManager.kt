@@ -45,6 +45,10 @@ class AuthManager @Inject constructor(
             } else {
                 Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
             }
+        }else{
+            // Mode hors-ligne : alimentation de la BDD avec des données mockées
+            Log.d("AUTH_MANAGER", "Mode hors-ligne activé - Chargement des données mockées")
+            loadMockDataToDatabase()
         }
 
         // 2. Vérification BDD
@@ -198,4 +202,99 @@ class AuthManager @Inject constructor(
             availableSites = _authState.value.availableSites
         )
     }
+private suspend fun loadMockDataToDatabase() {
+    try {
+        _authState.value = _authState.value.copy(isLoadingContracts = true)
+        Log.d("AUTH_MANAGER", "Chargement des données mockées en base...")
+
+        MockAdmin()
+        val contratDao = database.contratDao()
+        val siteDao = database.siteDao()
+
+        // 1. Création des contrats mockés
+        val contratsEntities = listOf(
+            ContratEntity(
+                id = 1,
+                trigramme = "ABC",
+                nom = "Contrat ABC - Démonstration"
+            )
+        )
+
+        // 2. Sauvegarde des contrats
+        contratsEntities.forEach { contrat ->
+            contratDao.insertContrat(contrat)
+            Log.d("AUTH_MANAGER", "Contrat mocké sauvegardé: ${contrat.nom}")
+        }
+
+        // 3. Création des sites mockés pour chaque contrat
+        val sitesEntities = mutableListOf<SiteEntity>()
+        
+        // Sites pour le contrat ABC
+        sitesEntities.addAll(listOf(
+            SiteEntity(
+                id = 101,
+                trigramme = "ABC01",
+                nom = "Site ABC - Paris",
+                adresse1 = "123 Rue de la Paix",
+                adresse2 = "2ème étage",
+                codePostal = "75001",
+                ville = "Paris",
+                typeImprimante = "ZEBRA",
+                macImprimante = "00:11:22:33:44:55",
+                horairesOuverture = "08:00-18:00",
+                destinatairesMailTransfertTP = "admin@abc-paris.com",
+                contratId = 1
+            ),
+            SiteEntity(
+                id = 102,
+                trigramme = "ABC02",
+                nom = "Site ABC - Lyon",
+                adresse1 = "456 Place Bellecour",
+                adresse2 = null,
+                codePostal = "69002",
+                ville = "Lyon",
+                typeImprimante = "BROTHER",
+                macImprimante = "00:11:22:33:44:66",
+                horairesOuverture = "07:30-19:00",
+                destinatairesMailTransfertTP = "admin@abc-lyon.com",
+                contratId = 1
+            )
+        ))
+
+        // Sites pour le contrat XYZ
+        sitesEntities.addAll(listOf(
+            SiteEntity(
+                id = 201,
+                trigramme = "XYZ01",
+                nom = "Site XYZ - Marseille",
+                adresse1 = "789 Vieux Port",
+                adresse2 = "Bâtiment A",
+                codePostal = "13001",
+                ville = "Marseille",
+                typeImprimante = "EPSON",
+                macImprimante = "00:11:22:33:44:77",
+                horairesOuverture = "09:00-17:00",
+                destinatairesMailTransfertTP = "contact@xyz-marseille.com",
+                contratId = 1
+            )
+        ))
+
+
+        // 4. Sauvegarde des sites en lot
+        siteDao.insertSites(sitesEntities)
+        Log.d("AUTH_MANAGER", "Sites mockés sauvegardés: ${sitesEntities.size} sites")
+
+        // 5. Log détaillé des sites créés
+        sitesEntities.forEach { site ->
+            Log.d("AUTH_MANAGER", "Site mocké sauvegardé: ${site.nom} (${site.trigramme})")
+        }
+
+        Log.d("AUTH_MANAGER", "✅ Alimentation mockée terminée avec succès")
+        
+    } catch (e: Exception) {
+        Log.e("AUTH_MANAGER", "❌ Erreur lors du chargement des données mockées", e)
+    } finally {
+        _authState.value = _authState.value.copy(isLoadingContracts = false)
+    }
+}
 }
