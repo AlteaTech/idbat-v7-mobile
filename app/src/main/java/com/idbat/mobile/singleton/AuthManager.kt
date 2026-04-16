@@ -30,7 +30,6 @@ class AuthManager @Inject constructor(
 
     suspend fun initializeApp() {
         try {
-            // 1. Authentification machine
             if (ConfigSingleton.webEnable) {
                 val requete = LoginMobileRequest(idMobile = "identifiant")
                 val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
@@ -40,18 +39,15 @@ class AuthManager @Inject constructor(
                     ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
                     Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
                 
-                // 1.5. Récupération des contrats depuis l'API
-                loadContractsFromApi() // ✅ Suppression du "await"
+                loadContractsFromApi()
             } else {
                 Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
             }
         }else{
-            // Mode hors-ligne : alimentation de la BDD avec des données mockées
             Log.d("AUTH_MANAGER", "Mode hors-ligne activé - Chargement des données mockées")
             loadMockDataToDatabase()
         }
 
-        // 2. Vérification BDD
         val contratDao = database.contratDao()
         val siteDao = database.siteDao()
 
@@ -63,7 +59,6 @@ class AuthManager @Inject constructor(
             siteDao.purge()
         }
 
-        // 3. Charger les sites disponibles
         database.siteDao().getAllSitesFlow().collect { sites ->
             _authState.value = _authState.value.copy(
                 availableSites = sites,
@@ -93,7 +88,6 @@ class AuthManager @Inject constructor(
                 Log.d("AUTH_MANAGER", "Contrats récupérés avec succès: $contratDmo")
                 
                 contratDmo?.let { dmo ->
-                    // Convertir et sauvegarder en base de données
                     saveContractToDatabase(dmo)
                 }
             } else {
@@ -116,6 +110,7 @@ class AuthManager @Inject constructor(
         )
         utilisateurTPDao.insertUtilisateur(utilisateurTP)
     }
+    
     private suspend fun saveContractToDatabase(contratDmo: com.idbat.mobile.generated.client.model.ContratDmo) {
     try {
         val contratDao = database.contratDao()
@@ -124,7 +119,7 @@ class AuthManager @Inject constructor(
         contratDao.purge()
 
         MockAdmin()
-        // 1. Conversion et sauvegarde du contrat
+        
         val contratEntity = ContratEntity(
             id = contratDmo.id ?: 0,
             trigramme = contratDmo.trigramme ?: "",
@@ -134,7 +129,6 @@ class AuthManager @Inject constructor(
         contratDao.insertContrat(contratEntity)
         Log.d("AUTH_MANAGER", "Contrat sauvegardé: ${contratEntity.nom}")
         
-        // 2. Conversion et sauvegarde des sites associés
         contratDmo.contratSite?.let { sitesDmo ->
             val sitesEntities = sitesDmo.map { siteDmo ->
                 SiteEntity(
@@ -153,11 +147,9 @@ class AuthManager @Inject constructor(
                 )
             }
             
-            // Sauvegarde en lot de tous les sites
             siteDao.insertSites(sitesEntities)
             Log.d("AUTH_MANAGER", "Sauvegarde de ${sitesEntities.size} sites pour le contrat ${contratEntity.nom}")
             
-            // Log détaillé des sites sauvegardés
             sitesEntities.forEach { site ->
                 Log.d("AUTH_MANAGER", "Site sauvegardé: ${site.nom} (ID: ${site.id})")
             }
@@ -202,6 +194,7 @@ class AuthManager @Inject constructor(
             availableSites = _authState.value.availableSites
         )
     }
+    
 private suspend fun loadMockDataToDatabase() {
     try {
         _authState.value = _authState.value.copy(isLoadingContracts = true)
@@ -211,7 +204,6 @@ private suspend fun loadMockDataToDatabase() {
         val contratDao = database.contratDao()
         val siteDao = database.siteDao()
 
-        // 1. Création des contrats mockés
         val contratsEntities = listOf(
             ContratEntity(
                 id = 1,
@@ -220,16 +212,13 @@ private suspend fun loadMockDataToDatabase() {
             )
         )
 
-        // 2. Sauvegarde des contrats
         contratsEntities.forEach { contrat ->
             contratDao.insertContrat(contrat)
             Log.d("AUTH_MANAGER", "Contrat mocké sauvegardé: ${contrat.nom}")
         }
 
-        // 3. Création des sites mockés pour chaque contrat
         val sitesEntities = mutableListOf<SiteEntity>()
         
-        // Sites pour le contrat ABC
         sitesEntities.addAll(listOf(
             SiteEntity(
                 id = 101,
@@ -261,7 +250,6 @@ private suspend fun loadMockDataToDatabase() {
             )
         ))
 
-        // Sites pour le contrat XYZ
         sitesEntities.addAll(listOf(
             SiteEntity(
                 id = 201,
@@ -279,12 +267,9 @@ private suspend fun loadMockDataToDatabase() {
             )
         ))
 
-
-        // 4. Sauvegarde des sites en lot
         siteDao.insertSites(sitesEntities)
         Log.d("AUTH_MANAGER", "Sites mockés sauvegardés: ${sitesEntities.size} sites")
 
-        // 5. Log détaillé des sites créés
         sitesEntities.forEach { site ->
             Log.d("AUTH_MANAGER", "Site mocké sauvegardé: ${site.nom} (${site.trigramme})")
         }

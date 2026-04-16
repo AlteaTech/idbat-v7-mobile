@@ -21,13 +21,12 @@ import com.idbat.mobile.data.entities.*
         MatiereSiteEntity::class,
         LastSynchroHistoryEntity::class
     ],
-    version = 12, // ← VERSION INCRÉMENTÉE
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     
-    // DAO abstracts
     abstract fun utilisateurTPDao(): UtilisateurTPDao
     abstract fun contratDao(): ContratDao
     abstract fun siteDao(): SiteDao
@@ -62,12 +61,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, 
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, 
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, 
-            MIGRATION_10_11, MIGRATION_11_12 // ← NOUVELLE MIGRATION
+            MIGRATION_10_11, MIGRATION_11_12
         )
-
-        // ===========================================
-        // MIGRATIONS DE BASE DE DONNÉES
-        // ===========================================
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -100,7 +95,6 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Migration vide - pas de changements nécessaires
             }
         }
 
@@ -152,7 +146,6 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Table carte_contrat
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `carte_contrat` (
                         `id` INTEGER NOT NULL, 
@@ -165,7 +158,6 @@ abstract class AppDatabase : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_carte_contrat_contratId` ON `carte_contrat` (`contratId`)")
 
-                // Table matiere_site
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS `matiere_site` (
                         `id` INTEGER NOT NULL, 
@@ -182,7 +174,6 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Ajout des nouvelles colonnes à carte_contrat
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN type TEXT")
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN valeur TEXT")
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN uidRfid TEXT")
@@ -190,7 +181,6 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN carteGriseJ1 TEXT")
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN carteGriseF3 INTEGER")
 
-                // Mise à jour des données mockées existantes
                 updateMockData(db)
             }
 
@@ -231,18 +221,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        // ← NOUVELLE MIGRATION 11 → 12
         private val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Ajout des nouvelles colonnes à last_synchro_history_sites
                 db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN operationsTentees INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN operationsReussies INTEGER NOT NULL DEFAULT 0")
             }
         }
-
-        // ===========================================
-        // CALLBACK POUR L'INITIALISATION
-        // ===========================================
 
         private class DatabaseCallback : Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {

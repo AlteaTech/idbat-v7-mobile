@@ -42,14 +42,12 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Initialisation de l'app
     LaunchedEffect(Unit) {
         viewModel.initializeApp()
     }
 
     when {
         !uiState.isInitialized -> {
-            // Écran de chargement
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center

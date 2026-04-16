@@ -12,12 +12,10 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 
 object ApiClient {
 
-    // 1. On configure Moshi
     private val moshi = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    // 2. Intercepteur pour ajouter automatiquement le token Bearer
     private val authInterceptor = Interceptor { chain ->
         val request = chain.request()
         val token = ConfigSingleton.tokenApi
@@ -33,25 +31,21 @@ object ApiClient {
         chain.proceed(authenticatedRequest)
     }
 
-    // 3. Intercepteur de logging (optionnel, pour debug)
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    // 4. Configuration OkHttp avec les intercepteurs
     private val httpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
         .addInterceptor(loggingInterceptor)
         .build()
 
-    // 5. Configuration Retrofit
     private val retrofit = Retrofit.Builder()
         .baseUrl(ConfigSingleton.baseUrl)
         .client(httpClient)
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
 
-    // 6. APIs disponibles
     val authApi: AuthMobileControllerApi by lazy {
         retrofit.create(AuthMobileControllerApi::class.java)
     }
