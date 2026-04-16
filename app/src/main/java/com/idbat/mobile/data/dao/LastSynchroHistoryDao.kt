@@ -7,9 +7,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LastSynchroHistoryDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSynchroHistory(history: LastSynchroHistoryEntity)
-
     @Query("SELECT * FROM last_synchro_history_sites WHERE siteId = :siteId ORDER BY date DESC LIMIT 1")
     suspend fun getLastSynchroForSite(siteId: Long): LastSynchroHistoryEntity?
 

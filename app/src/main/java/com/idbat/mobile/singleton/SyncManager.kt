@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.random.Random
 
 @Singleton
 class SyncManager @Inject constructor(
@@ -42,6 +43,8 @@ class SyncManager @Inject constructor(
     suspend fun executeTransfer(site: SiteEntity) {
         _syncState.value = _syncState.value.copy(isTransferring = true)
 
+        val tente = Random.nextLong(1, 200)
+        val reussie = Random.nextLong(1, tente)
         try {
             Log.d("SYNC_MANAGER", "Mon token est : ${ConfigSingleton.tokenApi}")
 
@@ -60,7 +63,9 @@ class SyncManager @Inject constructor(
                     LastSynchroHistoryEntity(
                         siteId = site.id,
                         date = dateExec,
-                        type = TypeSynchro.ENVOI
+                        type = TypeSynchro.ENVOI,
+                        operationsTentees = tente,
+                        operationsReussies = reussie
                     )
                 )
             }
@@ -73,7 +78,9 @@ class SyncManager @Inject constructor(
                     LastSynchroHistoryEntity(
                         siteId = site.id,
                         date = dateExec,
-                        type = TypeSynchro.RECEPTION
+                        type = TypeSynchro.RECEPTION,
+                        operationsTentees = 1,
+                        operationsReussies = 1
                     )
                 )
             }
