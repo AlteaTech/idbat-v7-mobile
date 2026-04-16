@@ -17,7 +17,7 @@ interface MatiereSiteDao {
 
     @Query("SELECT * FROM matiere_site WHERE siteId = :siteId")
     fun getMatieresBySiteFlow(siteId: Long): Flow<List<MatiereSiteEntity>>
-    
+
     @Query("DELETE FROM matiere_site")
     suspend fun clearMatieres()
 }

@@ -1,0 +1,9 @@
+Génération de call api
+1. isntall de la lib : npm install @openapitools/openapi-generator-cli -g
+2. commande
+
+Remove-Item -Recurse -Force "app\src\main\java\com\idbat\mobile\generated\client"
+npx @openapitools/openapi-generator-cli generate -i http://localhost:8091/v3/api-docs -g kotlin -o api_temp --api-package com.idbat.mobile.generated.client.api --model-package com.idbat.mobile.generated.client.model --additional-properties=library=jvm-retrofit2,useCoroutines=true,serializationLibrary=moshi
+New-Item -ItemType Directory -Force -Path "app\src\main\java\com\idbat\mobile\generated\client"
+Copy-Item -Path "api_temp\src\main\kotlin\com\idbat\mobile\generated\client\*" -Destination "app\src\main\java\com\idbat\mobile\generated\client\" -Recurse -Force
+Remove-Item -Recurse -Force "api_temp"

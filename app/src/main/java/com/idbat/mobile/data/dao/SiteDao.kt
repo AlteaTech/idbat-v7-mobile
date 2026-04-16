@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Transaction
 import com.idbat.mobile.data.entities.SiteEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -18,9 +17,12 @@ interface SiteDao {
 
     @Query("SELECT * FROM sites")
     fun getAllSitesFlow(): Flow<List<SiteEntity>>
-    
+
     @Query("SELECT * FROM sites WHERE id = :id LIMIT 1")
     suspend fun getSiteById(id: Long): SiteEntity?
+
+    @Query("delete FROM sites")
+    suspend fun purge()
 
     @Query("SELECT * FROM sites WHERE contratId = :contratId")
     fun getSitesByContratFlow(contratId: Long): Flow<List<SiteEntity>>
