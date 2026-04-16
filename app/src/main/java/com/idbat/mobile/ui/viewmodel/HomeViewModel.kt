@@ -66,8 +66,8 @@ class HomeViewModel @Inject constructor(
     }
 
     fun recordTransfer(siteId: Long) {
-        val tente = Random.nextLong(0, 200)
-        val reussie = Random.nextLong(0, tente)
+        val tente = Random.nextLong(1, 200)
+        val reussie = Random.nextLong(1, tente)
         viewModelScope.launch {
             synchroRepository.recordSynchro(
                 siteId, 
