@@ -1,5 +1,6 @@
 package com.idbat.mobile
 
+import android.icu.text.SimpleDateFormat
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.intl.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.ui.screens.HomeScreen
@@ -18,9 +20,11 @@ import com.idbat.mobile.ui.screens.LoginScreen
 import com.idbat.mobile.ui.theme.IdbatTheme
 import com.idbat.mobile.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.Date
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -38,7 +42,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel = hiltViewModel()
+    viewModel: MainViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -55,17 +59,22 @@ fun MainScreen(
                 CircularProgressIndicator()
             }
         }
-        
+
         uiState.isLoggedIn -> {
             HomeScreen(
                 selectedSite = uiState.authState.loggedInSite,
                 lastSynchroDateEnvoi = uiState.syncState.lastSynchroDateEnvoi,
                 lastSynchroDateReception = uiState.syncState.lastSynchroDateReception,
                 onLogoutClick = { viewModel.logout() },
-                onTransferClick = { viewModel.executeTransfer() }
+                onTransferClick = { viewModel.executeTransfer() },
+                getSuiviContent = { siteId ->
+                    viewModel.getSuiviContentAsync(siteId)
+
+
+                }
             )
         }
-        
+
         else -> {
             LoginScreen(
                 errorMessage = uiState.authState.loginError,
@@ -75,5 +84,26 @@ fun MainScreen(
                 }
             )
         }
+    }
+}
+
+private fun buildSuiviContent(siteId: Long, lastEnvoi: Date?, lastReception: Date?, operation : Long, operationFailed: Long): String {
+    val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", java.util.Locale.FRANCE)
+
+    return buildString {
+        append("Dernier envoi réussi le:\n")
+        append(if (lastEnvoi != null) formatter.format(lastEnvoi) else "Aucun envoi")
+        append("\n\n")
+
+        append("Dernière réception réussie le:\n")
+        append(if (lastReception != null) formatter.format(lastReception) else "Aucune réception")
+        append("\n\n")
+
+        append("Opérations:\n")
+        append(operation)
+        append("\n\n")
+
+        append("Opérations non transférées:\n")
+        append(operationFailed)
     }
 }

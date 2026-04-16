@@ -18,11 +18,17 @@ interface LastSynchroHistoryDao {
 
     @Query("SELECT * FROM last_synchro_history_sites")
     fun getAllSynchroHistoryFlow(): Flow<List<LastSynchroHistoryEntity>>
-    // 2. Méthode pour insérer (si nouveau)
+
     @Insert
     suspend fun insertSynchro(synchro: LastSynchroHistoryEntity)
 
-    // 3. Méthode pour mettre à jour (si existant)
     @Update
     suspend fun updateSynchro(synchro: LastSynchroHistoryEntity)
+
+    // Nouvelles méthodes pour les statistiques
+    @Query("SELECT SUM(operationsTentees) FROM last_synchro_history_sites WHERE siteId = :siteId")
+    suspend fun getTotalOperationsTentees(siteId: Long): Long?
+
+    @Query("SELECT SUM(operationsReussies) FROM last_synchro_history_sites WHERE siteId = :siteId")
+    suspend fun getTotalOperationsReussies(siteId: Long): Long?
 }

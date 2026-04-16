@@ -13,13 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
-import java.util.Date
 
 @Composable
 fun BottomToast(
@@ -80,9 +82,9 @@ fun BottomToast(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Contenu
+                // Contenu avec texte formaté
                 Text(
-                    text = content,
+                    text = formatContent(content),
                     fontSize = 14.sp,
                     color = Color.Gray,
                     lineHeight = 20.sp
@@ -91,6 +93,27 @@ fun BottomToast(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun formatContent(content: String) = buildAnnotatedString {
+    val lines = content.split("\n")
+    lines.forEachIndexed { index, line ->
+        when {
+            line.contains("Dernier envoi réussi le:") ||
+                    line.contains("Dernière réception réussie le:") ||
+                    line.contains("Opérations:") ||
+                    line.contains("Opérations non transférées:") -> {
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.Black)) {
+                    append(line)
+                }
+            }
+            else -> {
+                append(line)
+            }
+        }
+        if (index < lines.size - 1) append("\n")
     }
 }
 
