@@ -1,6 +1,5 @@
 package com.idbat.mobile.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.foundation.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,9 +23,8 @@ import com.idbat.mobile.data.entities.SiteEntity
 import java.text.SimpleDateFormat
 import java.util.*
 import com.idbat.mobile.R
-import androidx.compose.ui.platform.LocalContext
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
-
+import com.idbat.mobile.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +35,8 @@ fun HomeScreen(
     onLogoutClick: () -> Unit,
     onTransferClick: () -> Unit
 ) {
+    val toastState = rememberToastState()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -58,7 +57,6 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bouton de déconnexion en haut à droite
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -75,7 +73,6 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(8.dp))
             val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
 
-            // Format de la date ou texte par défaut
             val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
             val lastTransferText = if (lastSynchroDate != null) {
                 "Dernier transfert le ${formatter.format(lastSynchroDate)}"
@@ -83,45 +80,55 @@ fun HomeScreen(
                 "Jamais synchronisé"
             }
 
-            // Carte Principale (Site)
             MainSiteCard(
                 siteName = selectedSite?.nom ?: "Gennevilliers",
                 lastTransfer = lastTransferText,
                 lastSynchroDateReception= lastSynchroDateReception,
                 lastSynchroDateEnvoi = lastSynchroDateEnvoi,
-                onTransferClick = onTransferClick
+                onTransferClick = onTransferClick,
+                toastState = toastState
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bouton Saisie des signalements
             ActionRowButton(
                 title = "Saisie des signalements",
-                onClick = { /* TODO */ }
+                onClick = {
+                    toastState.showToast(
+                        title = "Saisie des signalements",
+                        content = "Module de signalement des incidents et anomalies constatés sur le terrain. Permet la création, modification et envoi de rapports détaillés vers le système central."
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Bouton du bas (Passage en déchetterie)
             BottomLargeButton(
                 title = "Passage en déchetterie",
-                onClick = { /* TODO */ }
+                onClick = {
+                    toastState.showToast(
+                        title = "Passage en déchetterie",
+                        content = "Gestion des passages et contrôles d'accès aux déchetteries. Inclut la vérification des autorisations, l'enregistrement des dépôts et le suivi des quotas."
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(40.dp))
         }
+
+        ToastHost(toastState = toastState)
     }
 }
 
 @Composable
-fun MainSiteCard(siteName: String, lastTransfer: String,
-                 lastSynchroDateReception: Date?,
-                 lastSynchroDateEnvoi: Date?,
-                 onTransferClick: () -> Unit) {
-    
-    // Contexte pour afficher le Toast
-    val context = LocalContext.current
-    
+fun MainSiteCard(
+    siteName: String,
+    lastTransfer: String,
+    lastSynchroDateReception: Date?,
+    lastSynchroDateEnvoi: Date?,
+    onTransferClick: () -> Unit,
+    toastState: ToastState
+) {
     Card(
         shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
@@ -146,7 +153,6 @@ fun MainSiteCard(siteName: String, lastTransfer: String,
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Badges Envoi/Réception
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatusBadge(text = "Envoi", isSuccess = lastSynchroDateEnvoi != null && (lastSynchroDateReception == null || lastSynchroDateReception == lastSynchroDateEnvoi) )
                 StatusBadge(text = "Réception", isSuccess = lastSynchroDateReception != null  && (lastSynchroDateEnvoi == null  || lastSynchroDateReception == lastSynchroDateEnvoi ))
@@ -154,19 +160,16 @@ fun MainSiteCard(siteName: String, lastTransfer: String,
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Boutons Suivi / Transférer
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
-                    onClick = { 
-                        // Affichage du Toast
-                        Toast.makeText(
-                            context, 
-                            "Message temporaire - contenu à définir", 
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    onClick = {
+                        toastState.showToast(
+                            title = "Suivi des opérations",
+                            content = "Cette fonctionnalité permet de suivre en temps réel l'état des transferts et synchronisations de votre site. Elle sera disponible dans une prochaine mise à jour de l'application."
+                        )
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
@@ -234,9 +237,9 @@ fun ActionRowButton(title: String, onClick: () -> Unit) {
                 painter = painterResource(id = R.drawable.book1),
                 contentDescription = "Book",
                 modifier = Modifier
-                    .fillMaxHeight()  // ← Prend toute la hauteur disponible
-                    .aspectRatio(1f), // ← Maintient les proportions (optionnel)
-                tint = VeoliaPrincipal // ← Couleur de l'icône
+                    .fillMaxHeight()
+                    .aspectRatio(1f),
+                tint = VeoliaPrincipal
             )
         }
     }
@@ -250,7 +253,7 @@ fun BottomLargeButton(title: String, onClick: () -> Unit) {
             .height(90.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(45.dp),
-        color = Color(0xFFF27059).copy(alpha = 0.8f) // Rose corail
+        color = Color(0xFFF27059).copy(alpha = 0.8f)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 24.dp),
@@ -264,13 +267,12 @@ fun BottomLargeButton(title: String, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Image(
-                painter = painterResource(id = R.drawable.truck2), // ← NOUVELLE ICÔNE
+                painter = painterResource(id = R.drawable.truck2),
                 contentDescription = null,
                 modifier = Modifier
-                    .fillMaxHeight()  // ← Prend toute la hauteur disponible
-                    .aspectRatio(1f), // ← Maintient les proportions (optionnel)
+                    .fillMaxHeight()
+                    .aspectRatio(1f),
             )
-
         }
     }
 }
