@@ -21,7 +21,7 @@ import com.idbat.mobile.data.entities.*
         MatiereSiteEntity::class,
         LastSynchroHistoryEntity::class
     ],
-    version = 11,
+    version = 12, // ← VERSION INCRÉMENTÉE
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -62,7 +62,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, 
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, 
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, 
-            MIGRATION_10_11
+            MIGRATION_10_11, MIGRATION_11_12 // ← NOUVELLE MIGRATION
         )
 
         // ===========================================
@@ -228,6 +228,15 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN type TEXT NOT NULL DEFAULT 'ENVOI'")
+            }
+        }
+
+        // ← NOUVELLE MIGRATION 11 → 12
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Ajout des nouvelles colonnes à last_synchro_history_sites
+                db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN operationsTentees INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN operationsReussies INTEGER NOT NULL DEFAULT 0")
             }
         }
 

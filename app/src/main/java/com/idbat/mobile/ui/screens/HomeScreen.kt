@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +25,8 @@ import com.idbat.mobile.data.entities.SiteEntity
 import java.text.SimpleDateFormat
 import java.util.*
 import com.idbat.mobile.R
+import androidx.compose.ui.platform.LocalContext
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,6 +118,10 @@ fun MainSiteCard(siteName: String, lastTransfer: String,
                  lastSynchroDateReception: Date?,
                  lastSynchroDateEnvoi: Date?,
                  onTransferClick: () -> Unit) {
+    
+    // Contexte pour afficher le Toast
+    val context = LocalContext.current
+    
     Card(
         shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
@@ -153,7 +160,14 @@ fun MainSiteCard(siteName: String, lastTransfer: String,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
-                    onClick = { /* TODO */ },
+                    onClick = { 
+                        // Affichage du Toast
+                        Toast.makeText(
+                            context, 
+                            "Message temporaire - contenu à définir", 
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
                     shape = RoundedCornerShape(20.dp)
@@ -216,11 +230,13 @@ fun ActionRowButton(title: String, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.width(150.dp)
             )
-
-            Image(
-                painter = painterResource(id = R.drawable.book1), // ← NOUVELLE ICÔNE
-                contentDescription = null,
-                modifier = Modifier.size(40.dp)
+            Icon(
+                painter = painterResource(id = R.drawable.book1),
+                contentDescription = "Book",
+                modifier = Modifier
+                    .fillMaxHeight()  // ← Prend toute la hauteur disponible
+                    .aspectRatio(1f), // ← Maintient les proportions (optionnel)
+                tint = VeoliaPrincipal // ← Couleur de l'icône
             )
         }
     }
@@ -248,9 +264,11 @@ fun BottomLargeButton(title: String, onClick: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Image(
-                painter = painterResource(id = R.drawable.truck1), // ← NOUVELLE ICÔNE
+                painter = painterResource(id = R.drawable.truck2), // ← NOUVELLE ICÔNE
                 contentDescription = null,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier
+                    .fillMaxHeight()  // ← Prend toute la hauteur disponible
+                    .aspectRatio(1f), // ← Maintient les proportions (optionnel)
             )
 
         }

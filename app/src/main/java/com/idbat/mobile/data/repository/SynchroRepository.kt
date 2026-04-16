@@ -15,11 +15,13 @@ class SynchroRepository @Inject constructor(
         return synchroDao.getLastSynchroForSiteAndType(siteId, type)
     }
 
-    suspend fun recordSynchro(siteId: Long, type: TypeSynchro) {
+    suspend fun recordSynchro(siteId: Long, type: TypeSynchro, operationsTentees : Long, operationsReussies : Long) {
         val history = LastSynchroHistoryEntity(
             siteId = siteId,
             date = Date(),
-            type = type
+            type = type,
+            operationsTentees = operationsTentees,
+            operationsReussies = operationsReussies
         )
         synchroDao.insertSynchroHistory(history)
     }

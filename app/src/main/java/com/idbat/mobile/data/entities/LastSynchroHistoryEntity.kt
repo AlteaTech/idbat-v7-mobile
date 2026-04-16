@@ -28,5 +28,7 @@ data class LastSynchroHistoryEntity(
     val id: Long = 0,
     val siteId: Long,
     var date: Date,
-    val type: TypeSynchro
+    val type: TypeSynchro,
+    val operationsTentees: Long = 0, // ← NOUVELLE PROPRIÉTÉ
+    val operationsReussies: Long = 0  // ← NOUVELLE PROPRIÉTÉ
 )

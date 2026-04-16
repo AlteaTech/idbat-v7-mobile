@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
+import kotlin.random.Random
 
 data class HomeUiState(
     val selectedSite: SiteEntity? = null,
@@ -65,8 +66,15 @@ class HomeViewModel @Inject constructor(
     }
 
     fun recordTransfer(siteId: Long) {
+        val tente = Random.nextLong(0, 200)
+        val reussie = Random.nextLong(0, tente)
         viewModelScope.launch {
-            synchroRepository.recordSynchro(siteId, TypeSynchro.ENVOI)
+            synchroRepository.recordSynchro(
+                siteId, 
+                TypeSynchro.ENVOI,
+                tente,
+                reussie
+            )
             // Recharger les données pour mettre à jour l'UI
             loadSiteData(siteId)
         }
