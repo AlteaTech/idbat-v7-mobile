@@ -32,7 +32,6 @@ import com.squareup.moshi.Json
  * @param numSerie 
  * @param identifiantDevice 
  * @param nom 
- * @param contratId 
  * @param typeTerminal 
  * @param longitude 
  * @param latitude 
@@ -49,9 +48,6 @@ data class CreerSmartphoneMobileRequest (
 
     @Json(name = "nom")
     val nom: kotlin.String,
-
-    @Json(name = "contratId")
-    val contratId: kotlin.Long,
 
     @Json(name = "typeTerminal")
     val typeTerminal: kotlin.String? = null,
