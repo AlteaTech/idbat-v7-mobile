@@ -2,6 +2,7 @@ package com.idbat.mobile.singleton
 
 import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
+import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.Interceptor
@@ -52,5 +53,8 @@ object ApiClient {
 
     val contratsApi: ContratsControllerApi by lazy {
         retrofit.create(ContratsControllerApi::class.java)
+    }
+    val smartphonesApi: SmartphonesMobileControllerApi by lazy {
+        retrofit.create(SmartphonesMobileControllerApi::class.java)
     }
 }

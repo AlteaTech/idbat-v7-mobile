@@ -10,10 +10,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.provider.Settings
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Singleton
 class AuthManager @Inject constructor(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    @ApplicationContext private val context: Context
 ) {
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState
@@ -30,17 +34,39 @@ class AuthManager @Inject constructor(
     suspend fun initializeApp() {
         try {
             if (ConfigSingleton.webEnable) {
-                val requete = LoginMobileRequest(idMobile = "identifiant")
-                val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
+                // Récupérer l'identifiant unique du device
+                val identifiantDevice = Settings.Secure.getString(
+                    context.contentResolver, 
+                    Settings.Secure.ANDROID_ID
+                )
+                
+                // D'abord, vérifier si le smartphone existe
+                val checkResponse = ApiClient.smartphonesApi.checkSmartphoneExists(identifiantDevice)
+                
+                if (checkResponse.isSuccessful) {
+                    val smartphoneExists = checkResponse.body() ?: false
+                    Log.d("AUTH_MANAGER", "Vérification smartphone avec ID $identifiantDevice: $smartphoneExists")
+                    if(smartphoneExists) {
 
-                if (reponse.isSuccessful) {
-                    val donnees = reponse.body()
-                    ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
-                    Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
+                        // Continuer avec l'authentification même si le smartphone n'existe pas
+                        val requete = LoginMobileRequest(idMobile = identifiantDevice)
+                        val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
 
-                    loadContractsFromApi()
+                        if (reponse.isSuccessful) {
+                            val donnees = reponse.body()
+                            ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
+                            Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
+
+                            loadContractsFromApi()
+                        } else {
+                            Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
+                        }
+                    }else{
+                        Log.d("AUTH_MANAGER", "smartphone inexistant, début de la procédure de creation")
+
+                    }
                 } else {
-                    Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
+                    Log.e("AUTH_MANAGER", "Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
                 }
             } else {
                 Log.d("AUTH_MANAGER", "Mode hors-ligne activé - Chargement des données mockées")
