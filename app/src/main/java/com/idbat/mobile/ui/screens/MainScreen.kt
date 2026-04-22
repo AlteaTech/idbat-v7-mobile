@@ -52,6 +52,7 @@ fun MainScreen(
             LoginScreen(
                 errorMessage = uiState.authState.loginError,
                 availableSites = uiState.authState.availableSites,
+                availableUsers = uiState.authState.availableUtilisateursTps,
                 onLoginClick = { username, password, siteId ->
                     viewModel.login(username, password, siteId)
                 }

@@ -17,20 +17,24 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.entities.SiteEntity
+import com.idbat.mobile.data.entities.UtilisateurTPEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     errorMessage: String? = null,
     availableSites: List<SiteEntity> = emptyList(),
+    availableUsers: List<UtilisateurTPEntity> = emptyList(),
     onLoginClick: (String, String, Long?) -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val passwordVisible by remember { mutableStateOf(false) }
 
-    var expanded by remember { mutableStateOf(false) }
+    var expandedSite by remember { mutableStateOf(false) }
     var selectedSite by remember { mutableStateOf<SiteEntity?>(null) }
+    
+    var expandedUser by remember { mutableStateOf(false) }
+    var selectedUser by remember { mutableStateOf<UtilisateurTPEntity?>(null) }
 
     val GradientTop = Color(0xFFF8A282) // Orange clair
     val GradientBottom = Color(0xFFE96D71) // Rose corail
@@ -56,16 +60,6 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(60.dp))
 
             // --- LOGO ---
-            // Remplacez R.drawable.logo_idbat par le nom réel de votre ressource image
-            /* Image(
-                painter = painterResource(id = R.drawable.logo_idbat),
-                contentDescription = "Logo VEOLIA IDBAT",
-                modifier = Modifier
-                    .height(80.dp)
-                    .fillMaxWidth(),
-                contentScale = ContentScale.Fit
-            )
-            */
             // Placeholder temporaire en attendant l'image :
             Text(
                 text = "idbat",
@@ -94,8 +88,8 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded },
+                    expanded = expandedSite,
+                    onExpandedChange = { expandedSite = !expandedSite },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
@@ -126,8 +120,8 @@ fun LoginScreen(
                     )
 
                     ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
+                        expanded = expandedSite,
+                        onDismissRequest = { expandedSite = false },
                         modifier = Modifier.background(Color.White)
                     ) {
                         availableSites.forEach { site ->
@@ -135,7 +129,7 @@ fun LoginScreen(
                                 text = { Text(site.nom, color = Color.DarkGray) },
                                 onClick = {
                                     selectedSite = site
-                                    expanded = false
+                                    expandedSite = false
                                 }
                             )
                         }
@@ -145,9 +139,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- IDENTIFIANT ---
-            // Note : sur votre maquette, "Identifiant" semble avoir une flèche de dropdown ("Gardien").
-            // Si c'est une saisie libre, voici le code. Si c'est une liste, utilisez un ExposedDropdownMenuBox comme pour "Site".
+            // --- IDENTIFIANT (Désormais un Dropdown) ---
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                 Text(
                     text = "Identifiant",
@@ -156,23 +148,55 @@ fun LoginScreen(
                     fontSize = 16.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                TextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    placeholder = { Text("Ex: Gardien", color = Color.LightGray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = CoralText,
-                        focusedTextColor = Color.DarkGray,
-                        unfocusedTextColor = Color.DarkGray
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
+                
+                ExposedDropdownMenuBox(
+                    expanded = expandedUser,
+                    onExpandedChange = { expandedUser = !expandedUser },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextField(
+                        value = selectedUser?.login ?: "Ex: Gardien",
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = CoralText,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = Color.DarkGray,
+                            unfocusedTextColor = if (selectedUser == null) Color.LightGray else Color.DarkGray
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expandedUser,
+                        onDismissRequest = { expandedUser = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        availableUsers.forEach { user ->
+                            DropdownMenuItem(
+                                text = { Text(user.login, color = Color.DarkGray) },
+                                onClick = {
+                                    selectedUser = user
+                                    expandedUser = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -218,7 +242,11 @@ fun LoginScreen(
 
             // --- BOUTON CONNEXION ---
             Button(
-                onClick = { onLoginClick(username, password, selectedSite?.id) },
+                onClick = { 
+                    selectedUser?.let { user ->
+                        onLoginClick(user.login, password, selectedSite?.id) 
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -227,7 +255,7 @@ fun LoginScreen(
                     disabledContainerColor = Color.White.copy(alpha = 0.5f)
                 ),
                 shape = RoundedCornerShape(30.dp), // Bouton très arrondi (Pill shape)
-                enabled = selectedSite != null && username.isNotBlank() && password.isNotBlank()
+                enabled = selectedSite != null && selectedUser != null && password.isNotBlank()
             ) {
                 Text(
                     text = "Connexion",

@@ -38,7 +38,8 @@ class AuthManager @Inject constructor(
         val loggedInSite: SiteEntity? = null,
         val availableSites: List<SiteEntity> = emptyList(),
         val isLoadingContracts: Boolean = false,
-        val showValidationError: Boolean = false // Nouveau champ
+        val showValidationError: Boolean = false, // Nouveau champ
+        val availableUtilisateursTps: List<UtilisateurTPEntity> = emptyList()
     )
 
     private suspend fun getCurrentLocation(): Pair<Double?, Double?> = withContext(Dispatchers.IO) {
@@ -149,9 +150,8 @@ class AuthManager @Inject constructor(
                         Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
                         // Afficher le message de validation
                         _authState.value = _authState.value.copy(
-                            showValidationError = true,
                             isInitialized = true,
-                            isLoadingContracts = false
+                            showValidationError = true,
                         )
                         return // Sortir de la fonction sans continuer
                     }
@@ -165,9 +165,8 @@ class AuthManager @Inject constructor(
         }catch(e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur lors de l'initialisation", e)
     _authState.value = _authState.value.copy(
-        showValidationError = true,
         isInitialized = true,
-        isLoadingContracts = false
+        showValidationError = true,
     )
 }
             val contratDao = database.contratDao()
@@ -180,27 +179,29 @@ class AuthManager @Inject constructor(
                 Log.d("AUTH_MANAGER", "0 contrat trouvé, purge de la table Site...")
                 siteDao.purge()
             }
+            database.utilisateurTPDao().getAllUtilisateurTPFlow().collect { utilisteursTps ->
 
-            database.siteDao().getAllSitesFlow().collect { sites ->
-                _authState.value = _authState.value.copy(
-                    availableSites = sites,
-                    isInitialized = true,
-                    isLoadingContracts = false
-                )
+                database.siteDao().getAllSitesFlow().collect { sites ->
+                    _authState.value = _authState.value.copy(
+                        availableSites = sites,
+                        availableUtilisateursTps = utilisteursTps,
+                        isInitialized = true,
+                        isLoadingContracts = false
+                    )
+                }
             }
 
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur lors de l'initialisation", e)
             _authState.value = _authState.value.copy(
                 isInitialized = true,
-                isLoadingContracts = false
             )
         }
     }
 
     private suspend fun loadContractsFromApi() {
         try {
-            _authState.value = _authState.value.copy(isLoadingContracts = true)
+            _authState.value = _authState.value.copy(isLoadingContracts = true,)
             Log.d("AUTH_MANAGER", "Récupération des contrats depuis l'API...")
 
             val response = ApiClient.contratsApi.getByDevice()
@@ -219,7 +220,7 @@ class AuthManager @Inject constructor(
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur lors de la récupération des contrats", e)
         } finally {
-            _authState.value = _authState.value.copy(isLoadingContracts = false)
+            _authState.value = _authState.value.copy()
         }
     }
 
@@ -293,19 +294,18 @@ class AuthManager @Inject constructor(
                 val selectedSite = _authState.value.availableSites.find { it.id == siteId }
                 _authState.value = _authState.value.copy(
                     isLoggedIn = true,
-                    loginError = null,
-                    loggedInSite = selectedSite
+                    loggedInSite = selectedSite,
                 )
                 Log.d("AUTH_MANAGER", "Connexion réussie pour ${selectedSite?.nom}")
             } else {
                 _authState.value = _authState.value.copy(
-                    loginError = "Identifiants incorrects"
+                    loginError = "Identifiants incorrects",
                 )
             }
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur lors de la connexion", e)
             _authState.value = _authState.value.copy(
-                loginError = "Erreur de connexion"
+                loginError = "Erreur de connexion",
             )
         }
     }
@@ -313,13 +313,14 @@ class AuthManager @Inject constructor(
     fun logout() {
         _authState.value = AuthState(
             isInitialized = true,
-            availableSites = _authState.value.availableSites
+            availableSites = _authState.value.availableSites,
+            availableUtilisateursTps =  _authState.value.availableUtilisateursTps
         )
     }
 
     private suspend fun loadMockDataToDatabase() {
         try {
-            _authState.value = _authState.value.copy(isLoadingContracts = true)
+            _authState.value = _authState.value.copy(isLoadingContracts = true,)
             Log.d("AUTH_MANAGER", "Chargement des données mockées en base...")
 
             MockAdmin()
@@ -407,7 +408,7 @@ class AuthManager @Inject constructor(
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "❌ Erreur lors du chargement des données mockées", e)
         } finally {
-            _authState.value = _authState.value.copy(isLoadingContracts = false)
+            _authState.value = _authState.value.copy()
         }
     }
 
@@ -427,6 +428,6 @@ class AuthManager @Inject constructor(
     }
 
     fun dismissValidationError() {
-        _authState.value = _authState.value.copy(showValidationError = false)
+        _authState.value = _authState.value.copy()
     }
 }
