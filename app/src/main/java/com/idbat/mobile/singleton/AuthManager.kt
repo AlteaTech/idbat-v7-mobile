@@ -37,7 +37,8 @@ class AuthManager @Inject constructor(
         val loginError: String? = null,
         val loggedInSite: SiteEntity? = null,
         val availableSites: List<SiteEntity> = emptyList(),
-        val isLoadingContracts: Boolean = false
+        val isLoadingContracts: Boolean = false,
+        val showValidationError: Boolean = false // Nouveau champ
     )
 
     private suspend fun getCurrentLocation(): Pair<Double?, Double?> = withContext(Dispatchers.IO) {
@@ -95,57 +96,64 @@ class AuthManager @Inject constructor(
 
     suspend fun initializeApp() {
         try {
+        try {
             if (ConfigSingleton.webEnable) {
                 // Récupérer l'identifiant unique du device
                 val identifiantDevice = Settings.Secure.getString(
-                    context.contentResolver, 
+                    context.contentResolver,
                     Settings.Secure.ANDROID_ID
                 )
-                
+
                 // D'abord, vérifier si le smartphone existe
                 val checkResponse = ApiClient.smartphonesApi.checkSmartphoneExists(identifiantDevice)
-                
+
                 if (checkResponse.isSuccessful) {
                     val smartphoneExists = checkResponse.body() ?: false
                     Log.d("AUTH_MANAGER", "Vérification smartphone avec ID $identifiantDevice: $smartphoneExists")
-                    
+
                     if (!smartphoneExists) {
                         Log.d("AUTH_MANAGER", "smartphone inexistant, début de la procédure de creation")
-                        
+
                         // Récupérer la localisation actuelle
                         val (latitude, longitude) = getCurrentLocation()
-                        
+
                         // Créer le smartphone
                         val creerSmartphoneRequest = CreerSmartphoneMobileRequest(
                             numSerie = identifiantDevice,
                             identifiantDevice = identifiantDevice,
-                            nom =  "${Build.MANUFACTURER} ${Build.MODEL}",
+                            nom = "${Build.MANUFACTURER} ${Build.MODEL}",
                             typeTerminal = getDeviceModel(),
                             longitude = longitude,
                             latitude = latitude
                         )
-                        
+
                         val creerResponse = ApiClient.smartphonesApi.creerSmartphone(creerSmartphoneRequest)
-                        
+
                         if (creerResponse.isSuccessful) {
                             Log.d("AUTH_MANAGER", "Smartphone créé avec succès (lat: $latitude, lng: $longitude)")
                         } else {
                             Log.e("AUTH_MANAGER", "Erreur lors de la création du smartphone: ${creerResponse.code()}")
                         }
                     }
-                    else{
-                        val requete = LoginMobileRequest(idMobile = identifiantDevice)
-                        val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
 
-                        if (reponse.isSuccessful) {
-                            val donnees = reponse.body()
-                            ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
-                            Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
+                    val requete = LoginMobileRequest(idMobile = identifiantDevice)
+                    val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
 
-                            loadContractsFromApi()
-                        } else {
-                            Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
-                        }
+                    if (reponse.isSuccessful) {
+                        val donnees = reponse.body()
+                        ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
+                        Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
+
+                        loadContractsFromApi()
+                    } else {
+                        Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
+                        // Afficher le message de validation
+                        _authState.value = _authState.value.copy(
+                            showValidationError = true,
+                            isInitialized = true,
+                            isLoadingContracts = false
+                        )
+                        return // Sortir de la fonction sans continuer
                     }
                 } else {
                     Log.e("AUTH_MANAGER", "Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
@@ -154,7 +162,14 @@ class AuthManager @Inject constructor(
                 Log.d("AUTH_MANAGER", "Mode hors-ligne activé - Chargement des données mockées")
                 loadMockDataToDatabase()
             }
-
+        }catch(e: Exception) {
+            Log.e("AUTH_MANAGER", "Erreur lors de l'initialisation", e)
+    _authState.value = _authState.value.copy(
+        showValidationError = true,
+        isInitialized = true,
+        isLoadingContracts = false
+    )
+}
             val contratDao = database.contratDao()
             val siteDao = database.siteDao()
 
@@ -409,5 +424,9 @@ class AuthManager @Inject constructor(
             Log.w("AUTH_MANAGER", "Erreur lors de la récupération du modèle du device", e)
             "Unknown Android Device"
         }
+    }
+
+    fun dismissValidationError() {
+        _authState.value = _authState.value.copy(showValidationError = false)
     }
 }
