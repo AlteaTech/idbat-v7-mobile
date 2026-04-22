@@ -28,7 +28,7 @@ fun HomeScreen(
     lastSynchroDateEnvoi: Date?,
     onLogoutClick: () -> Unit,
     onTransferClick: () -> Unit,
-    getSuiviContent: suspend (Long) -> String = { "" } // Changé le nom et le type de retour
+    getSuiviContent: suspend (Long) -> CharSequence = { "" } // Changé le nom et le type de retour
 ) {
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()

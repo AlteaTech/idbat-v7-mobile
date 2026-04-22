@@ -28,7 +28,7 @@ import com.idbat.mobile.ui.theme.VeoliaPrincipal
 @Composable
 fun BottomToast(
     title: String,
-    content: String,
+    content: CharSequence,
     onDismiss: () -> Unit
 ) {
     Popup(
@@ -99,14 +99,14 @@ fun BottomToast(
 }
 
 @Composable
-private fun formatContent(content: String) = buildAnnotatedString {
+private fun formatContent(content: CharSequence) = buildAnnotatedString {
     val lines = content.split("\n")
     lines.forEachIndexed { index, line ->
         when {
-            line.contains("Dernier envoi réussi le:") ||
-                    line.contains("Dernière réception réussie le:") ||
-                    line.contains("Opérations:") ||
-                    line.contains("Opérations non transférées:") -> {
+            line.contains("Dernier envoi réussi le :") ||
+                    line.contains("Dernière réception réussie le :") ||
+                    line.contains("Opérations :") ||
+                    line.contains("Opérations non transférées :") -> {
                 withStyle(
                     style = SpanStyle(
                         fontWeight = FontWeight.Bold,
@@ -142,7 +142,7 @@ class ToastState {
     private var _currentToast by mutableStateOf<ToastData?>(null)
     val currentToast: ToastData? get() = _currentToast
 
-    fun showToast(title: String, content: String) {
+    fun showToast(title: String, content: CharSequence) {
         _currentToast = ToastData(title, content)
     }
 

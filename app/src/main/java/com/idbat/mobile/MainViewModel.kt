@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import androidx.core.text.bold
+import androidx.core.text.buildSpannedString
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -56,7 +58,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    suspend fun getSuiviContentAsync(siteId: Long): String {
+    suspend fun getSuiviContentAsync(siteId: Long): CharSequence {
         val operationsTentees = database.lastSynchroHistoryDao().getTotalOperationsTentees(siteId) ?: 0L
         val operationsReussies = database.lastSynchroHistoryDao().getTotalOperationsReussies(siteId) ?: 0L
         val operationsEchouees = operationsTentees - operationsReussies
@@ -77,17 +79,23 @@ class MainViewModel @Inject constructor(
         lastReception: Date?,
         operation: Long,
         operationFailed: Long
-    ): String {
+    ): CharSequence { // 1. On retourne un CharSequence au lieu d'un String
         val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
 
-        val content = buildString {
-            append("Dernier envois réussi le:\n${lastEnvoi?.let { formatter.format(it) } ?: "Jamais"}\n\n")
-            append("Dernière réception réussi le:\n${lastReception?.let { formatter.format(it) } ?: "Jamais"}\n\n")
-            append("Opérations:\n$operation\n\n")
-            append("Opérations non transférées:\n$operationFailed\n")
-        }
+        // 2. On utilise buildSpannedString au lieu de buildString
+        return buildSpannedString {
+            bold { append("Dernier envoi réussi le :") }
+            append("\n${lastEnvoi?.let { formatter.format(it) } ?: "Jamais"}\n\n")
 
-        return content
+            bold { append("Dernière réception réussie le :") }
+            append("\n${lastReception?.let { formatter.format(it) } ?: "Jamais"}\n\n")
+
+            bold { append("Opérations :") }
+            append("\n$operation\n\n")
+
+            bold { append("Opérations non transférées :") }
+            append("\n$operationFailed\n")
+        }
     }
 
     fun initializeApp() {
