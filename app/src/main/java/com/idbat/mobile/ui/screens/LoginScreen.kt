@@ -99,7 +99,7 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = selectedSite?.nom ?: "Selectionner un Site", // ou "" par défaut
+                        value = selectedSite?.nom ?: "Selectionner un site", // ou "" par défaut
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = {
