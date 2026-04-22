@@ -7,3 +7,5 @@ npx @openapitools/openapi-generator-cli generate -i http://localhost:8091/v3/api
 New-Item -ItemType Directory -Force -Path "app\src\main\java\com\idbat\mobile\generated\client"
 Copy-Item -Path "api_temp\src\main\kotlin\com\idbat\mobile\generated\client\*" -Destination "app\src\main\java\com\idbat\mobile\generated\client\" -Recurse -Force
 Remove-Item -Recurse -Force "api_temp"
+
+3. nettoyers les import

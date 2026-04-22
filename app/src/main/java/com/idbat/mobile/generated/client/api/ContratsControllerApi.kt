@@ -7,8 +7,8 @@ import retrofit2.http.GET
 interface ContratsControllerApi {
     /**
      * GET api/contrats
-     *
-     *
+     * 
+     * 
      * Responses:
      *  - 200: OK
      *
