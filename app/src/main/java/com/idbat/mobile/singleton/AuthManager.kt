@@ -21,6 +21,7 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import androidx.core.content.ContextCompat
+import android.os.Build
 
 @Singleton
 class AuthManager @Inject constructor(
@@ -118,8 +119,8 @@ class AuthManager @Inject constructor(
                         val creerSmartphoneRequest = CreerSmartphoneMobileRequest(
                             numSerie = identifiantDevice,
                             identifiantDevice = identifiantDevice,
-                            nom = "Smartphone Android",
-                            typeTerminal = "ANDROID",
+                            nom =  "${Build.MANUFACTURER} ${Build.MODEL}",
+                            typeTerminal = getDeviceModel(),
                             longitude = longitude,
                             latitude = latitude
                         )
@@ -392,6 +393,21 @@ class AuthManager @Inject constructor(
             Log.e("AUTH_MANAGER", "❌ Erreur lors du chargement des données mockées", e)
         } finally {
             _authState.value = _authState.value.copy(isLoadingContracts = false)
+        }
+    }
+
+    private fun getDeviceModel(): String {
+        return try {
+            val manufacturer = Build.MANUFACTURER
+            val model = Build.MODEL
+            val version = Build.VERSION.RELEASE
+            val sdk = Build.VERSION.SDK_INT
+            
+            // Format: "Manufacturer Model (Android Version, API Level)"
+            "$manufacturer $model (Android $version, API $sdk)"
+        } catch (e: Exception) {
+            Log.w("AUTH_MANAGER", "Erreur lors de la récupération du modèle du device", e)
+            "Unknown Android Device"
         }
     }
 }
