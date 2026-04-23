@@ -19,7 +19,7 @@ interface SmartphonesMobileControllerApi {
      * @return [kotlin.Boolean]
      */
     @GET("api/smartphones/check")
-    suspend fun checkSmartphoneExists(@Query("numSerie") numSerie: String): Response<Boolean>
+    suspend fun checkSmartphoneExists(@Query("numSerie") numSerie: kotlin.String): Response<kotlin.Boolean>
 
     /**
      * POST api/smartphones
@@ -32,6 +32,6 @@ interface SmartphonesMobileControllerApi {
      * @return [kotlin.Any]
      */
     @POST("api/smartphones")
-    suspend fun creerSmartphone(@Body creerSmartphoneMobileRequest: CreerSmartphoneMobileRequest): Response<Any>
+    suspend fun creerSmartphone(@Body creerSmartphoneMobileRequest: CreerSmartphoneMobileRequest): Response<kotlin.Any>
 
 }

@@ -17,6 +17,6 @@ interface AuthMobileControllerApi {
      * @return [kotlin.collections.Map<kotlin.String, kotlin.String>]
      */
     @POST("api/auth-mobile/login")
-    suspend fun authenticateUser(@Body loginMobileRequest: LoginMobileRequest): Response<Map<String, String>>
+    suspend fun authenticateUser(@Body loginMobileRequest: LoginMobileRequest): Response<kotlin.collections.Map<kotlin.String, kotlin.String>>
 
 }

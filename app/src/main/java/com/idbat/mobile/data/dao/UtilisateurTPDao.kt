@@ -4,7 +4,6 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.data.entities.UtilisateurTPEntity
 import kotlinx.coroutines.flow.Flow
 

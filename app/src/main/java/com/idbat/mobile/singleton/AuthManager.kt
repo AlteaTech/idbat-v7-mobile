@@ -298,10 +298,16 @@ class AuthManager @Inject constructor(
                 }
 
                 utilisateurTPDao.insertUtilisateurs(utilisateurTPEntities)
-                Log.d("AUTH_MANAGER", "Sauvegarde de ${utilisateurTPEntities.size} utilisateurTPEntities pour le contrat ${contratEntity.nom}")
+                Log.d(
+                    "AUTH_MANAGER",
+                    "Sauvegarde de ${utilisateurTPEntities.size} utilisateurTPEntities pour le contrat ${contratEntity.nom}"
+                )
 
                 utilisateurTPEntities.forEach { utilisateurTPEntitie ->
-                    Log.d("AUTH_MANAGER", "Site sauvegardé: ${utilisateurTPEntitie.login} (ID: ${utilisateurTPEntitie.id})")
+                    Log.d(
+                        "AUTH_MANAGER",
+                        "Site sauvegardé: ${utilisateurTPEntitie.login} (ID: ${utilisateurTPEntitie.id})"
+                    )
                 }
 
             } ?: run {
