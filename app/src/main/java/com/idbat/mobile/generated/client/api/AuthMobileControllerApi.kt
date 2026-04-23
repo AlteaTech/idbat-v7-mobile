@@ -8,15 +8,15 @@ import retrofit2.http.POST
 interface AuthMobileControllerApi {
     /**
      * POST api/auth-mobile/login
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: OK
      *
-     * @param loginMobileRequest 
+     * @param loginMobileRequest
      * @return [kotlin.collections.Map<kotlin.String, kotlin.String>]
      */
     @POST("api/auth-mobile/login")
-    suspend fun authenticateUser(@Body loginMobileRequest: LoginMobileRequest): Response<kotlin.collections.Map<kotlin.String, kotlin.String>>
+    suspend fun authenticateUser(@Body loginMobileRequest: LoginMobileRequest): Response<Map<String, String>>
 
 }

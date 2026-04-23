@@ -32,7 +32,7 @@ fun LoginScreen(
 
     var expandedSite by remember { mutableStateOf(false) }
     var selectedSite by remember { mutableStateOf<SiteEntity?>(null) }
-    
+
     var expandedUser by remember { mutableStateOf(false) }
     var selectedUser by remember { mutableStateOf<UtilisateurTPEntity?>(null) }
 
@@ -148,7 +148,7 @@ fun LoginScreen(
                     fontSize = 16.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 ExposedDropdownMenuBox(
                     expanded = expandedUser,
                     onExpandedChange = { expandedUser = !expandedUser },
@@ -242,9 +242,9 @@ fun LoginScreen(
 
             // --- BOUTON CONNEXION ---
             Button(
-                onClick = { 
+                onClick = {
                     selectedUser?.let { user ->
-                        onLoginClick(user.login, password, selectedSite?.id) 
+                        onLoginClick(user.login, password, selectedSite?.id)
                     }
                 },
                 modifier = Modifier

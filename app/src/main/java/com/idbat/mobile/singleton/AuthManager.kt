@@ -1,8 +1,14 @@
 package com.idbat.mobile.singleton
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.SiteEntity
@@ -10,18 +16,12 @@ import com.idbat.mobile.data.entities.UtilisateurTPEntity
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
 import com.idbat.mobile.generated.client.model.LoginMobileRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.pm.PackageManager
-import android.location.LocationManager
-import androidx.core.content.ContextCompat
-import android.os.Build
 
 @Singleton
 class AuthManager @Inject constructor(
@@ -46,12 +46,12 @@ class AuthManager @Inject constructor(
         try {
             // Vérifier les permissions
             val hasCoarseLocation = ContextCompat.checkSelfPermission(
-                context, 
+                context,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
-            
+
             val hasFineLocation = ContextCompat.checkSelfPermission(
-                context, 
+                context,
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
 
@@ -61,11 +61,11 @@ class AuthManager @Inject constructor(
             }
 
             val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            
+
             // Vérifier si le GPS ou le réseau est disponible
             val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
             val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            
+
             if (!isGpsEnabled && !isNetworkEnabled) {
                 Log.w("AUTH_MANAGER", "Aucun provider de localisation activé")
                 return@withContext Pair(null, null)
@@ -80,7 +80,7 @@ class AuthManager @Inject constructor(
 
             @SuppressLint("MissingPermission")
             val location = locationManager.getLastKnownLocation(provider)
-            
+
             if (location != null) {
                 Log.d("AUTH_MANAGER", "Localisation obtenue: lat=${location.latitude}, lng=${location.longitude}")
                 return@withContext Pair(location.latitude, location.longitude)
@@ -88,7 +88,7 @@ class AuthManager @Inject constructor(
                 Log.w("AUTH_MANAGER", "Aucune localisation connue disponible")
                 return@withContext Pair(null, null)
             }
-            
+
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur lors de la récupération de la localisation", e)
             return@withContext Pair(null, null)
@@ -97,78 +97,81 @@ class AuthManager @Inject constructor(
 
     suspend fun initializeApp() {
         try {
-        try {
-            if (ConfigSingleton.webEnable) {
-                // Récupérer l'identifiant unique du device
-                val identifiantDevice = Settings.Secure.getString(
-                    context.contentResolver,
-                    Settings.Secure.ANDROID_ID
-                )
+            try {
+                if (ConfigSingleton.webEnable) {
+                    // Récupérer l'identifiant unique du device
+                    val identifiantDevice = Settings.Secure.getString(
+                        context.contentResolver,
+                        Settings.Secure.ANDROID_ID
+                    )
 
-                // D'abord, vérifier si le smartphone existe
-                val checkResponse = ApiClient.smartphonesApi.checkSmartphoneExists(identifiantDevice)
+                    // D'abord, vérifier si le smartphone existe
+                    val checkResponse = ApiClient.smartphonesApi.checkSmartphoneExists(identifiantDevice)
 
-                if (checkResponse.isSuccessful) {
-                    val smartphoneExists = checkResponse.body() ?: false
-                    Log.d("AUTH_MANAGER", "Vérification smartphone avec ID $identifiantDevice: $smartphoneExists")
+                    if (checkResponse.isSuccessful) {
+                        val smartphoneExists = checkResponse.body() ?: false
+                        Log.d("AUTH_MANAGER", "Vérification smartphone avec ID $identifiantDevice: $smartphoneExists")
 
-                    if (!smartphoneExists) {
-                        Log.d("AUTH_MANAGER", "smartphone inexistant, début de la procédure de creation")
+                        if (!smartphoneExists) {
+                            Log.d("AUTH_MANAGER", "smartphone inexistant, début de la procédure de creation")
 
-                        // Récupérer la localisation actuelle
-                        val (latitude, longitude) = getCurrentLocation()
+                            // Récupérer la localisation actuelle
+                            val (latitude, longitude) = getCurrentLocation()
 
-                        // Créer le smartphone
-                        val creerSmartphoneRequest = CreerSmartphoneMobileRequest(
-                            numSerie = identifiantDevice,
-                            identifiantDevice = identifiantDevice,
-                            nom = "${Build.MANUFACTURER} ${Build.MODEL}",
-                            typeTerminal = getDeviceModel(),
-                            longitude = longitude,
-                            latitude = latitude
-                        )
+                            // Créer le smartphone
+                            val creerSmartphoneRequest = CreerSmartphoneMobileRequest(
+                                numSerie = identifiantDevice,
+                                identifiantDevice = identifiantDevice,
+                                nom = "${Build.MANUFACTURER} ${Build.MODEL}",
+                                typeTerminal = getDeviceModel(),
+                                longitude = longitude,
+                                latitude = latitude
+                            )
 
-                        val creerResponse = ApiClient.smartphonesApi.creerSmartphone(creerSmartphoneRequest)
+                            val creerResponse = ApiClient.smartphonesApi.creerSmartphone(creerSmartphoneRequest)
 
-                        if (creerResponse.isSuccessful) {
-                            Log.d("AUTH_MANAGER", "Smartphone créé avec succès (lat: $latitude, lng: $longitude)")
-                        } else {
-                            Log.e("AUTH_MANAGER", "Erreur lors de la création du smartphone: ${creerResponse.code()}")
+                            if (creerResponse.isSuccessful) {
+                                Log.d("AUTH_MANAGER", "Smartphone créé avec succès (lat: $latitude, lng: $longitude)")
+                            } else {
+                                Log.e(
+                                    "AUTH_MANAGER",
+                                    "Erreur lors de la création du smartphone: ${creerResponse.code()}"
+                                )
+                            }
                         }
-                    }
 
-                    val requete = LoginMobileRequest(idMobile = identifiantDevice)
-                    val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
+                        val requete = LoginMobileRequest(idMobile = identifiantDevice)
+                        val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
 
-                    if (reponse.isSuccessful) {
-                        val donnees = reponse.body()
-                        ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
-                        Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
+                        if (reponse.isSuccessful) {
+                            val donnees = reponse.body()
+                            ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
+                            Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
 
-                        loadContractsFromApi()
+                            loadContractsFromApi()
+                        } else {
+                            Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
+                            // Afficher le message de validation
+                            _authState.value = _authState.value.copy(
+                                isInitialized = true,
+                                showValidationError = true,
+                            )
+                            return // Sortir de la fonction sans continuer
+                        }
                     } else {
-                        Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
-                        // Afficher le message de validation
-                        _authState.value = _authState.value.copy(
-                            isInitialized = true,
-                            showValidationError = true,
-                        )
-                        return // Sortir de la fonction sans continuer
+                        Log.e("AUTH_MANAGER", "Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
                     }
                 } else {
-                    Log.e("AUTH_MANAGER", "Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
+                    Log.d("AUTH_MANAGER", "Mode hors-ligne activé - Chargement des données mockées")
+                    loadMockDataToDatabase()
                 }
-            } else {
-                Log.d("AUTH_MANAGER", "Mode hors-ligne activé - Chargement des données mockées")
-                loadMockDataToDatabase()
+            } catch (e: Exception) {
+                Log.e("AUTH_MANAGER", "Erreur lors de l'initialisation", e)
+                _authState.value = _authState.value.copy(
+                    isInitialized = true,
+                    showValidationError = true,
+                )
             }
-        }catch(e: Exception) {
-            Log.e("AUTH_MANAGER", "Erreur lors de l'initialisation", e)
-    _authState.value = _authState.value.copy(
-        isInitialized = true,
-        showValidationError = true,
-    )
-}
             val contratDao = database.contratDao()
             val siteDao = database.siteDao()
 
@@ -201,7 +204,7 @@ class AuthManager @Inject constructor(
 
     private suspend fun loadContractsFromApi() {
         try {
-            _authState.value = _authState.value.copy(isLoadingContracts = true,)
+            _authState.value = _authState.value.copy(isLoadingContracts = true)
             Log.d("AUTH_MANAGER", "Récupération des contrats depuis l'API...")
 
             val response = ApiClient.contratsApi.getByDevice()
@@ -238,10 +241,10 @@ class AuthManager @Inject constructor(
         try {
             val contratDao = database.contratDao()
             val siteDao = database.siteDao()
+
             siteDao.purge()
             contratDao.purge()
 
-            MockAdmin()
 
             val contratEntity = ContratEntity(
                 id = contratDmo.id ?: 0,
@@ -276,6 +279,31 @@ class AuthManager @Inject constructor(
                 sitesEntities.forEach { site ->
                     Log.d("AUTH_MANAGER", "Site sauvegardé: ${site.nom} (ID: ${site.id})")
                 }
+
+            } ?: run {
+                Log.w("AUTH_MANAGER", "Aucun site associé trouvé pour le contrat ${contratEntity.nom}")
+            }
+
+            val utilisateurTPDao = database.utilisateurTPDao()
+            utilisateurTPDao.purge()
+
+
+            contratDmo.contratUtilisateursTps?.let { contratUtilisateursTpDmos ->
+                val utilisateurTPEntities = contratUtilisateursTpDmos.map { contratUtilisateursTpDmo ->
+                    UtilisateurTPEntity(
+                        id = contratUtilisateursTpDmo.id ?: 0,
+                        login = contratUtilisateursTpDmo.login,
+                        pin = contratUtilisateursTpDmo.motDePasse
+                    )
+                }
+
+                utilisateurTPDao.insertUtilisateurs(utilisateurTPEntities)
+                Log.d("AUTH_MANAGER", "Sauvegarde de ${utilisateurTPEntities.size} utilisateurTPEntities pour le contrat ${contratEntity.nom}")
+
+                utilisateurTPEntities.forEach { utilisateurTPEntitie ->
+                    Log.d("AUTH_MANAGER", "Site sauvegardé: ${utilisateurTPEntitie.login} (ID: ${utilisateurTPEntitie.id})")
+                }
+
             } ?: run {
                 Log.w("AUTH_MANAGER", "Aucun site associé trouvé pour le contrat ${contratEntity.nom}")
             }
@@ -314,13 +342,13 @@ class AuthManager @Inject constructor(
         _authState.value = AuthState(
             isInitialized = true,
             availableSites = _authState.value.availableSites,
-            availableUtilisateursTps =  _authState.value.availableUtilisateursTps
+            availableUtilisateursTps = _authState.value.availableUtilisateursTps
         )
     }
 
     private suspend fun loadMockDataToDatabase() {
         try {
-            _authState.value = _authState.value.copy(isLoadingContracts = true,)
+            _authState.value = _authState.value.copy(isLoadingContracts = true)
             Log.d("AUTH_MANAGER", "Chargement des données mockées en base...")
 
             MockAdmin()
@@ -418,7 +446,7 @@ class AuthManager @Inject constructor(
             val model = Build.MODEL
             val version = Build.VERSION.RELEASE
             val sdk = Build.VERSION.SDK_INT
-            
+
             // Format: "Manufacturer Model (Android Version, API Level)"
             "$manufacturer $model (Android $version, API $sdk)"
         } catch (e: Exception) {

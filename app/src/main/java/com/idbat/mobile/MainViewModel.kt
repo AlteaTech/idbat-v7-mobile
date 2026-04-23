@@ -1,5 +1,7 @@
 package com.idbat.mobile.ui.viewmodel
 
+import androidx.core.text.bold
+import androidx.core.text.buildSpannedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
@@ -13,8 +15,6 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-import androidx.core.text.bold
-import androidx.core.text.buildSpannedString
 
 @HiltViewModel
 class MainViewModel @Inject constructor(

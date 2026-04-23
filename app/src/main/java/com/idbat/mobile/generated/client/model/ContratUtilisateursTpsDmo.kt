@@ -23,35 +23,32 @@
 
 package com.idbat.mobile.generated.client.model
 
+
 import com.squareup.moshi.Json
 
 /**
  *
  *
+ * @param login
+ * @param motDePasse
+ * @param contratId
  * @param id
- * @param trigramme
- * @param nom
- * @param contratSite
- * @param contratUtilisateursTps
  */
 
 
-data class ContratDmo(
+data class ContratUtilisateursTpsDmo(
+
+    @Json(name = "login")
+    val login: kotlin.String,
+
+    @Json(name = "motDePasse")
+    val motDePasse: kotlin.String,
+
+    @Json(name = "contratId")
+    val contratId: kotlin.Long,
 
     @Json(name = "id")
-    val id: kotlin.Long,
-
-    @Json(name = "trigramme")
-    val trigramme: kotlin.String,
-
-    @Json(name = "nom")
-    val nom: kotlin.String,
-
-    @Json(name = "contratSite")
-    val contratSite: kotlin.collections.List<ContratSiteDmo>,
-
-    @Json(name = "contratUtilisateursTps")
-    val contratUtilisateursTps: kotlin.collections.List<ContratUtilisateursTpsDmo>
+    val id: kotlin.Long? = null
 
 ) {
 
