@@ -17,16 +17,11 @@ import com.idbat.mobile.data.entities.UtilisateurTPEntity
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
 import com.idbat.mobile.generated.client.model.LoginMobileRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 
 @Singleton
 class AuthManager @Inject constructor(
@@ -338,7 +333,7 @@ class AuthManager @Inject constructor(
                         // On utilise coroutineScope pour lancer et attendre toutes les coroutines enfants
                         coroutineScope {
                             // 1. Découpage de la liste globale en sous-listes (lots) de 500 éléments maximum
-                            val lots = usagers.chunked(1000)
+                            val lots = usagers.chunked(2000)
 
                             // 2. Pour chaque lot, on crée une tâche asynchrone (async)
                             val jobs = lots.map { lotDe500 ->

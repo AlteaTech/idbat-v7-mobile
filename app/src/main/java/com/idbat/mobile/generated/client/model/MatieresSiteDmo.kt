@@ -30,29 +30,21 @@ import com.squareup.moshi.Json
  * 
  *
  * @param id 
- * @param nom 
- * @param prenom 
- * @param contratId 
- * @param refClientIdBat 
+ * @param siteId 
+ * @param libelle 
  */
 
 
-data class ContratUsagerDmo (
+data class MatieresSiteDmo (
 
     @Json(name = "id")
     val id: kotlin.Long,
 
-    @Json(name = "nom")
-    val nom: kotlin.String,
+    @Json(name = "siteId")
+    val siteId: kotlin.Long,
 
-    @Json(name = "prenom")
-    val prenom: kotlin.String,
-
-    @Json(name = "contratId")
-    val contratId: kotlin.Long,
-
-    @Json(name = "refClientIdBat")
-    val refClientIdBat: kotlin.Long? = null
+    @Json(name = "libelle")
+    val libelle: kotlin.String
 
 ) {
 

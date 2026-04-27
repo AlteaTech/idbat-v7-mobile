@@ -26,18 +26,18 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
+ * 
  *
- *
- * @param id
- * @param trigramme
- * @param nom
- * @param contratSite
- * @param contratUtilisateursTps
- * @param contratUsagers
+ * @param id 
+ * @param trigramme 
+ * @param nom 
+ * @param contratSite 
+ * @param contratUtilisateursTps 
+ * @param contratUsagers 
  */
 
 
-data class ContratDmo(
+data class ContratDmo (
 
     @Json(name = "id")
     val id: kotlin.Long,

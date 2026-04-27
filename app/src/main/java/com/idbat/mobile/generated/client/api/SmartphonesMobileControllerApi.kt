@@ -10,12 +10,12 @@ import retrofit2.http.Query
 interface SmartphonesMobileControllerApi {
     /**
      * GET api/smartphones/check
-     *
-     *
+     * 
+     * 
      * Responses:
      *  - 200: OK
      *
-     * @param numSerie
+     * @param numSerie 
      * @return [kotlin.Boolean]
      */
     @GET("api/smartphones/check")
@@ -23,12 +23,12 @@ interface SmartphonesMobileControllerApi {
 
     /**
      * POST api/smartphones
-     *
-     *
+     * 
+     * 
      * Responses:
      *  - 200: OK
      *
-     * @param creerSmartphoneMobileRequest
+     * @param creerSmartphoneMobileRequest 
      * @return [kotlin.Any]
      */
     @POST("api/smartphones")
