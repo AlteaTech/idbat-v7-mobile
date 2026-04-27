@@ -12,12 +12,12 @@ interface MatiereSiteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMatieres(matieres: List<MatiereSiteEntity>)
 
-    @Query("SELECT * FROM matiere_site")
+    @Query("SELECT * FROM matieres_site")
     fun getAllMatieresFlow(): Flow<List<MatiereSiteEntity>>
 
-    @Query("SELECT * FROM matiere_site WHERE siteId = :siteId")
+    @Query("SELECT * FROM matieres_site WHERE siteId = :siteId")
     fun getMatieresBySiteFlow(siteId: Long): Flow<List<MatiereSiteEntity>>
-
-    @Query("DELETE FROM matiere_site")
-    suspend fun clearMatieres()
+    
+    @Query("DELETE FROM matieres_site")
+    suspend fun purge()
 }

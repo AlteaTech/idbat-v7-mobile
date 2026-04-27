@@ -32,6 +32,8 @@ import com.squareup.moshi.Json
  * @param id 
  * @param siteId 
  * @param libelle 
+ * @param unitesDesApportId 
+ * @param unitesDesApportLibelle 
  */
 
 
@@ -44,7 +46,13 @@ data class MatieresSiteDmo (
     val siteId: kotlin.Long,
 
     @Json(name = "libelle")
-    val libelle: kotlin.String
+    val libelle: kotlin.String,
+
+    @Json(name = "unitesDesApportId")
+    val unitesDesApportId: kotlin.Long,
+
+    @Json(name = "unitesDesApportLibelle")
+    val unitesDesApportLibelle: kotlin.String
 
 ) {
 

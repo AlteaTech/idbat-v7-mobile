@@ -10,10 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.idbat.mobile.data.AppDatabase
-import com.idbat.mobile.data.entities.ContratEntity
-import com.idbat.mobile.data.entities.SiteEntity
-import com.idbat.mobile.data.entities.UsagerEntity
-import com.idbat.mobile.data.entities.UtilisateurTPEntity
+import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
 import com.idbat.mobile.generated.client.model.LoginMobileRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -245,7 +242,9 @@ class AuthManager @Inject constructor(
         try {
             val contratDao = database.contratDao()
             val siteDao = database.siteDao()
+            val matiereSiteDao = database.matiereSiteDao()
 
+            matiereSiteDao.purge()
             siteDao.purge()
             contratDao.purge()
 
@@ -264,7 +263,7 @@ class AuthManager @Inject constructor(
 
                     contratDmo.contratSite?.let { sitesDmo ->
                         val sitesEntities = sitesDmo.map { siteDmo ->
-                            SiteEntity(
+                            val siteEntity = SiteEntity(
                                 id = siteDmo.id ?: 0,
                                 trigramme = siteDmo.trigramme ?: "",
                                 nom = siteDmo.nom ?: "",
@@ -278,10 +277,37 @@ class AuthManager @Inject constructor(
                                 destinatairesMailTransfertTP = siteDmo.destinatairesMailTransfertTP,
                                 contratId = contratEntity.id
                             )
+                            // On peuple le champ ignorer par Room pour un usage applicatif direct
+                            siteEntity.matieres = siteDmo.matieres?.map { matiereDmo ->
+                                MatiereSiteEntity(
+                                    siteId = siteDmo.id ?: 0,
+                                    matiereId = matiereDmo.id ?: 0,
+                                    libelle = matiereDmo.libelle ?: "",
+                                    unitesDesApportId = matiereDmo.unitesDesApportId,
+                                    unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle
+                                )
+                            } ?: emptyList()
+                            siteEntity
                         }
 
                         siteDao.insertSites(sitesEntities)
                         Log.d("AUTH_MANAGER", "Sauvegarde de ${sitesEntities.size} sites pour le contrat ${contratEntity.nom}")
+
+                        val allMatieres = mutableListOf<MatiereSiteEntity>()
+                        sitesDmo.forEach { siteDmo ->
+                            siteDmo.matieres?.map { matiereDmo ->
+                                MatiereSiteEntity(
+                                    siteId = siteDmo.id ?: 0,
+                                    matiereId = matiereDmo.id ?: 0,
+                                    libelle = matiereDmo.libelle ?: "",
+                                    unitesDesApportId = matiereDmo.unitesDesApportId,
+                                    unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle
+                                )
+                            }?.let { allMatieres.addAll(it) }
+                        }
+                        
+                        matiereSiteDao.insertMatieres(allMatieres)
+                        Log.d("AUTH_MANAGER", "Sauvegarde de ${allMatieres.size} matières pour les sites du contrat ${contratEntity.nom}")
 
                     } ?: run {
                         Log.w("AUTH_MANAGER", "Aucun site associé trouvé pour le contrat ${contratEntity.nom}")
@@ -439,7 +465,7 @@ class AuthManager @Inject constructor(
                         macImprimante = "00:11:22:33:44:55",
                         horairesOuverture = "08:00-18:00",
                         destinatairesMailTransfertTP = "admin@abc-paris.com",
-                        contratId = 1
+                        contratId = 1,
                     ),
                     SiteEntity(
                         id = 102,
@@ -453,7 +479,7 @@ class AuthManager @Inject constructor(
                         macImprimante = "00:11:22:33:44:66",
                         horairesOuverture = "07:30-19:00",
                         destinatairesMailTransfertTP = "admin@abc-lyon.com",
-                        contratId = 1
+                        contratId = 1,
                     )
                 )
             )
@@ -472,7 +498,7 @@ class AuthManager @Inject constructor(
                         macImprimante = "00:11:22:33:44:77",
                         horairesOuverture = "09:00-17:00",
                         destinatairesMailTransfertTP = "contact@xyz-marseille.com",
-                        contratId = 1
+                        contratId = 1,
                     )
                 )
             )

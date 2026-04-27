@@ -3,10 +3,13 @@ package com.idbat.mobile.data.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import androidx.room.PrimaryKey
 
+// Cette table est une table de jointure. 
+// La clé primaire est composée de la paire (matiereId, siteId)
+// pour garantir qu'une matière n'est associée qu'une seule fois à un site.
 @Entity(
-    tableName = "matiere_site",
+    tableName = "matieres_site", // Nom de table au pluriel pour la cohérence
+    primaryKeys = ["matiereId", "siteId"],
     foreignKeys = [
         ForeignKey(
             entity = SiteEntity::class,
@@ -14,13 +17,19 @@ import androidx.room.PrimaryKey
             childColumns = ["siteId"],
             onDelete = ForeignKey.CASCADE
         )
+        // Note: On pourrait aussi ajouter une clé étrangère vers une table "Matieres" si elle existait.
     ],
     indices = [Index("siteId")]
 )
 data class MatiereSiteEntity(
-    @PrimaryKey
-    val id: Long,
-    val libelle: String,
+    // L'ID de la matière elle-même, venant de l'API
+    val matiereId: Long,
+    
+    // L'ID du site auquel elle est liée
     val siteId: Long,
-    val matiereId: Long
+
+    // Le libellé de la matière, stocké ici pour un accès facile
+    val libelle: String,
+    val unitesDesApportId: Long,
+    val unitesDesApportLibelle: String
 )

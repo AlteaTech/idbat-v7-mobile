@@ -1,9 +1,6 @@
 package com.idbat.mobile.data.entities
 
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room.*
 
 @Entity(
     tableName = "sites",
@@ -31,4 +28,10 @@ data class SiteEntity(
     val horairesOuverture: String?,
     val destinatairesMailTransfertTP: String?,
     val contratId: Long // Clé étrangère vers contrats.id
-)
+) {
+    // Room ne peut pas stocker directement une liste d'entités dans une table.
+    // L'annotation @Ignore indique à Room d'ignorer ce champ lors de la création de la table.
+    // Pour récupérer un site avec ses matières, il faudra créer une classe de relation (ex: SiteAvecMatieres).
+    @Ignore
+    var matieres: List<MatiereSiteEntity> = emptyList()
+}
