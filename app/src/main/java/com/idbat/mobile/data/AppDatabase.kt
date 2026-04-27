@@ -19,9 +19,10 @@ import com.idbat.mobile.data.entities.*
         MotifListeNoireContratEntity::class,
         CarteContratEntity::class,
         MatiereSiteEntity::class,
-        LastSynchroHistoryEntity::class
+        LastSynchroHistoryEntity::class,
+        UsagerEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -34,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun carteContratDao(): CarteContratDao
     abstract fun matiereSiteDao(): MatiereSiteDao
     abstract fun lastSynchroHistoryDao(): LastSynchroHistoryDao
+    abstract fun usagerDao(): UsagerDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -61,7 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
-            MIGRATION_10_11, MIGRATION_11_12
+            MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -243,6 +245,25 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN operationsTentees INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE last_synchro_history_sites ADD COLUMN operationsReussies INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `usagers` (
+                        `id` INTEGER NOT NULL, 
+                        `nom` TEXT NOT NULL, 
+                        `prenom` TEXT NOT NULL, 
+                        `contratId` INTEGER NOT NULL, 
+                        `refClientIdBat` INTEGER, 
+                        PRIMARY KEY(`id`), 
+                        FOREIGN KEY(`contratId`) REFERENCES `contrats`(`id`) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_usagers_contratId` ON `usagers` (`contratId`)")
             }
         }
 

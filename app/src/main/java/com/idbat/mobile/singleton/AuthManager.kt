@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.SiteEntity
+import com.idbat.mobile.data.entities.UsagerEntity
 import com.idbat.mobile.data.entities.UtilisateurTPEntity
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
 import com.idbat.mobile.generated.client.model.LoginMobileRequest
@@ -22,6 +23,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 
 @Singleton
 class AuthManager @Inject constructor(
@@ -148,7 +153,11 @@ class AuthManager @Inject constructor(
                             ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
                             Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
 
-                            loadContractsFromApi()
+                            val contratDao = database.contratDao()
+                            val siteDao = database.siteDao()
+                            if (contratDao.count() == 0L || siteDao.count() == 0L) {
+                                loadContractsFromApi()
+                            }
                         } else {
                             Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
                             // Afficher le message de validation
@@ -211,7 +220,7 @@ class AuthManager @Inject constructor(
 
             if (response.isSuccessful) {
                 val contratDmo = response.body()
-                Log.d("AUTH_MANAGER", "Contrats récupérés avec succès: $contratDmo")
+                Log.d("AUTH_MANAGER", "Contrats récupérés avec succès: ${contratDmo?.nom}")
 
                 contratDmo?.let { dmo ->
                     saveContractToDatabase(dmo)
@@ -255,64 +264,107 @@ class AuthManager @Inject constructor(
             contratDao.insertContrat(contratEntity)
             Log.d("AUTH_MANAGER", "Contrat sauvegardé: ${contratEntity.nom}")
 
-            contratDmo.contratSite?.let { sitesDmo ->
-                val sitesEntities = sitesDmo.map { siteDmo ->
-                    SiteEntity(
-                        id = siteDmo.id ?: 0,
-                        trigramme = siteDmo.trigramme ?: "",
-                        nom = siteDmo.nom ?: "",
-                        adresse1 = siteDmo.adresse1,
-                        adresse2 = siteDmo.adresse2,
-                        codePostal = siteDmo.codePostal,
-                        ville = siteDmo.ville,
-                        typeImprimante = siteDmo.typeImprimante,
-                        macImprimante = siteDmo.macImprimante,
-                        horairesOuverture = siteDmo.horairesOuverture,
-                        destinatairesMailTransfertTP = siteDmo.destinatairesMailTransfertTP,
-                        contratId = contratEntity.id
-                    )
+            withContext(Dispatchers.IO) {
+                val sitesJob = async {
+
+                    contratDmo.contratSite?.let { sitesDmo ->
+                        val sitesEntities = sitesDmo.map { siteDmo ->
+                            SiteEntity(
+                                id = siteDmo.id ?: 0,
+                                trigramme = siteDmo.trigramme ?: "",
+                                nom = siteDmo.nom ?: "",
+                                adresse1 = siteDmo.adresse1,
+                                adresse2 = siteDmo.adresse2,
+                                codePostal = siteDmo.codePostal,
+                                ville = siteDmo.ville,
+                                typeImprimante = siteDmo.typeImprimante,
+                                macImprimante = siteDmo.macImprimante,
+                                horairesOuverture = siteDmo.horairesOuverture,
+                                destinatairesMailTransfertTP = siteDmo.destinatairesMailTransfertTP,
+                                contratId = contratEntity.id
+                            )
+                        }
+
+                        siteDao.insertSites(sitesEntities)
+                        Log.d("AUTH_MANAGER", "Sauvegarde de ${sitesEntities.size} sites pour le contrat ${contratEntity.nom}")
+
+                    } ?: run {
+                        Log.w("AUTH_MANAGER", "Aucun site associé trouvé pour le contrat ${contratEntity.nom}")
+                    }
                 }
+                val utilisateursJob = async {
+                    val utilisateurTPDao = database.utilisateurTPDao()
+                    utilisateurTPDao.purge()
 
-                siteDao.insertSites(sitesEntities)
-                Log.d("AUTH_MANAGER", "Sauvegarde de ${sitesEntities.size} sites pour le contrat ${contratEntity.nom}")
 
-                sitesEntities.forEach { site ->
-                    Log.d("AUTH_MANAGER", "Site sauvegardé: ${site.nom} (ID: ${site.id})")
+                    contratDmo.contratUtilisateursTps?.let { contratUtilisateursTpDmos ->
+                        val utilisateurTPEntities = contratUtilisateursTpDmos.map { contratUtilisateursTpDmo ->
+                            UtilisateurTPEntity(
+                                id = contratUtilisateursTpDmo.id ?: 0,
+                                login = contratUtilisateursTpDmo.login,
+                                pin = contratUtilisateursTpDmo.motDePasse
+                            )
+                        }
+
+                        utilisateurTPDao.insertUtilisateurs(utilisateurTPEntities)
+                        Log.d(
+                            "AUTH_MANAGER",
+                            "Sauvegarde de ${utilisateurTPEntities.size} utilisateurTPEntities pour le contrat ${contratEntity.nom}"
+                        )
+
+                    } ?: run {
+                        Log.w(
+                            "AUTH_MANAGER",
+                            "Aucun utilisateurTPEntitie associé trouvé pour le contrat ${contratEntity.nom}"
+                        )
+                    }
                 }
+                val usagersJob = async{
+                    val usagersDao = database.usagerDao()
+                    usagersDao.purge()
 
-            } ?: run {
-                Log.w("AUTH_MANAGER", "Aucun site associé trouvé pour le contrat ${contratEntity.nom}")
+                    contratDmo.contratUsagers?.let { contratUsagers ->
+                        val usagers = contratUsagers.map { contratUsager ->
+                            UsagerEntity(
+                                id = contratUsager.id ?: 0,
+                                nom = contratUsager.nom,
+                                prenom = contratUsager.prenom,
+                                refClientIdBat = contratUsager.refClientIdBat,
+                                contratId =  contratUsager.contratId
+                            )
+                        }
+
+
+                        // On utilise coroutineScope pour lancer et attendre toutes les coroutines enfants
+                        coroutineScope {
+                            // 1. Découpage de la liste globale en sous-listes (lots) de 500 éléments maximum
+                            val lots = usagers.chunked(1000)
+
+                            // 2. Pour chaque lot, on crée une tâche asynchrone (async)
+                            val jobs = lots.map { lotDe500 ->
+                                async {
+                                    // Cette insertion se fait en parallèle des autres
+                                    usagersDao.insertUsagers(lotDe500)
+                                }
+                            }
+
+                            // 3. On attend que TOUS les lots (toutes les tâches async) soient insérés en BDD
+                            jobs.awaitAll()
+                        }
+                        Log.d(
+                            "AUTH_MANAGER",
+                            "Sauvegarde de ${usagers.size} UsagerEntity pour le contrat ${contratEntity.nom}"
+                        )
+
+                    } ?: run {
+                        Log.w("AUTH_MANAGER", "Aucun usagers associé trouvé pour le contrat ${contratEntity.nom}")
+                    }
+                }
+                awaitAll(utilisateursJob, usagersJob, sitesJob)
+
+                Log.d("SYNC", "Toutes les insertions parallèles sont terminées avec succès !")
             }
 
-            val utilisateurTPDao = database.utilisateurTPDao()
-            utilisateurTPDao.purge()
-
-
-            contratDmo.contratUtilisateursTps?.let { contratUtilisateursTpDmos ->
-                val utilisateurTPEntities = contratUtilisateursTpDmos.map { contratUtilisateursTpDmo ->
-                    UtilisateurTPEntity(
-                        id = contratUtilisateursTpDmo.id ?: 0,
-                        login = contratUtilisateursTpDmo.login,
-                        pin = contratUtilisateursTpDmo.motDePasse
-                    )
-                }
-
-                utilisateurTPDao.insertUtilisateurs(utilisateurTPEntities)
-                Log.d(
-                    "AUTH_MANAGER",
-                    "Sauvegarde de ${utilisateurTPEntities.size} utilisateurTPEntities pour le contrat ${contratEntity.nom}"
-                )
-
-                utilisateurTPEntities.forEach { utilisateurTPEntitie ->
-                    Log.d(
-                        "AUTH_MANAGER",
-                        "Site sauvegardé: ${utilisateurTPEntitie.login} (ID: ${utilisateurTPEntitie.id})"
-                    )
-                }
-
-            } ?: run {
-                Log.w("AUTH_MANAGER", "Aucun site associé trouvé pour le contrat ${contratEntity.nom}")
-            }
 
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur sauvegarde contrat et sites en BDD", e)

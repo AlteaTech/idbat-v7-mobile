@@ -27,6 +27,6 @@ interface SiteDao {
     @Query("SELECT * FROM sites WHERE contratId = :contratId")
     fun getSitesByContratFlow(contratId: Long): Flow<List<SiteEntity>>
 
-    @Query("DELETE FROM sites")
-    suspend fun clearSites()
+    @Query("SELECT count(1) FROM sites")
+    suspend fun count(): Long
 }
