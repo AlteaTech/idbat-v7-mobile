@@ -31,7 +31,10 @@ data class SiteEntity(
 ) {
     // Room ne peut pas stocker directement une liste d'entités dans une table.
     // L'annotation @Ignore indique à Room d'ignorer ce champ lors de la création de la table.
-    // Pour récupérer un site avec ses matières, il faudra créer une classe de relation (ex: SiteAvecMatieres).
+    // Pour récupérer un site avec ses matières, il faudra utiliser une classe de relation (SiteWithMatieres).
+    // On l'ajoute quand même ici avec @Ignore si on veut s'en servir de conteneur temporaire en mémoire
+    // avant de sauvegarder, mais il ne faut pas l'inclure dans le constructeur principal.
+
     @Ignore
     var matieres: List<MatiereSiteEntity> = emptyList()
 }

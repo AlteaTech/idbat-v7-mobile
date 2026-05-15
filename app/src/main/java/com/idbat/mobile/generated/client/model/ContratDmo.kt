@@ -34,6 +34,7 @@ import com.squareup.moshi.Json
  * @param contratSite 
  * @param contratUtilisateursTps 
  * @param contratUsagers 
+ * @param evenementsContrat 
  */
 
 
@@ -55,7 +56,10 @@ data class ContratDmo (
     val contratUtilisateursTps: kotlin.collections.List<ContratUtilisateursTpsDmo>,
 
     @Json(name = "contratUsagers")
-    val contratUsagers: kotlin.collections.List<ContratUsagerDmo>
+    val contratUsagers: kotlin.collections.List<ContratUsagerDmo>,
+
+    @Json(name = "evenementsContrat")
+    val evenementsContrat: kotlin.collections.List<ContratEvenementDmo>
 
 ) {
 

@@ -17,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -241,9 +242,11 @@ class AuthManager @Inject constructor(
             val contratDao = database.contratDao()
             val siteDao = database.siteDao()
             val matiereSiteDao = database.matiereSiteDao()
+            val contratEvenementDao = database.contratEvenementDao()
 
             matiereSiteDao.purge()
             siteDao.purge()
+            contratEvenementDao.purge()
             contratDao.purge()
 
 
@@ -379,8 +382,56 @@ class AuthManager @Inject constructor(
                         Log.w("AUTH_MANAGER", "Aucun usagers associé trouvé pour le contrat ${contratEntity.nom}")
                     }
                 }
-                awaitAll(utilisateursJob, usagersJob, sitesJob)
+                val evenementsJob = async {
+                    val evenementDao = database.contratEvenementDao()
+                    evenementDao.purge()
 
+                    contratDmo.evenementsContrat?.let { evenementsDmo ->
+                        val evenementEntities = evenementsDmo.map { evenementDmo ->
+                            ContratEvenementEntity(
+                                evenementId = evenementDmo.evenementId,
+                                libelle = evenementDmo.libelle,
+                                jointureId = evenementDmo.jointureId,
+                                contratId = contratEntity.id
+                            )
+                        }
+
+                        coroutineScope {
+                            val lots = evenementEntities.chunked(500)
+                            val jobs = lots.map { lotDe500 ->
+                                async {
+                                    evenementDao.insertEvenements(lotDe500)
+                                }
+                            }
+                            jobs.awaitAll()
+                        }
+
+                        Log.d(
+                            "AUTH_MANAGER",
+                            "Sauvegarde de ${evenementEntities.size} ContratEvenementEntity pour le contrat ${contratEntity.nom}"
+                        )
+                    } ?: run {
+                        Log.w("AUTH_MANAGER", "Aucun evenement associé trouvé pour le contrat ${contratEntity.nom}")
+                    }
+                }
+
+                awaitAll(utilisateursJob, usagersJob, sitesJob, evenementsJob)
+                val lastSynchroHistoryDao = database.lastSynchroHistoryDao()
+                val dateExec = Date()
+                contratDmo.contratSite?.let { sitesDmo ->
+                    sitesDmo.forEach { siteDmo ->
+                        lastSynchroHistoryDao.deleteTypeForSite(siteDmo.id,TypeSynchro.RECEPTION)
+                        lastSynchroHistoryDao.insertSynchro(
+                            LastSynchroHistoryEntity(
+                                siteId = siteDmo.id,
+                                date = dateExec,
+                                type = TypeSynchro.RECEPTION,
+                                operationsTentees = 1,
+                                operationsReussies = 1
+                            )
+                        )
+                    }
+                }
                 Log.d("SYNC", "Toutes les insertions parallèles sont terminées avec succès !")
             }
 

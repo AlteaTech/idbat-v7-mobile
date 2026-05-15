@@ -31,4 +31,6 @@ interface LastSynchroHistoryDao {
 
     @Query("SELECT SUM(operationsReussies) FROM last_synchro_history_sites WHERE siteId = :siteId")
     suspend fun getTotalOperationsReussies(siteId: Long): Long?
+    @Query("DELETE FROM last_synchro_history_sites WHERE siteId = :siteId AND type = :type")
+    suspend fun deleteTypeForSite(siteId: Long, type: TypeSynchro)
 }
