@@ -161,10 +161,8 @@ class AuthManager @Inject constructor(
                         }
                     } else {
                         Log.e("AUTH_MANAGER", "Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
+                        throw Exception("Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
                     }
-                } else {
-                    Log.d("AUTH_MANAGER", "Mode hors-ligne activé - Chargement des données mockées")
-                    loadMockDataToDatabase()
                 }
             } catch (e: Exception) {
                 Log.e("AUTH_MANAGER", "Erreur lors de l'initialisation", e)
@@ -423,100 +421,6 @@ class AuthManager @Inject constructor(
             availableSites = _authState.value.availableSites,
             availableUtilisateursTps = _authState.value.availableUtilisateursTps
         )
-    }
-
-    private suspend fun loadMockDataToDatabase() {
-        try {
-            _authState.value = _authState.value.copy(isLoadingContracts = true)
-            Log.d("AUTH_MANAGER", "Chargement des données mockées en base...")
-
-            MockAdmin()
-            val contratDao = database.contratDao()
-            val siteDao = database.siteDao()
-            if (contratDao.count() != 0L) {
-                return
-            }
-            val contratsEntities = listOf(
-                ContratEntity(
-                    id = 1,
-                    trigramme = "ABC",
-                    nom = "Contrat ABC - Démonstration"
-                )
-            )
-
-            contratsEntities.forEach { contrat ->
-                contratDao.insertContrat(contrat)
-                Log.d("AUTH_MANAGER", "Contrat mocké sauvegardé: ${contrat.nom}")
-            }
-
-            val sitesEntities = mutableListOf<SiteEntity>()
-
-            sitesEntities.addAll(
-                listOf(
-                    SiteEntity(
-                        id = 101,
-                        trigramme = "ABC01",
-                        nom = "Site ABC - Paris",
-                        adresse1 = "123 Rue de la Paix",
-                        adresse2 = "2ème étage",
-                        codePostal = "75001",
-                        ville = "Paris",
-                        typeImprimante = "ZEBRA",
-                        macImprimante = "00:11:22:33:44:55",
-                        horairesOuverture = "08:00-18:00",
-                        destinatairesMailTransfertTP = "admin@abc-paris.com",
-                        contratId = 1,
-                    ),
-                    SiteEntity(
-                        id = 102,
-                        trigramme = "ABC02",
-                        nom = "Site ABC - Lyon",
-                        adresse1 = "456 Place Bellecour",
-                        adresse2 = null,
-                        codePostal = "69002",
-                        ville = "Lyon",
-                        typeImprimante = "BROTHER",
-                        macImprimante = "00:11:22:33:44:66",
-                        horairesOuverture = "07:30-19:00",
-                        destinatairesMailTransfertTP = "admin@abc-lyon.com",
-                        contratId = 1,
-                    )
-                )
-            )
-
-            sitesEntities.addAll(
-                listOf(
-                    SiteEntity(
-                        id = 201,
-                        trigramme = "XYZ01",
-                        nom = "Site XYZ - Marseille",
-                        adresse1 = "789 Vieux Port",
-                        adresse2 = "Bâtiment A",
-                        codePostal = "13001",
-                        ville = "Marseille",
-                        typeImprimante = "EPSON",
-                        macImprimante = "00:11:22:33:44:77",
-                        horairesOuverture = "09:00-17:00",
-                        destinatairesMailTransfertTP = "contact@xyz-marseille.com",
-                        contratId = 1,
-                    )
-                )
-            )
-
-            siteDao.insertSites(sitesEntities)
-            Log.d("AUTH_MANAGER", "Sites mockés sauvegardés: ${sitesEntities.size} sites")
-
-            sitesEntities.forEach { site ->
-                Log.d("AUTH_MANAGER", "Site mocké sauvegardé: ${site.nom} (${site.trigramme})")
-            }
-
-            Log.d("AUTH_MANAGER", "✅ Alimentation mockée terminée avec succès")
-
-        } catch (e: Exception) {
-            Log.e("AUTH_MANAGER", "❌ Erreur lors du chargement des données mockées", e)
-        } finally {
-            _authState.value = _authState.value.copy()
-        }
     }
 
     private fun getDeviceModel(): String {
