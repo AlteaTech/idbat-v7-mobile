@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idbat.mobile.ui.components.PhotoPickerComponent
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
 
 private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture")
@@ -67,15 +68,25 @@ fun PocScreen(onBack: () -> Unit) {
             }
         }
 
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = tabs[selectedTab],
-                fontSize = 16.sp,
-                color = Color.Gray
-            )
+        when (selectedTab) {
+            0 -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                PhotoPickerComponent()
+            }
+            else -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = tabs[selectedTab],
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+            }
         }
     }
 }
