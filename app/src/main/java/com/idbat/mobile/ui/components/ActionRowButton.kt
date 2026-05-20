@@ -23,6 +23,7 @@ fun ActionRowButton(
     title: String,
     onClick: () -> Unit,
     iconVector: ImageVector? = null,
+    iconResId: Int? = null,
     color: Color = Color.White
 ) {
     Surface(
@@ -44,15 +45,22 @@ fun ActionRowButton(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
-            if (iconVector != null) {
-                Icon(
+            when {
+                iconVector != null -> Icon(
                     imageVector = iconVector,
                     contentDescription = null,
                     modifier = Modifier.size(56.dp),
                     tint = VeoliaPrincipal
                 )
-            } else {
-                Icon(
+                iconResId != null -> Icon(
+                    painter = painterResource(id = iconResId),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f),
+                    tint = VeoliaPrincipal
+                )
+                else -> Icon(
                     painter = painterResource(id = R.drawable.book1),
                     contentDescription = null,
                     modifier = Modifier

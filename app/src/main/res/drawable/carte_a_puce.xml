@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="91dp"
+    android:height="59dp"
+    android:viewportWidth="90.849"
+    android:viewportHeight="58.639">
+
+    <!-- Contour de la carte -->
+    <path
+        android:fillColor="#f2664f"
+        android:pathData="M8.259,1.652A6.615,6.615,0,0,0,1.652,8.259V50.38a6.615,6.615,0,0,0,6.607,6.607H82.59A6.615,6.615,0,0,0,89.2,50.38V8.259A6.615,6.615,0,0,0,82.59,1.652H8.259ZM8.259,0H82.59a8.259,8.259,0,0,1,8.259,8.259V50.38a8.259,8.259,0,0,1,-8.259,8.259H8.259A8.259,8.259,0,0,1,0,50.38V8.259A8.259,8.259,0,0,1,8.259,0Z" />
+
+    <!-- Puce (translate 55.335, 11.563) -->
+    <group
+        android:translateX="55.335"
+        android:translateY="11.563">
+
+        <!-- Contour de la puce -->
+        <path
+            android:fillColor="#f2664f"
+            android:pathData="M8.259,1.652A6.615,6.615,0,0,0,1.652,8.259V9.911a6.615,6.615,0,0,0,6.607,6.607h7.433A6.615,6.615,0,0,0,22.3,9.911V8.259a6.615,6.615,0,0,0,-6.607,-6.607H8.259ZM8.259,0h7.433a8.259,8.259,0,0,1,8.259,8.259V9.911a8.259,8.259,0,0,1,-8.259,8.259H8.259A8.259,8.259,0,0,1,0,9.911V8.259A8.259,8.259,0,0,1,8.259,0Z" />
+
+        <!-- Ligne verticale gauche -->
+        <group android:translateX="7.855" android:translateY="0.759">
+            <path
+                android:fillColor="#f2664f"
+                android:pathData="M0.326,16.843H-0.5V0H0.326Z" />
+        </group>
+
+        <!-- Ligne verticale droite -->
+        <group android:translateX="16.568" android:translateY="0.759">
+            <path
+                android:fillColor="#f2664f"
+                android:pathData="M0.326,16.843H-0.5V0H0.326Z" />
+        </group>
+
+        <!-- Tiret horizontal gauche haut -->
+        <group android:translateX="1.938" android:translateY="6.028">
+            <path
+                android:fillColor="#f2664f"
+                android:pathData="M5.83,0.326H0V-0.5H5.83Z" />
+        </group>
+
+        <!-- Tiret horizontal droit haut -->
+        <group android:translateX="16.481" android:translateY="6.028">
+            <path
+                android:fillColor="#f2664f"
+                android:pathData="M5.83,0.326H0V-0.5H5.83Z" />
+        </group>
+
+        <!-- Tiret horizontal gauche bas -->
+        <group android:translateX="1.938" android:translateY="12.506">
+            <path
+                android:fillColor="#f2664f"
+                android:pathData="M5.83,0.326H0V-0.5H5.83Z" />
+        </group>
+
+        <!-- Tiret horizontal droit bas -->
+        <group android:translateX="16.481" android:translateY="12.506">
+            <path
+                android:fillColor="#f2664f"
+                android:pathData="M5.83,0.326H0V-0.5H5.83Z" />
+        </group>
+    </group>
+
+    <!-- Bande magnétique (translate 0.826, 42.121) -->
+    <group
+        android:translateX="0.826"
+        android:translateY="42.121">
+        <path
+            android:fillColor="#f2664f"
+            android:pathData="M0,0H89.2V9.911H0Z" />
+    </group>
+
+</vector>

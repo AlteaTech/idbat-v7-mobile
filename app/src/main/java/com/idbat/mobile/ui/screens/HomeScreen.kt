@@ -3,8 +3,6 @@ package com.idbat.mobile.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import com.idbat.mobile.R
@@ -49,119 +47,103 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF4F4F4))
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-
-            // ── HEADER ORANGE ──────────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color(0xFFF8A282), Color(0xFFE96D71))
-                        )
+            .background(
+                brush = Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0f to Color(0xFFF27059),
+                        0.75f to Color(0xFFFFFFFF),
+                        1f to Color(0xFFFFFFFF)
                     )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 24.dp)
-                        .padding(top = 20.dp, bottom = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = buildAnnotatedString {
-                                withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("id") }
-                                withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)) { append("bat") }
-                            },
-                            color = Color.White,
-                            fontSize = 34.sp
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("id") }
+                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)) { append("bat") }
+                    },
+                    color = Color.White,
+                    fontSize = 34.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            MainSiteCard(
+                siteName = selectedSite?.nom ?: "",
+                lastTransfer = lastTransferText,
+                lastSynchroDateReception = lastSynchroDateReception,
+                lastSynchroDateEnvoi = lastSynchroDateEnvoi,
+                onTransferClick = onTransferClick,
+                onSuiviClick = {
+                    val siteId = selectedSite?.id ?: 0L
+                    coroutineScope.launch {
+                        val suiviContent = getSuiviContent(siteId)
+                        toastState.showToast(
+                            title = "Suivi des opérations",
+                            content = suiviContent
                         )
                     }
+                }
+            )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                    MainSiteCard(
-                        siteName = selectedSite?.nom ?: "",
-                        lastTransfer = lastTransferText,
-                        lastSynchroDateReception = lastSynchroDateReception,
-                        lastSynchroDateEnvoi = lastSynchroDateEnvoi,
-                        onTransferClick = onTransferClick,
-                        onSuiviClick = {
-                            val siteId = selectedSite?.id ?: 0L
-                            coroutineScope.launch {
-                                val suiviContent = getSuiviContent(siteId)
-                                toastState.showToast(
-                                    title = "Suivi des opérations",
-                                    content = suiviContent
-                                )
-                            }
-                        }
+            ActionRowButton(
+                title = "Saisie des signalements",
+                onClick = {
+                    toastState.showToast(
+                        title = "Saisie des signalements",
+                        content = "Module de signalement des incidents et anomalies constatés sur le terrain. Permet la création, modification et envoi de rapports détaillés vers le système central."
                     )
                 }
-            }
+            )
 
-            // ── CONTENU (fond gris) ────────────────────────────────────────
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 20.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ActionRowButton(
-                    title = "Saisie des signalements",
-                    onClick = {
-                        toastState.showToast(
-                            title = "Saisie des signalements",
-                            content = "Module de signalement des incidents et anomalies constatés sur le terrain. Permet la création, modification et envoi de rapports détaillés vers le système central."
-                        )
-                    }
-                )
+            Spacer(modifier = Modifier.height(12.dp))
 
-                ActionRowButton(
-                    title = "Gestion des cartes",
-                    iconVector = Icons.Outlined.CreditCard,
-                    onClick = {
-                        toastState.showToast(
-                            title = "Gestion des cartes",
-                            content = "Gestion des cartes d'accès et badges RFID associés aux usagers et aux sites."
-                        )
-                    }
-                )
-            }
+            ActionRowButton(
+                title = "Gestion des cartes",
+                iconResId = R.drawable.carte_a_puce,
+                onClick = {
+                    toastState.showToast(
+                        title = "Gestion des cartes",
+                        content = "Gestion des cartes d'accès et badges RFID associés aux usagers et aux sites."
+                    )
+                }
+            )
 
-            // ── BOUTON BAS ─────────────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF4F4F4))
-                    .navigationBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-            ) {
-                BottomLargeButton(
-                    title = "Passage en déchetterie",
-                    onClick = {
-                        toastState.showToast(
-                            title = "Passage en déchetterie",
-                            content = "Gestion des passages et contrôles d'accès aux déchetteries. Inclut la vérification des autorisations, l'enregistrement des dépôts et le suivi des quotas."
-                        )
-                    }
-                )
-            }
+            Spacer(modifier = Modifier.weight(1f))
+
+            BottomLargeButton(
+                title = "Passage en déchetterie",
+                onClick = {
+                    toastState.showToast(
+                        title = "Passage en déchetterie",
+                        content = "Gestion des passages et contrôles d'accès aux déchetteries. Inclut la vérification des autorisations, l'enregistrement des dépôts et le suivi des quotas."
+                    )
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
         ToastHost(toastState = toastState)
