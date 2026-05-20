@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -20,6 +21,8 @@ private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture")
 @Composable
 fun PocScreen(onBack: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
+    var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var showCountAlert by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -69,13 +72,23 @@ fun PocScreen(onBack: () -> Unit) {
         }
 
         when (selectedTab) {
-            0 -> Box(
+            0 -> Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                contentAlignment = Alignment.TopCenter
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                PhotoPickerComponent()
+                PhotoPickerComponent(
+                    photos = photos,
+                    onPhotosChange = { photos = it }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { showCountAlert = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal)
+                ) {
+                    Text("Récupérer les photos (${photos.size})")
+                }
             }
             else -> Box(
                 modifier = Modifier.fillMaxSize(),
@@ -88,5 +101,16 @@ fun PocScreen(onBack: () -> Unit) {
                 )
             }
         }
+    }
+
+    if (showCountAlert) {
+        AlertDialog(
+            onDismissRequest = { showCountAlert = false },
+            title = { Text("Photos sélectionnées") },
+            text = { Text("${photos.size} photo${if (photos.size > 1) "s" else ""} sélectionnée${if (photos.size > 1) "s" else ""}") },
+            confirmButton = {
+                TextButton(onClick = { showCountAlert = false }) { Text("OK") }
+            }
+        )
     }
 }

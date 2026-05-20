@@ -33,22 +33,25 @@ import coil.compose.AsyncImage
 import java.io.File
 
 @Composable
-fun PhotoPickerComponent(modifier: Modifier = Modifier) {
+fun PhotoPickerComponent(
+    photos: List<Uri>,
+    onPhotosChange: (List<Uri>) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
-    var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showSourceDialog by remember { mutableStateOf(false) }
     val pendingCameraUri = remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) pendingCameraUri.value?.let { photos = photos + it }
+        if (success) pendingCameraUri.value?.let { onPhotosChange(photos + it) }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { photos = photos + it }
+        uri?.let { onPhotosChange(photos + it) }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -109,7 +112,7 @@ fun PhotoPickerComponent(modifier: Modifier = Modifier) {
                                     .offset(x = 6.dp, y = (-6).dp)
                                     .clip(RoundedCornerShape(50))
                                     .background(Color.Black.copy(alpha = 0.6f))
-                                    .clickable { photos = photos - uri },
+                                    .clickable { onPhotosChange(photos - uri) },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
