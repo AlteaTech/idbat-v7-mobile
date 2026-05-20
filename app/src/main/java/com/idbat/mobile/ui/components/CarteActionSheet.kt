@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircle
 import androidx.compose.material.icons.outlined.ArrowCircleDown
 import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,7 +21,8 @@ import androidx.compose.ui.unit.sp
 fun CarteActionSheet(
     onDismiss: () -> Unit,
     onCreerCarte: () -> Unit = {},
-    onRechargerCarte: () -> Unit = {}
+    onRechargerCarte: () -> Unit = {},
+    onPocClick: () -> Unit = {}
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -97,6 +99,31 @@ fun CarteActionSheet(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Recharger une carte",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = { onDismiss(); onPocClick() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Science,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "POC",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold

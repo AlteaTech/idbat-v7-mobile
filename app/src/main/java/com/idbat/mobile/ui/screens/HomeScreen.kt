@@ -40,6 +40,12 @@ fun HomeScreen(
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
     var showCarteSheet by remember { mutableStateOf(false) }
+    var showPocScreen by remember { mutableStateOf(false) }
+
+    if (showPocScreen) {
+        PocScreen(onBack = { showPocScreen = false })
+        return
+    }
 
     val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
     val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
@@ -149,7 +155,10 @@ fun HomeScreen(
         ToastHost(toastState = toastState)
 
         if (showCarteSheet) {
-            CarteActionSheet(onDismiss = { showCarteSheet = false })
+            CarteActionSheet(
+                onDismiss = { showCarteSheet = false },
+                onPocClick = { showPocScreen = true }
+            )
         }
     }
 }
