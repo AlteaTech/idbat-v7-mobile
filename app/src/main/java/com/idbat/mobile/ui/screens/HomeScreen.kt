@@ -7,7 +7,11 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import com.idbat.mobile.R
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -35,6 +39,7 @@ fun HomeScreen(
 ) {
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
+    var showCarteSheet by remember { mutableStateOf(false) }
 
     val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
     val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
@@ -123,12 +128,7 @@ fun HomeScreen(
             ActionRowButton(
                 title = "Gestion des cartes",
                 iconResId = R.drawable.carte_a_puce,
-                onClick = {
-                    toastState.showToast(
-                        title = "Gestion des cartes",
-                        content = "Gestion des cartes d'accès et badges RFID associés aux usagers et aux sites."
-                    )
-                }
+                onClick = { showCarteSheet = true }
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -147,5 +147,9 @@ fun HomeScreen(
         }
 
         ToastHost(toastState = toastState)
+
+        if (showCarteSheet) {
+            CarteActionSheet(onDismiss = { showCarteSheet = false })
+        }
     }
 }
