@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,7 +19,13 @@ import com.idbat.mobile.R
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
 
 @Composable
-fun ActionRowButton(title: String, onClick: () -> Unit, icon: Unit? = null, color: Color = Color.White) {
+fun ActionRowButton(
+    title: String,
+    onClick: () -> Unit,
+    iconVector: ImageVector? = null,
+    iconResId: Int? = null,
+    color: Color = Color.White
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -36,16 +43,32 @@ fun ActionRowButton(title: String, onClick: () -> Unit, icon: Unit? = null, colo
                 text = title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.width(150.dp)
+                modifier = Modifier.weight(1f)
             )
-            Icon(
-                painter = painterResource(id = R.drawable.book1),
-                contentDescription = "Book",
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .aspectRatio(1f),
-                tint = VeoliaPrincipal
-            )
+            when {
+                iconVector != null -> Icon(
+                    imageVector = iconVector,
+                    contentDescription = null,
+                    modifier = Modifier.size(56.dp),
+                    tint = VeoliaPrincipal
+                )
+                iconResId != null -> Icon(
+                    painter = painterResource(id = iconResId),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f),
+                    tint = VeoliaPrincipal
+                )
+                else -> Icon(
+                    painter = painterResource(id = R.drawable.book1),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f),
+                    tint = VeoliaPrincipal
+                )
+            }
         }
     }
 }

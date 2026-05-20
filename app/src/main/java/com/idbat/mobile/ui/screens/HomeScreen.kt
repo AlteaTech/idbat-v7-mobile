@@ -2,25 +2,28 @@ package com.idbat.mobile.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.Image
+import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
+import com.idbat.mobile.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.ui.components.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     selectedSite: SiteEntity?,
@@ -28,19 +31,29 @@ fun HomeScreen(
     lastSynchroDateEnvoi: Date?,
     onLogoutClick: () -> Unit,
     onTransferClick: () -> Unit,
-    getSuiviContent: suspend (Long) -> CharSequence = { "" } // Changé le nom et le type de retour
+    getSuiviContent: suspend (Long) -> CharSequence = { "" }
 ) {
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
+
+    val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
+    val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
+    val lastTransferText = if (lastSynchroDate != null) {
+        "Dernier transfert le ${formatter.format(lastSynchroDate)}"
+    } else {
+        "Jamais synchronisé"
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF27059), Color(0xFFF5F5F5)),
-                    startY = 0f,
-                    endY = 1200f
+                    colorStops = arrayOf(
+                        0f to Color(0xFFF27059),
+                        0.75f to Color(0xFFFFFFFF),
+                        1f to Color(0xFFFFFFFF)
+                    )
                 )
             )
     ) {
@@ -54,30 +67,29 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                IconButton(onClick = onLogoutClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Se déconnecter",
-                        tint = Color.White
-                    )
-                }
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("id") }
+                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)) { append("bat") }
+                    },
+                    color = Color.White,
+                    fontSize = 34.sp
+                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
-
-            val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
-            val lastTransferText = if (lastSynchroDate != null) {
-                "Dernier transfert le ${formatter.format(lastSynchroDate)}"
-            } else {
-                "Jamais synchronisé"
-            }
+            Spacer(modifier = Modifier.height(20.dp))
 
             MainSiteCard(
-                siteName = selectedSite?.nom ?: "Gennevilliers",
+                siteName = selectedSite?.nom ?: "",
                 lastTransfer = lastTransferText,
                 lastSynchroDateReception = lastSynchroDateReception,
                 lastSynchroDateEnvoi = lastSynchroDateEnvoi,
@@ -85,7 +97,7 @@ fun HomeScreen(
                 onSuiviClick = {
                     val siteId = selectedSite?.id ?: 0L
                     coroutineScope.launch {
-                        val suiviContent = getSuiviContent(siteId) // Appel asynchrone
+                        val suiviContent = getSuiviContent(siteId)
                         toastState.showToast(
                             title = "Suivi des opérations",
                             content = suiviContent
@@ -94,7 +106,7 @@ fun HomeScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             ActionRowButton(
                 title = "Saisie des signalements",
@@ -102,6 +114,19 @@ fun HomeScreen(
                     toastState.showToast(
                         title = "Saisie des signalements",
                         content = "Module de signalement des incidents et anomalies constatés sur le terrain. Permet la création, modification et envoi de rapports détaillés vers le système central."
+                    )
+                }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            ActionRowButton(
+                title = "Gestion des cartes",
+                iconResId = R.drawable.carte_a_puce,
+                onClick = {
+                    toastState.showToast(
+                        title = "Gestion des cartes",
+                        content = "Gestion des cartes d'accès et badges RFID associés aux usagers et aux sites."
                     )
                 }
             )
@@ -118,7 +143,7 @@ fun HomeScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
         ToastHost(toastState = toastState)
