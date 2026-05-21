@@ -141,7 +141,7 @@ fun PocScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
-                MifareWriterComponent(cartePuce = rfidCard)
+           //     MifareWriterComponent(cartePuce = rfidCard)
             }
         }
     }
