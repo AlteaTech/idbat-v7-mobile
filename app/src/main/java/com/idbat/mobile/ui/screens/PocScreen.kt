@@ -3,6 +3,9 @@ package com.idbat.mobile.ui.screens
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
@@ -12,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.ui.components.BarcodeScannerComponent
@@ -27,16 +31,47 @@ private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture")
 fun PocScreen(onBack: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // ── État photo ──────────────────────────────────────────────────────────
+    // ── Photo ───────────────────────────────────────────────────────────────
     var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showCountAlert by remember { mutableStateOf(false) }
 
-    // ── État code barre ─────────────────────────────────────────────────────
+    // ── Code barre ──────────────────────────────────────────────────────────
     var barcodeValue by remember { mutableStateOf<String?>(null) }
     var barcodeFormat by remember { mutableStateOf<String?>(null) }
 
-    // ── État RFID (partagé lecture ↔ écriture) ──────────────────────────────
+    // ── RFID — état partagé lecture ↔ écriture ───────────────────────────────
     var rfidCard by remember { mutableStateOf<CartePuce?>(null) }
+
+    // Champs du formulaire d'écriture (pré-remplis quand rfidCard change)
+    var fNumeroId      by remember { mutableStateOf("") }
+    var fMotDePasse    by remember { mutableStateOf("") }
+    var fSociete       by remember { mutableStateOf("") }
+    var fNomPrenom     by remember { mutableStateOf("") }
+    var fIdentClient   by remember { mutableStateOf("") }
+    var fSolde         by remember { mutableStateOf("0") }
+    var fCumul         by remember { mutableStateOf("0") }
+    var fPaiement      by remember { mutableStateOf("") }
+    var fInterne       by remember { mutableStateOf(false) }
+    var fPrepaiement   by remember { mutableStateOf(false) }
+    var fFacturation   by remember { mutableStateOf(false) }
+    var fGratuit       by remember { mutableStateOf(false) }
+
+    LaunchedEffect(rfidCard) {
+        rfidCard?.let { c ->
+            fNumeroId    = c.numeroIdentification
+            fMotDePasse  = c.motDePasse
+            fSociete     = c.societe
+            fNomPrenom   = c.nomPrenom
+            fIdentClient = c.identClient
+            fSolde       = c.soldePoints.toBigDecimal().toPlainString()
+            fCumul       = c.cumulPoints.toBigDecimal().toPlainString()
+            fPaiement    = c.paiementComptant
+            fInterne     = c.interne
+            fPrepaiement = c.prepaiement
+            fFacturation = c.facturation
+            fGratuit     = c.gratuit
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -76,7 +111,7 @@ fun PocScreen(onBack: () -> Unit) {
                     onClick = { selectedTab = index },
                     text = {
                         Text(
-                            text = title,
+                            title,
                             fontSize = 12.sp,
                             fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
                         )
@@ -86,6 +121,7 @@ fun PocScreen(onBack: () -> Unit) {
         }
 
         when (selectedTab) {
+
             // ── PHOTO ───────────────────────────────────────────────────────
             0 -> Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -136,12 +172,135 @@ fun PocScreen(onBack: () -> Unit) {
                 MifareReaderComponent(onCardRead = { rfidCard = it })
             }
 
-            // ── RFID ÉCRITURE ────────────────────────────────────────────────
-            3 -> Box(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                contentAlignment = Alignment.TopCenter
+            // ── RFID ÉCRITURE ─────────────────────────────────────────────────
+            3 -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                MifareWriterComponent(cartePuce = rfidCard)
+                if (rfidCard != null) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = VeoliaPrincipal.copy(alpha = 0.08f)
+                    ) {
+                        Text(
+                            "Formulaire pré-rempli depuis la lecture (UID : ${rfidCard!!.uid})",
+                            modifier = Modifier.padding(10.dp),
+                            fontSize = 12.sp,
+                            color = VeoliaPrincipal
+                        )
+                    }
+                }
+
+                // Identité
+                WriteFormSection("Identité") {
+                    OutlinedTextField(
+                        value = fNumeroId,
+                        onValueChange = { if (it.length <= 20) fNumeroId = it },
+                        label = { Text("N° identification (20 car.)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = fNomPrenom,
+                        onValueChange = { if (it.length <= 30) fNomPrenom = it },
+                        label = { Text("Nom / Prénom (30 car.)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = fIdentClient,
+                        onValueChange = { if (it.length <= 18) fIdentClient = it },
+                        label = { Text("Identifiant client (18 car.)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = fSociete,
+                        onValueChange = { if (it.length <= 34) fSociete = it },
+                        label = { Text("Société (34 car.)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = fMotDePasse,
+                        onValueChange = { if (it.length <= 4) fMotDePasse = it },
+                        label = { Text("Mot de passe (4 car.)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                // Soldes
+                WriteFormSection("Soldes") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = fSolde,
+                            onValueChange = { fSolde = it },
+                            label = { Text("Solde (pts)") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                        )
+                        OutlinedTextField(
+                            value = fCumul,
+                            onValueChange = { fCumul = it },
+                            label = { Text("Cumul (pts)") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                        )
+                    }
+                }
+
+                // Options
+                WriteFormSection("Options") {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        WriteSwitch("Interne",      fInterne)      { fInterne = it }
+                        WriteSwitch("Prépaiement",  fPrepaiement)  { fPrepaiement = it }
+                        WriteSwitch("Facturation",  fFacturation)  { fFacturation = it }
+                        WriteSwitch("Gratuit",      fGratuit)      { fGratuit = it }
+                    }
+                }
+
+                // Paiement comptant (champ long, optionnel)
+                OutlinedTextField(
+                    value = fPaiement,
+                    onValueChange = { if (it.length <= 70) fPaiement = it },
+                    label = { Text("Paiement comptant (70 car.)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3
+                )
+
+                // Composant NFC — buildCarte appelé avec l'UID réel de la carte cible
+                MifareWriterComponent(
+                    buildCarte = { uid, numSerie ->
+                        CartePuce(
+                            uid = uid,
+                            numeroSerie = numSerie,
+                            numeroIdentification = fNumeroId.take(20),
+                            motDePasse = fMotDePasse.take(4),
+                            societe = fSociete.take(34),
+                            interne = fInterne,
+                            prepaiement = fPrepaiement,
+                            facturation = fFacturation,
+                            gratuit = fGratuit,
+                            nomPrenom = fNomPrenom.take(30),
+                            identClient = fIdentClient.take(18),
+                            soldePoints = fSolde.toDoubleOrNull() ?: 0.0,
+                            cumulPoints = fCumul.toDoubleOrNull() ?: 0.0,
+                            paiementComptant = fPaiement.take(70),
+                            crc = "" // recalculé par serialize()
+                        )
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -159,6 +318,35 @@ fun PocScreen(onBack: () -> Unit) {
             confirmButton = {
                 TextButton(onClick = { showCountAlert = false }) { Text("OK") }
             }
+        )
+    }
+}
+
+@Composable
+private fun WriteFormSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray
+        )
+        content()
+    }
+}
+
+@Composable
+private fun WriteSwitch(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, fontSize = 14.sp)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(checkedThumbColor = VeoliaPrincipal, checkedTrackColor = VeoliaPrincipal.copy(alpha = 0.4f))
         )
     }
 }

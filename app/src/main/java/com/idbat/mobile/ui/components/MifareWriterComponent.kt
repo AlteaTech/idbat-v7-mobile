@@ -40,18 +40,25 @@ private sealed class WriteState {
     data class Error(val message: String) : WriteState()
 }
 
+/**
+ * Composant d'écriture Mifare.
+ *
+ * [buildCarte] est appelé au moment de la détection NFC avec l'UID réel de la carte cible,
+ * ce qui garantit que le CRC est calculé avec le bon numéro de série.
+ * Retourner null annule l'écriture sans erreur.
+ */
 @Composable
-fun MifareWriterComponent(cartePuce: CartePuce?, modifier: Modifier = Modifier) {
+fun MifareWriterComponent(
+    buildCarte: (uid: String, numeroSerie: String) -> CartePuce?,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val coroutineScope = rememberCoroutineScope()
 
     val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
     var writeState by remember { mutableStateOf<WriteState>(WriteState.Idle) }
-    val currentCarte = rememberUpdatedState(cartePuce)
-
-    // Reset l'état quand la carte source change
-    LaunchedEffect(cartePuce) { writeState = WriteState.Idle }
+    val currentBuilder = rememberUpdatedState(buildCarte)
 
     DisposableEffect(Unit) {
         if (nfcAdapter == null || activity == null) return@DisposableEffect onDispose {}
@@ -59,16 +66,16 @@ fun MifareWriterComponent(cartePuce: CartePuce?, modifier: Modifier = Modifier) 
         nfcAdapter.enableReaderMode(
             activity,
             { tag ->
-                val carte = currentCarte.value ?: return@enableReaderMode
+                if (tag == null) return@enableReaderMode
+                val uid = tag.id.joinToString(" ") { "%02X".format(it) }
+                val numSerie = tag.id.take(4).joinToString("") { "%02X".format(it) }
+                val carte = currentBuilder.value(uid, numSerie) ?: return@enableReaderMode
+
                 coroutineScope.launch(Dispatchers.Main) { writeState = WriteState.Writing }
                 coroutineScope.launch(Dispatchers.IO) {
                     try {
                         writeCartePuce(tag, carte)
-                        withContext(Dispatchers.Main) {
-                            writeState = WriteState.Success(
-                                tag.id.joinToString(" ") { "%02X".format(it) }
-                            )
-                        }
+                        withContext(Dispatchers.Main) { writeState = WriteState.Success(uid) }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
                             writeState = WriteState.Error(e.message ?: "Erreur d'écriture")
@@ -95,7 +102,7 @@ fun MifareWriterComponent(cartePuce: CartePuce?, modifier: Modifier = Modifier) 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Nfc, null, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("RFID Écriture", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Écriture NFC", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -105,19 +112,10 @@ fun MifareWriterComponent(cartePuce: CartePuce?, modifier: Modifier = Modifier) 
                 return@Column
             }
 
-            if (cartePuce == null) {
-                Text(
-                    "Lisez d'abord une carte dans l'onglet RFID Lecture",
-                    color = Color.Gray,
-                    fontSize = 14.sp
-                )
-                return@Column
-            }
-
             when (val state = writeState) {
-                WriteState.Idle -> WriteReady(cartePuce)
+                WriteState.Idle -> WriteReadyIdle()
                 WriteState.Writing -> Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     CircularProgressIndicator(color = VeoliaPrincipal)
@@ -133,11 +131,25 @@ fun MifareWriterComponent(cartePuce: CartePuce?, modifier: Modifier = Modifier) 
                             modifier = Modifier.padding(12.dp).fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Outlined.Check, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                            Icon(
+                                Icons.Outlined.Check, null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(20.dp)
+                            )
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text("Écriture réussie", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50), fontSize = 14.sp)
-                                Text(state.uid, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Color.Gray)
+                                Text(
+                                    "Écriture réussie",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF4CAF50),
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    state.uid,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.Gray
+                                )
                             }
                         }
                     }
@@ -165,57 +177,29 @@ fun MifareWriterComponent(cartePuce: CartePuce?, modifier: Modifier = Modifier) 
 }
 
 @Composable
-private fun WriteReady(carte: CartePuce) {
+private fun WriteReadyIdle() {
     val transition = rememberInfiniteTransition(label = "nfc_write_pulse")
     val alpha by transition.animateFloat(
         initialValue = 0.3f, targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "pulse"
     )
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Résumé de la carte à écrire
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = VeoliaPrincipal.copy(alpha = 0.06f)
-        ) {
-            Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                Text("Carte à écrire", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VeoliaPrincipal)
-                Spacer(modifier = Modifier.height(4.dp))
-                if (carte.nomPrenom.isNotBlank())
-                    Text(carte.nomPrenom, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                if (carte.societe.isNotBlank())
-                    Text(carte.societe, fontSize = 12.sp, color = Color.Gray)
-                Text(
-                    "Solde : %.2f pts  |  Cumul : %.2f pts".format(carte.soldePoints, carte.cumulPoints),
-                    fontSize = 12.sp, color = Color.Gray
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                Icons.Outlined.Nfc,
-                contentDescription = null,
-                modifier = Modifier.size(56.dp).alpha(alpha),
-                tint = VeoliaPrincipal
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text("Approchez la carte à écrire", fontSize = 14.sp, color = Color.Gray)
-        }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            Icons.Outlined.Nfc, null,
+            modifier = Modifier.size(56.dp).alpha(alpha),
+            tint = VeoliaPrincipal
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Text("Approchez la carte à écrire", fontSize = 14.sp, color = Color.Gray)
     }
 }
 
 // ── Écriture Mifare ─────────────────────────────────────────────────────────
 
-/**
- * Écrit les 240 octets du CartePuce sérialisé sur la carte.
- * Même layout que la lecture : S0B1, S0B2, S1B0-B2, …, S5B0
- */
 private fun writeCartePuce(tag: Tag, carte: CartePuce) {
     val content = carte.serialize()
     check(content.length == 240) { "Sérialisation invalide (${content.length}/240)" }
@@ -256,5 +240,5 @@ private fun writeCartePuce(tag: Tag, carte: CartePuce) {
         }
     }
 
-    Log.d(TAG, "Écriture OK — ${bytes.size} bytes")
+    Log.d(TAG, "Écriture OK — UID ${carte.uid}")
 }
