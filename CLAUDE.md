@@ -36,18 +36,26 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Écrans et navigation
 
-La navigation est conditionnelle (pas de NavHost) : `MainScreen` route vers `LoginScreen` ou `HomeScreen` selon `authState.isLoggedIn`.
+La navigation est conditionnelle (pas de NavHost) : `MainScreen` route vers `LoginScreen` ou `HomeScreen` selon `authState.isLoggedIn`. Les navigations secondaires (ex. `PocScreen`) sont gérées par état local dans le composable parent (`var showPocScreen by remember { mutableStateOf(false) }` dans `HomeScreen`).
 
 | Écran | Rôle |
 |---|---|
 | `MainScreen` | Hub d'initialisation, routing authentification |
 | `LoginScreen` | Sélection site + utilisateur TP + saisie PIN |
 | `HomeScreen` | Tableau de bord : infos site, dates synchro, actions |
+| `PocScreen` | Page POC accessible depuis `HomeScreen` → bottom sheet "Gestion des cartes" |
 
 **Actions du HomeScreen :**
 - Suivi des opérations
 - Transférer (synchronisation)
 - Saisie des signalements
+- Gestion des cartes → ouvre `CarteActionSheet` (bottom sheet Material3)
+
+**`CarteActionSheet`** propose : Créer une carte · Recharger une carte · POC (navigue vers `PocScreen`)
+
+**`PocScreen`** contient 4 onglets : PHOTO · CB · RFID Lecture · RFID Écriture  
+- Onglet **PHOTO** : `PhotoPickerComponent` (état hoisted) + bouton compteur  
+- Onglet **CB** : `CardScanComponent` (OCR ML Kit) + affichage des champs extraits
 
 ---
 
@@ -111,6 +119,36 @@ lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
 
 ---
 
+## Composants UI réutilisables (`ui/components/`)
+
+| Composant | Rôle |
+|---|---|
+| `MainSiteCard` | Carte principale (nom site, dates synchro, boutons Suivi/Transférer) |
+| `ActionRowButton` | Bouton ligne blanc arrondi avec icône droite (`iconVector` ou `iconResId`) |
+| `BottomLargeButton` | Grand bouton bas d'écran corail avec image droite |
+| `CarteActionSheet` | Bottom sheet Material3 avec 3 actions carte |
+| `PhotoPickerComponent` | Prise/sélection photos, thumbnails suppressibles — état **hoisted** (`photos`, `onPhotosChange`) |
+| `CardScanComponent` | Scan CB via caméra/galerie + OCR ML Kit → retourne `CardData` via `onCardDataExtracted` |
+| `CameraUtils` | `createCameraUri(context)` — helper interne partagé pour FileProvider |
+| `ToastHost` / `rememberToastState` | Système de toasts custom avec titre + contenu rich text |
+
+**`CardData`** (défini dans `CardScanComponent.kt`) :
+```kotlin
+data class CardData(val cardNumber: String?, val expiryDate: String?, val cardholderName: String?)
+```
+
+---
+
+## Permissions et FileProvider
+
+Permissions déclarées dans `AndroidManifest.xml` :
+- `INTERNET`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (existantes)
+- `CAMERA` (ajoutée pour la prise de photo)
+
+FileProvider configuré : autorité `${applicationId}.fileprovider`, chemins dans `res/xml/file_paths.xml` (cache `images/`). Utilisé par `createCameraUri()` pour les photos caméra.
+
+---
+
 ## Dépendances clés (versions dans `gradle/libs.versions.toml`)
 
 | Lib | Version |
@@ -124,6 +162,9 @@ lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
 | Lifecycle | 2.7.0 |
 | Navigation Compose | 2.7.7 |
 | Coroutines | 1.8.1 |
+| Coil Compose | 2.6.0 |
+| ML Kit Text Recognition | 16.0.0 |
+| Material Icons Extended | 1.6.1 |
 
 ---
 
@@ -133,7 +174,10 @@ lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
 - **Client API généré** : le dossier `generated/client/` ne se modifie pas à la main — regénérer depuis la spec OpenAPI.
 - **ConfigSingleton** : contient l'URL de base et le flag `webEnabled`. Changer l'URL ici pour switcher d'environnement.
 - **Imports en batch** : `UsagerEntity` est inséré par tranches de 2000 ; ne pas casser cette logique lors de refactorisations.
-- **Permissions Android** : `INTERNET` + localisation déclarées dans `AndroidManifest.xml` ; la localisation est utilisée à l'enregistrement du device uniquement.
+- **Permissions Android** : `INTERNET` + localisation + `CAMERA` déclarées dans `AndroidManifest.xml` ; la localisation est utilisée à l'enregistrement du device uniquement ; la caméra est demandée à la volée (runtime permission) dans `PhotoPickerComponent` et `CardScanComponent`.
+- **FileProvider** : toute nouvelle fonctionnalité utilisant `TakePicture()` doit passer par `createCameraUri()` (`CameraUtils.kt`) — ne pas créer de URI caméra directement.
+- **State hoisting** : les composants photo (`PhotoPickerComponent`, `CardScanComponent`) n'ont pas d'état interne — l'état est géré par le parent. Ne pas ré-internaliser cet état.
+- **Navigation secondaire** : pas de NavHost — utiliser `var showXxx by remember { mutableStateOf(false) }` dans le composable parent et un `if (showXxx) { XxxScreen(onBack = { showXxx = false }) ; return }` pour les nouvelles pages.
 
 ---
 

@@ -100,4 +100,7 @@ dependencies {
 
     // Coil (chargement d'images)
     implementation(libs.coil.compose)
+
+    // ML Kit (OCR on-device)
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 }

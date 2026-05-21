@@ -9,12 +9,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AddAPhoto
+import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,35 +26,57 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+
+data class CardData(
+    val cardNumber: String? = null,
+    val expiryDate: String? = null,
+    val cardholderName: String? = null
+)
 
 @Composable
-fun PhotoPickerComponent(
-    photos: List<Uri>,
-    onPhotosChange: (List<Uri>) -> Unit,
+fun CardScanComponent(
+    onCardDataExtracted: (CardData) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var scannedUri by remember { mutableStateOf<Uri?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
     var showSourceDialog by remember { mutableStateOf(false) }
-    val pendingCameraUri = remember { mutableStateOf<Uri?>(null) }
+    val pendingUri = remember { mutableStateOf<Uri?>(null) }
+
+    fun processUri(uri: Uri) {
+        scannedUri = uri
+        isProcessing = true
+        coroutineScope.launch {
+            val data = extractCardData(context, uri)
+            isProcessing = false
+            onCardDataExtracted(data)
+        }
+    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) pendingCameraUri.value?.let { onPhotosChange(photos + it) }
+        if (success) pendingUri.value?.let { processUri(it) }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { onPhotosChange(photos + it) }
-    }
+    ) { uri -> uri?.let { processUri(it) } }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
             val uri = createCameraUri(context)
-            pendingCameraUri.value = uri
+            pendingUri.value = uri
             cameraLauncher.launch(uri)
         }
     }
@@ -66,7 +85,7 @@ fun PhotoPickerComponent(
         when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
             PackageManager.PERMISSION_GRANTED -> {
                 val uri = createCameraUri(context)
-                pendingCameraUri.value = uri
+                pendingUri.value = uri
                 cameraLauncher.launch(uri)
             }
             else -> permissionLauncher.launch(Manifest.permission.CAMERA)
@@ -82,44 +101,37 @@ fun PhotoPickerComponent(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Outlined.AddAPhoto,
+                    imageVector = Icons.Outlined.CreditCard,
                     contentDescription = null,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Photo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(text = "CB", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
 
-            if (photos.isNotEmpty()) {
+            scannedUri?.let { uri ->
                 Spacer(modifier = Modifier.height(12.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(photos) { uri ->
-                        Box(modifier = Modifier.size(70.dp)) {
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(8.dp))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 6.dp, y = (-6).dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(Color.Black.copy(alpha = 0.6f))
-                                    .clickable { onPhotosChange(photos - uri) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Close,
-                                    contentDescription = "Supprimer",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                            }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    if (isProcessing) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.4f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color.White)
                         }
                     }
                 }
@@ -137,11 +149,11 @@ fun PhotoPickerComponent(
                             colors = listOf(Color(0xFFF27059), Color(0xFFFF9A82))
                         )
                     )
-                    .clickable { showSourceDialog = true },
+                    .clickable(enabled = !isProcessing) { showSourceDialog = true },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Prendre une photo",
+                    text = if (scannedUri == null) "Scanner une CB" else "Rescanner",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
@@ -153,7 +165,7 @@ fun PhotoPickerComponent(
     if (showSourceDialog) {
         AlertDialog(
             onDismissRequest = { showSourceDialog = false },
-            title = { Text("Ajouter une photo") },
+            title = { Text("Scanner une CB") },
             confirmButton = {
                 TextButton(onClick = { showSourceDialog = false; launchCamera() }) {
                     Text("Appareil photo")
@@ -168,3 +180,40 @@ fun PhotoPickerComponent(
     }
 }
 
+private suspend fun extractCardData(context: Context, uri: Uri): CardData =
+    suspendCancellableCoroutine { cont ->
+        val image = try {
+            InputImage.fromFilePath(context, uri)
+        } catch (e: Exception) {
+            cont.resume(CardData())
+            return@suspendCancellableCoroutine
+        }
+        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            .process(image)
+            .addOnSuccessListener { result ->
+                if (cont.isActive) cont.resume(parseCardText(result.text))
+            }
+            .addOnFailureListener {
+                if (cont.isActive) cont.resume(CardData())
+            }
+    }
+
+private fun parseCardText(text: String): CardData {
+    val cardNumberRegex = Regex("""\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b""")
+    val expiryRegex = Regex("""\b(0[1-9]|1[0-2])[/\-]\d{2,4}\b""")
+    val nameRegex = Regex("""^[A-Z]{2,}(?:\s[A-Z]{2,})+$""", RegexOption.MULTILINE)
+
+    val rawNumber = cardNumberRegex.find(text)?.value
+    val cardNumber = rawNumber
+        ?.replace(Regex("""[\s\-]"""), "")
+        ?.chunked(4)
+        ?.joinToString(" ")
+
+    val expiry = expiryRegex.find(text)?.value
+
+    val name = nameRegex.findAll(text)
+        .map { it.value.trim() }
+        .firstOrNull { it.split(" ").size >= 2 }
+
+    return CardData(cardNumber = cardNumber, expiryDate = expiry, cardholderName = name)
+}
