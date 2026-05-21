@@ -3,9 +3,9 @@ package com.idbat.mobile.ui.screens
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,8 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.components.CardData
-import com.idbat.mobile.ui.components.CardScanComponent
+import com.idbat.mobile.ui.components.BarcodeScannerComponent
+import com.idbat.mobile.ui.components.MifareReaderComponent
+import com.idbat.mobile.ui.components.MifareWriterComponent
 import com.idbat.mobile.ui.components.PhotoPickerComponent
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
 
@@ -26,7 +27,9 @@ fun PocScreen(onBack: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showCountAlert by remember { mutableStateOf(false) }
-    var cardData by remember { mutableStateOf<CardData?>(null) }
+    var barcodeValue by remember { mutableStateOf<String?>(null) }
+    var barcodeFormat by remember { mutableStateOf<String?>(null) }
+    var writeText by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -98,36 +101,51 @@ fun PocScreen(onBack: () -> Unit) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                CardScanComponent(onCardDataExtracted = { cardData = it })
-
-                cardData?.let { data ->
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        shadowElevation = 2.dp,
-                        color = Color.White
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            CardField(label = "Numéro", value = data.cardNumber)
-                            CardField(label = "Expiration", value = data.expiryDate)
-                            CardField(label = "Titulaire", value = data.cardholderName)
-                            CardField(label = "Code de sécurité", value = data.cvv)
-                        }
+                BarcodeScannerComponent(
+                    scannedValue = barcodeValue,
+                    onBarcodeDetected = { value, format ->
+                        barcodeValue = value
+                        barcodeFormat = format
                     }
-                }
-            }
-            else -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = tabs[selectedTab],
-                    fontSize = 16.sp,
-                    color = Color.Gray
                 )
+                OutlinedTextField(
+                    value = barcodeValue ?: "",
+                    onValueChange = { barcodeValue = it },
+                    label = { Text(barcodeFormat ?: "Code Barre") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = if (barcodeValue != null) {
+                        {
+                            IconButton(onClick = { barcodeValue = null; barcodeFormat = null }) {
+                                Icon(Icons.Outlined.Close, contentDescription = "Effacer")
+                            }
+                        }
+                    } else null
+                )
+            }
+            2 -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                MifareReaderComponent()
+            }
+            3 -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = writeText,
+                    onValueChange = { writeText = it },
+                    label = { Text("Texte à écrire sur la carte") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                MifareWriterComponent(textToWrite = writeText)
             }
         }
     }
@@ -140,23 +158,6 @@ fun PocScreen(onBack: () -> Unit) {
             confirmButton = {
                 TextButton(onClick = { showCountAlert = false }) { Text("OK") }
             }
-        )
-    }
-}
-
-@Composable
-private fun CardField(label: String, value: String?) {
-    Column {
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Gray
-        )
-        Text(
-            text = value ?: "—",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
         )
     }
 }

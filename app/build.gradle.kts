@@ -107,6 +107,6 @@ dependencies {
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
 
-    // ML Kit (OCR on-device)
-    implementation("com.google.mlkit:text-recognition:16.0.0")
+    // ML Kit
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
 }
