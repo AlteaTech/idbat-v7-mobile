@@ -233,19 +233,25 @@ private fun parseCardText(text: String): CardData {
     val expiryRegex = Regex("""\b(0?[1-9]|1[0-2])[/\-]\d{2,4}\b""")
     val expiry = expiryRegex.find(text)?.value
 
-    // CVV - cherche le code après les labels connus (CVV2, CVC, CODE DE SECURITE, CREDIT)
-    // ou le code avant le label (format Revolut : "418 CVV2")
+    // CVV - après les labels connus (CODE DE SECURITE, CREDIT, CVV2, CVC2...)
     val cvvAfterLabel = Regex(
         """(?:CVV2?|CVC2?|CSC|CODE\s+DE\s+SECURITE|CREDIT)\s*[:\-]?\s*(\d{3,4})""",
         RegexOption.IGNORE_CASE
     ).find(text)?.groupValues?.get(1)
 
+    // CVV - avant le label sur la même ligne ou ligne suivante (format Revolut : "418\nCVV2")
     val cvvBeforeLabel = Regex(
-        """(\d{3,4})\s+(?:CVV2?|CVC2?|CSC)""",
+        """(\d{3,4})\s*[\n\r]?\s*(?:CVV2?|CVC2?|CSC)""",
         RegexOption.IGNORE_CASE
     ).find(text)?.groupValues?.get(1)
 
-    val cvv = cvvAfterLabel ?: cvvBeforeLabel
+    // CVV - entre "EXP" et "CVV" (format Revolut front : "09/29 EXP 418 CVV2")
+    val cvvBetweenLabels = Regex(
+        """EXP\s+(\d{3,4})\s+CVV""",
+        RegexOption.IGNORE_CASE
+    ).find(text)?.groupValues?.get(1)
+
+    val cvv = cvvAfterLabel ?: cvvBetweenLabels ?: cvvBeforeLabel
 
     // Nom - ligne tout en majuscules avec au moins 2 mots
     val nameRegex = Regex("""^[A-Z]{2,}(?:\s[A-Z]{2,})+$""", RegexOption.MULTILINE)
