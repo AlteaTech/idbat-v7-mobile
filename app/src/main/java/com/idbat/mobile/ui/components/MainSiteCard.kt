@@ -23,7 +23,7 @@ fun MainSiteCard(
 ) {
     Card(
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
@@ -35,7 +35,7 @@ fun MainSiteCard(
                 text = siteName,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = lastTransfer,

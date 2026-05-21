@@ -1,8 +1,9 @@
 package com.idbat.mobile.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import com.idbat.mobile.R
@@ -55,6 +56,7 @@ fun HomeScreen(
         "Jamais synchronisé"
     }
 
+    val bgColor = MaterialTheme.colorScheme.background
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -62,8 +64,8 @@ fun HomeScreen(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
                         0f to Color(0xFFF27059),
-                        0.75f to Color(0xFFFFFFFF),
-                        1f to Color(0xFFFFFFFF)
+                        0.75f to bgColor,
+                        1f to bgColor
                     )
                 )
             )

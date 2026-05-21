@@ -83,7 +83,7 @@ fun PocScreen(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Row(
@@ -109,7 +109,7 @@ fun PocScreen(onBack: () -> Unit) {
 
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             contentColor = VeoliaPrincipal
         ) {
             tabs.forEachIndexed { index, title ->

@@ -82,8 +82,7 @@ fun MifareReaderComponent(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        shadowElevation = 4.dp,
-        color = Color.White
+        shadowElevation = 4.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -226,7 +225,7 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
 
 @Composable
 private fun CartePuceSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFF8F8F8)) {
+    Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
             Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
             Spacer(modifier = Modifier.height(6.dp))

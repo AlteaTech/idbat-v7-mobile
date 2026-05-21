@@ -71,8 +71,7 @@ fun BarcodeScannerComponent(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        shadowElevation = 4.dp,
-        color = Color.White
+        shadowElevation = 4.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
