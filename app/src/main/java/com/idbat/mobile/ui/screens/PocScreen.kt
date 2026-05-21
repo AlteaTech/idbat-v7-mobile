@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.ui.components.BarcodeScannerComponent
+import com.idbat.mobile.ui.components.CartePuce
 import com.idbat.mobile.ui.components.MifareReaderComponent
 import com.idbat.mobile.ui.components.MifareWriterComponent
 import com.idbat.mobile.ui.components.PhotoPickerComponent
@@ -25,11 +26,17 @@ private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture")
 @Composable
 fun PocScreen(onBack: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // ── État photo ──────────────────────────────────────────────────────────
     var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showCountAlert by remember { mutableStateOf(false) }
+
+    // ── État code barre ─────────────────────────────────────────────────────
     var barcodeValue by remember { mutableStateOf<String?>(null) }
     var barcodeFormat by remember { mutableStateOf<String?>(null) }
-    var writeText by remember { mutableStateOf("") }
+
+    // ── État RFID (partagé lecture ↔ écriture) ──────────────────────────────
+    var rfidCard by remember { mutableStateOf<CartePuce?>(null) }
 
     Column(
         modifier = Modifier
@@ -79,16 +86,12 @@ fun PocScreen(onBack: () -> Unit) {
         }
 
         when (selectedTab) {
+            // ── PHOTO ───────────────────────────────────────────────────────
             0 -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                PhotoPickerComponent(
-                    photos = photos,
-                    onPhotosChange = { photos = it }
-                )
+                PhotoPickerComponent(photos = photos, onPhotosChange = { photos = it })
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { showCountAlert = true },
@@ -97,10 +100,10 @@ fun PocScreen(onBack: () -> Unit) {
                     Text("Récupérer les photos (${photos.size})")
                 }
             }
+
+            // ── CODE BARRE ──────────────────────────────────────────────────
             1 -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 BarcodeScannerComponent(
@@ -124,28 +127,21 @@ fun PocScreen(onBack: () -> Unit) {
                     } else null
                 )
             }
+
+            // ── RFID LECTURE ─────────────────────────────────────────────────
             2 -> Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(16.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
-                MifareReaderComponent()
+                MifareReaderComponent(onCardRead = { rfidCard = it })
             }
-            3 -> Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+
+            // ── RFID ÉCRITURE ────────────────────────────────────────────────
+            3 -> Box(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                contentAlignment = Alignment.TopCenter
             ) {
-                OutlinedTextField(
-                    value = writeText,
-                    onValueChange = { writeText = it },
-                    label = { Text("Texte à écrire sur la carte") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                MifareWriterComponent(textToWrite = writeText)
+                MifareWriterComponent(cartePuce = rfidCard)
             }
         }
     }
@@ -154,7 +150,12 @@ fun PocScreen(onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { showCountAlert = false },
             title = { Text("Photos sélectionnées") },
-            text = { Text("${photos.size} photo${if (photos.size > 1) "s" else ""} sélectionnée${if (photos.size > 1) "s" else ""}") },
+            text = {
+                Text(
+                    "${photos.size} photo${if (photos.size > 1) "s" else ""} " +
+                        "sélectionnée${if (photos.size > 1) "s" else ""}"
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { showCountAlert = false }) { Text("OK") }
             }

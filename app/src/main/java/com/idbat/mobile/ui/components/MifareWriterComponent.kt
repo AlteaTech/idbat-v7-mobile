@@ -1,12 +1,9 @@
 package com.idbat.mobile.ui.components
 
-import android.app.PendingIntent
-import android.content.Intent
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.MifareClassic
-import android.nfc.tech.MifareUltralight
-import android.os.Build
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -29,72 +26,62 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.util.Consumer
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private const val TAG = "MifareWriter"
+
 private sealed class WriteState {
     object Idle : WriteState()
     object Writing : WriteState()
-    data class Success(val uid: String, val techType: String, val bytesWritten: Int) : WriteState()
+    data class Success(val uid: String) : WriteState()
     data class Error(val message: String) : WriteState()
 }
 
 @Composable
-fun MifareWriterComponent(textToWrite: String, modifier: Modifier = Modifier) {
+fun MifareWriterComponent(cartePuce: CartePuce?, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val coroutineScope = rememberCoroutineScope()
 
     val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
     var writeState by remember { mutableStateOf<WriteState>(WriteState.Idle) }
+    val currentCarte = rememberUpdatedState(cartePuce)
 
-    fun handleTag(tag: Tag) {
-        if (textToWrite.isBlank()) return
-        writeState = WriteState.Writing
-        coroutineScope.launch(Dispatchers.IO) {
-            try {
-                val result = writeMifareTag(tag, textToWrite)
-                withContext(Dispatchers.Main) { writeState = result }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    writeState = WriteState.Error(e.message ?: "Erreur d'écriture")
-                }
-            }
-        }
-    }
+    // Reset l'état quand la carte source change
+    LaunchedEffect(cartePuce) { writeState = WriteState.Idle }
 
     DisposableEffect(Unit) {
         if (nfcAdapter == null || activity == null) return@DisposableEffect onDispose {}
 
-        val intent = Intent(context, activity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        else PendingIntent.FLAG_UPDATE_CURRENT
-        val pendingIntent = PendingIntent.getActivity(context, 0, intent, flags)
-
-        val techLists = arrayOf(
-            arrayOf(MifareClassic::class.java.name),
-            arrayOf(MifareUltralight::class.java.name)
+        nfcAdapter.enableReaderMode(
+            activity,
+            { tag ->
+                val carte = currentCarte.value ?: return@enableReaderMode
+                coroutineScope.launch(Dispatchers.Main) { writeState = WriteState.Writing }
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        writeCartePuce(tag, carte)
+                        withContext(Dispatchers.Main) {
+                            writeState = WriteState.Success(
+                                tag.id.joinToString(" ") { "%02X".format(it) }
+                            )
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            writeState = WriteState.Error(e.message ?: "Erreur d'écriture")
+                        }
+                    }
+                }
+            },
+            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+            null
         )
-        nfcAdapter.enableForegroundDispatch(activity, pendingIntent, null, techLists)
-
-        val listener = Consumer<Intent> { receivedIntent ->
-            val tag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-                receivedIntent.getParcelableExtra(NfcAdapter.EXTRA_TAG, Tag::class.java)
-            else
-                @Suppress("DEPRECATION")
-                receivedIntent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
-            tag?.let { handleTag(it) }
-        }
-        activity.addOnNewIntentListener(listener)
 
         onDispose {
-            activity.removeOnNewIntentListener(listener)
-            try { nfcAdapter.disableForegroundDispatch(activity) } catch (_: Exception) {}
+            try { nfcAdapter.disableReaderMode(activity) } catch (_: Exception) {}
         }
     }
 
@@ -113,201 +100,161 @@ fun MifareWriterComponent(textToWrite: String, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            when (val state = writeState) {
-                WriteState.Idle -> WaitingToWrite(ready = textToWrite.isNotBlank())
-                WriteState.Writing -> WritingIndicator()
-                is WriteState.Success -> WriteSuccessDisplay(state) { writeState = WriteState.Idle }
-                is WriteState.Error -> WriteErrorDisplay(state.message) { writeState = WriteState.Idle }
+            if (nfcAdapter == null) {
+                Text("NFC non disponible sur cet appareil", color = Color.Gray, fontSize = 14.sp)
+                return@Column
             }
-        }
-    }
-}
 
-@Composable
-private fun WaitingToWrite(ready: Boolean) {
-    val infiniteTransition = rememberInfiniteTransition(label = "nfc_write_pulse")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.25f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "pulse_alpha"
-    )
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Nfc,
-            contentDescription = null,
-            modifier = Modifier
-                .size(64.dp)
-                .alpha(if (ready) alpha else 0.2f),
-            tint = if (ready) VeoliaPrincipal else Color.Gray
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = if (ready) "Approchez une carte pour écrire" else "Saisissez un texte ci-dessus",
-            fontSize = 15.sp,
-            color = Color.Gray
-        )
-    }
-}
-
-@Composable
-private fun WritingIndicator() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        CircularProgressIndicator(color = VeoliaPrincipal)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text("Écriture en cours…", fontSize = 14.sp, color = Color.Gray)
-    }
-}
-
-@Composable
-private fun WriteSuccessDisplay(state: WriteState.Success, onReset: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = Color(0xFF4CAF50).copy(alpha = 0.08f)
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Outlined.Check,
-                    contentDescription = null,
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(20.dp)
+            if (cartePuce == null) {
+                Text(
+                    "Lisez d'abord une carte dans l'onglet RFID Lecture",
+                    color = Color.Gray,
+                    fontSize = 14.sp
                 )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        "Écriture réussie",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50),
-                        fontSize = 14.sp
-                    )
-                    Text("${state.bytesWritten} octets écrits", fontSize = 12.sp, color = Color.Gray)
+                return@Column
+            }
+
+            when (val state = writeState) {
+                WriteState.Idle -> WriteReady(cartePuce)
+                WriteState.Writing -> Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(color = VeoliaPrincipal)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Écriture en cours…", fontSize = 14.sp, color = Color.Gray)
+                }
+                is WriteState.Success -> Column(modifier = Modifier.fillMaxWidth()) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF4CAF50).copy(alpha = 0.08f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Outlined.Check, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("Écriture réussie", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50), fontSize = 14.sp)
+                                Text(state.uid, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Color.Gray)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = { writeState = WriteState.Idle },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text("Nouvelle écriture", color = VeoliaPrincipal) }
+                }
+                is WriteState.Error -> Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Erreur d'écriture", fontWeight = FontWeight.Bold, color = Color.Red)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(state.message, fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    TextButton(onClick = { writeState = WriteState.Idle }) {
+                        Text("Réessayer", color = VeoliaPrincipal)
+                    }
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(10.dp))
-
+@Composable
+private fun WriteReady(carte: CartePuce) {
+    val transition = rememberInfiniteTransition(label = "nfc_write_pulse")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "pulse"
+    )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Résumé de la carte à écrire
         Surface(
             shape = RoundedCornerShape(10.dp),
-            color = VeoliaPrincipal.copy(alpha = 0.08f)
+            color = VeoliaPrincipal.copy(alpha = 0.06f)
         ) {
             Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                Text("UID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VeoliaPrincipal)
+                Text("Carte à écrire", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VeoliaPrincipal)
+                Spacer(modifier = Modifier.height(4.dp))
+                if (carte.nomPrenom.isNotBlank())
+                    Text(carte.nomPrenom, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                if (carte.societe.isNotBlank())
+                    Text(carte.societe, fontSize = 12.sp, color = Color.Gray)
                 Text(
-                    text = state.uid,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 2.sp
+                    "Solde : %.2f pts  |  Cumul : %.2f pts".format(carte.soldePoints, carte.cumulPoints),
+                    fontSize = 12.sp, color = Color.Gray
                 )
-                Text(state.techType, fontSize = 11.sp, color = Color.Gray)
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = onReset, modifier = Modifier.align(Alignment.End)) {
-            Text("Nouvelle écriture", color = VeoliaPrincipal)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Outlined.Nfc,
+                contentDescription = null,
+                modifier = Modifier.size(56.dp).alpha(alpha),
+                tint = VeoliaPrincipal
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text("Approchez la carte à écrire", fontSize = 14.sp, color = Color.Gray)
         }
     }
 }
 
-@Composable
-private fun WriteErrorDisplay(message: String, onReset: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Erreur d'écriture", fontWeight = FontWeight.Bold, color = Color.Red)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(message, fontSize = 12.sp, color = Color.Gray)
-        Spacer(modifier = Modifier.height(12.dp))
-        TextButton(onClick = onReset) { Text("Réessayer", color = VeoliaPrincipal) }
-    }
-}
+// ── Écriture Mifare ─────────────────────────────────────────────────────────
 
-private fun writeMifareTag(tag: Tag, text: String): WriteState.Success {
-    val uid = tag.id.toWriterHex()
-    val techs = tag.techList.toList()
-    val bytes = text.toByteArray(Charsets.UTF_8)
-    return when {
-        MifareClassic::class.java.name in techs -> writeMifareClassic(tag, uid, bytes)
-        MifareUltralight::class.java.name in techs -> writeMifareUltralight(tag, uid, bytes)
-        else -> throw Exception("Format de carte non supporté")
-    }
-}
+/**
+ * Écrit les 240 octets du CartePuce sérialisé sur la carte.
+ * Même layout que la lecture : S0B1, S0B2, S1B0-B2, …, S5B0
+ */
+private fun writeCartePuce(tag: Tag, carte: CartePuce) {
+    val content = carte.serialize()
+    check(content.length == 240) { "Sérialisation invalide (${content.length}/240)" }
+    val bytes = content.toByteArray(Charsets.ISO_8859_1)
 
-private fun writeMifareClassic(tag: Tag, uid: String, bytes: ByteArray): WriteState.Success {
-    val padded = bytes.copyOf(((bytes.size + 15) / 16) * 16)
+    data class Block(val sector: Int, val offset: Int)
+
+    val sequence = buildList {
+        add(Block(0, 1)); add(Block(0, 2))
+        for (s in 1..4) { add(Block(s, 0)); add(Block(s, 1)); add(Block(s, 2)) }
+        add(Block(5, 0))
+    }
+
     val mifare = MifareClassic.get(tag) ?: throw Exception("Carte non supportée")
-    var byteOffset = 0
-    var written = 0
 
     mifare.use { card ->
         card.connect()
+        var authenticatedSector = -1
 
-        // Sector 0 : skip block 0 (fabricant, lecture seule), écrire blocks 1 et 2
-        val auth0 = card.authenticateSectorWithKeyA(0, MifareClassic.KEY_DEFAULT)
-            || card.authenticateSectorWithKeyA(0, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)
-            || card.authenticateSectorWithKeyB(0, MifareClassic.KEY_DEFAULT)
-        if (auth0) {
-            for (offset in 1..2) {
-                if (byteOffset >= padded.size) break
-                card.writeBlock(card.sectorToBlock(0) + offset, padded.sliceArray(byteOffset until byteOffset + 16))
-                byteOffset += 16; written += 16
+        sequence.forEachIndexed { i, blk ->
+            if (blk.sector != authenticatedSector) {
+                val ok = card.authenticateSectorWithKeyB(blk.sector, MifareClassic.KEY_DEFAULT)
+                    || card.authenticateSectorWithKeyA(blk.sector, MifareClassic.KEY_DEFAULT)
+                    || card.authenticateSectorWithKeyA(blk.sector, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)
+                if (!ok) throw Exception("Authentification échouée — secteur ${blk.sector}")
+                authenticatedSector = blk.sector
             }
-        }
 
-        // Sectors 1+
-        for (s in 1 until card.sectorCount) {
-            if (byteOffset >= padded.size) break
-            val auth = card.authenticateSectorWithKeyA(s, MifareClassic.KEY_DEFAULT)
-                || card.authenticateSectorWithKeyA(s, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)
-                || card.authenticateSectorWithKeyB(s, MifareClassic.KEY_DEFAULT)
-            if (auth) {
-                val firstBlock = card.sectorToBlock(s)
-                for (b in 0 until card.getBlockCountInSector(s) - 1) { // -1 : skip trailer
-                    if (byteOffset >= padded.size) break
-                    card.writeBlock(firstBlock + b, padded.sliceArray(byteOffset until byteOffset + 16))
-                    byteOffset += 16; written += 16
-                }
-            }
-        }
+            val blockIndex = card.sectorToBlock(blk.sector) + blk.offset
+            val data = bytes.sliceArray(i * 16 until (i + 1) * 16)
 
-        if (byteOffset < padded.size) throw Exception("Espace insuffisant sur la carte")
-    }
-    return WriteState.Success(uid, "Mifare Classic", written)
-}
+            Log.d(TAG, "writeBlock($blockIndex) [S${blk.sector}B${blk.offset}]")
+            card.writeBlock(blockIndex, data)
 
-private fun writeMifareUltralight(tag: Tag, uid: String, bytes: ByteArray): WriteState.Success {
-    val padded = bytes.copyOf(((bytes.size + 3) / 4) * 4)
-    val pagesNeeded = padded.size / 4
-    if (pagesNeeded > 12) throw Exception("Texte trop long (${12 * 4} octets max pour Ultralight)")
-    val mifare = MifareUltralight.get(tag) ?: throw Exception("Carte non supportée")
-    var written = 0
-
-    mifare.use { card ->
-        card.connect()
-        for (i in 0 until pagesNeeded) {
-            card.writePage(4 + i, padded.sliceArray(i * 4 until (i + 1) * 4))
-            written += 4
+            val readBack = card.readBlock(blockIndex)
+            if (!readBack.contentEquals(data))
+                throw Exception("Vérification échouée — S${blk.sector}B${blk.offset}")
         }
     }
-    return WriteState.Success(uid, "Mifare Ultralight", written)
-}
 
-private fun ByteArray.toWriterHex(): String = joinToString(" ") { "%02X".format(it) }
+    Log.d(TAG, "Écriture OK — ${bytes.size} bytes")
+}
