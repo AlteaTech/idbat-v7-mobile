@@ -13,7 +13,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -23,9 +26,10 @@ import com.idbat.mobile.ui.components.CartePuce
 import com.idbat.mobile.ui.components.MifareReaderComponent
 import com.idbat.mobile.ui.components.MifareWriterComponent
 import com.idbat.mobile.ui.components.PhotoPickerComponent
+import com.idbat.mobile.ui.components.SignatureComponent
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
 
-private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture")
+private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture", "Signature")
 
 @Composable
 fun PocScreen(onBack: () -> Unit) {
@@ -38,6 +42,9 @@ fun PocScreen(onBack: () -> Unit) {
     // ── Code barre ──────────────────────────────────────────────────────────
     var barcodeValue by remember { mutableStateOf<String?>(null) }
     var barcodeFormat by remember { mutableStateOf<String?>(null) }
+
+    // ── Signature ───────────────────────────────────────────────────────────
+    var signatureImage by remember { mutableStateOf<ImageBitmap?>(null) }
 
     // ── RFID — état partagé lecture ↔ écriture ───────────────────────────────
     var rfidCard by remember { mutableStateOf<CartePuce?>(null) }
@@ -170,6 +177,39 @@ fun PocScreen(onBack: () -> Unit) {
                 contentAlignment = Alignment.TopCenter
             ) {
                 MifareReaderComponent(onCardRead = { rfidCard = it })
+            }
+
+            // ── SIGNATURE ───────────────────────────────────────────────────
+            4 -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val img = signatureImage
+                if (img != null) {
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Image(
+                            bitmap = img,
+                            contentDescription = "Signature validée",
+                            modifier = Modifier.fillMaxWidth(),
+                            contentScale = ContentScale.FillWidth
+                        )
+                    }
+                    TextButton(
+                        onClick = { signatureImage = null },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Signer à nouveau", color = VeoliaPrincipal)
+                    }
+                } else {
+                    SignatureComponent(onValidate = { signatureImage = it })
+                }
             }
 
             // ── RFID ÉCRITURE ─────────────────────────────────────────────────
