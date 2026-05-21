@@ -181,6 +181,9 @@ class AuthManager @Inject constructor(
             if (nbContrats == 0L) {
                 Log.d("AUTH_MANAGER", "0 contrat trouvé, purge de la table Site...")
                 siteDao.purge()
+                if (!ConfigSingleton.webEnable) {
+                    mockSites()
+                }
             }
             database.utilisateurTPDao().getAllUtilisateurTPFlow().collect { utilisteursTps ->
 
@@ -235,6 +238,52 @@ class AuthManager @Inject constructor(
             pin = "1234"
         )
         utilisateurTPDao.insertUtilisateur(utilisateurTP)
+    }
+
+    private suspend fun mockSites() {
+        val contratDao = database.contratDao()
+        val siteDao = database.siteDao()
+
+        val contrat = ContratEntity(
+            id = 1L,
+            trigramme = "VEO",
+            nom = "Veolia Recyclage"
+        )
+        contratDao.insertContrat(contrat)
+
+        siteDao.insertSites(
+            listOf(
+                SiteEntity(
+                    id = 1L,
+                    trigramme = "MAR",
+                    nom = "Déchetterie Marseille Nord",
+                    adresse1 = "12 Rue des Abeilles",
+                    adresse2 = null,
+                    codePostal = "13014",
+                    ville = "Marseille",
+                    typeImprimante = null,
+                    macImprimante = null,
+                    horairesOuverture = "Lun-Sam 8h-18h",
+                    destinatairesMailTransfertTP = null,
+                    contratId = 1L
+                ),
+                SiteEntity(
+                    id = 2L,
+                    trigramme = "LYO",
+                    nom = "Centre de tri Lyon Sud",
+                    adresse1 = "47 Avenue de la Confluence",
+                    adresse2 = null,
+                    codePostal = "69007",
+                    ville = "Lyon",
+                    typeImprimante = null,
+                    macImprimante = null,
+                    horairesOuverture = "Lun-Ven 7h-17h",
+                    destinatairesMailTransfertTP = null,
+                    contratId = 1L
+                )
+            )
+        )
+        Log.d("AUTH_MANAGER", "2 sites mock insérés")
     }
 
     private suspend fun saveContractToDatabase(contratDmo: com.idbat.mobile.generated.client.model.ContratDmo) {

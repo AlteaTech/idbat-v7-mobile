@@ -24,6 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.google.mlkit.vision.common.InputImage
@@ -36,7 +38,8 @@ import kotlin.coroutines.resume
 data class CardData(
     val cardNumber: String? = null,
     val expiryDate: String? = null,
-    val cardholderName: String? = null
+    val cardholderName: String? = null,
+    val cvv: String? = null
 )
 
 @Composable
@@ -49,7 +52,7 @@ fun CardScanComponent(
     var scannedUri by remember { mutableStateOf<Uri?>(null) }
     var isProcessing by remember { mutableStateOf(false) }
     var showSourceDialog by remember { mutableStateOf(false) }
-    val pendingUri = remember { mutableStateOf<Uri?>(null) }
+    var showCameraGuide by remember { mutableStateOf(false) }
 
     fun processUri(uri: Uri) {
         scannedUri = uri
@@ -61,12 +64,6 @@ fun CardScanComponent(
         }
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) pendingUri.value?.let { processUri(it) }
-    }
-
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri -> uri?.let { processUri(it) } }
@@ -74,20 +71,12 @@ fun CardScanComponent(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            val uri = createCameraUri(context)
-            pendingUri.value = uri
-            cameraLauncher.launch(uri)
-        }
+        if (granted) showCameraGuide = true
     }
 
     fun launchCamera() {
         when (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)) {
-            PackageManager.PERMISSION_GRANTED -> {
-                val uri = createCameraUri(context)
-                pendingUri.value = uri
-                cameraLauncher.launch(uri)
-            }
+            PackageManager.PERMISSION_GRANTED -> showCameraGuide = true
             else -> permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
@@ -162,6 +151,25 @@ fun CardScanComponent(
         }
     }
 
+    if (showCameraGuide) {
+        Dialog(
+            onDismissRequest = { showCameraGuide = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false
+            )
+        ) {
+            CardCameraScreen(
+                onPhotoCaptured = { uri ->
+                    showCameraGuide = false
+                    processUri(uri)
+                },
+                onDismiss = { showCameraGuide = false }
+            )
+        }
+    }
+
     if (showSourceDialog) {
         AlertDialog(
             onDismissRequest = { showSourceDialog = false },
@@ -199,21 +207,51 @@ private suspend fun extractCardData(context: Context, uri: Uri): CardData =
     }
 
 private fun parseCardText(text: String): CardData {
-    val cardNumberRegex = Regex("""\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b""")
-    val expiryRegex = Regex("""\b(0[1-9]|1[0-2])[/\-]\d{2,4}\b""")
-    val nameRegex = Regex("""^[A-Z]{2,}(?:\s[A-Z]{2,})+$""", RegexOption.MULTILINE)
-
-    val rawNumber = cardNumberRegex.find(text)?.value
-    val cardNumber = rawNumber
+    // Format inline : "4165 9816 3566 4976" ou "5136064052794999"
+    val inlineRegex = Regex("""\b\d{4}[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{4}\b""")
+    var cardNumber = inlineRegex.find(text)?.value
         ?.replace(Regex("""[\s\-]"""), "")
-        ?.chunked(4)
-        ?.joinToString(" ")
+        ?.chunked(4)?.joinToString(" ")
 
+    // Format vertical : 4 lignes consécutives contenant chacune exactement 4 chiffres
+    if (cardNumber == null) {
+        val lines = text.lines().map { it.trim() }
+        val fourDigitIndices = lines.mapIndexedNotNull { i, line ->
+            if (line.matches(Regex("""\d{4}"""))) i else null
+        }
+        for (i in 0..fourDigitIndices.size - 4) {
+            val window = fourDigitIndices.subList(i, i + 4)
+            // Les 4 lignes doivent être proches (tolérance de 2 lignes entre chaque)
+            if (window.zipWithNext().all { (a, b) -> b - a <= 3 }) {
+                cardNumber = window.joinToString(" ") { lines[it] }
+                break
+            }
+        }
+    }
+
+    // Date - accepte mois avec ou sans zéro (ex: "06/29" ou "6/29"), et "02/28"
+    val expiryRegex = Regex("""\b(0?[1-9]|1[0-2])[/\-]\d{2,4}\b""")
     val expiry = expiryRegex.find(text)?.value
 
+    // CVV - cherche le code après les labels connus (CVV2, CVC, CODE DE SECURITE, CREDIT)
+    // ou le code avant le label (format Revolut : "418 CVV2")
+    val cvvAfterLabel = Regex(
+        """(?:CVV2?|CVC2?|CSC|CODE\s+DE\s+SECURITE|CREDIT)\s*[:\-]?\s*(\d{3,4})""",
+        RegexOption.IGNORE_CASE
+    ).find(text)?.groupValues?.get(1)
+
+    val cvvBeforeLabel = Regex(
+        """(\d{3,4})\s+(?:CVV2?|CVC2?|CSC)""",
+        RegexOption.IGNORE_CASE
+    ).find(text)?.groupValues?.get(1)
+
+    val cvv = cvvAfterLabel ?: cvvBeforeLabel
+
+    // Nom - ligne tout en majuscules avec au moins 2 mots
+    val nameRegex = Regex("""^[A-Z]{2,}(?:\s[A-Z]{2,})+$""", RegexOption.MULTILINE)
     val name = nameRegex.findAll(text)
         .map { it.value.trim() }
         .firstOrNull { it.split(" ").size >= 2 }
 
-    return CardData(cardNumber = cardNumber, expiryDate = expiry, cardholderName = name)
+    return CardData(cardNumber = cardNumber, expiryDate = expiry, cardholderName = name, cvv = cvv)
 }

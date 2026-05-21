@@ -114,6 +114,7 @@ fun PocScreen(onBack: () -> Unit) {
                             CardField(label = "Numéro", value = data.cardNumber)
                             CardField(label = "Expiration", value = data.expiryDate)
                             CardField(label = "Titulaire", value = data.cardholderName)
+                            CardField(label = "Code de sécurité", value = data.cvv)
                         }
                     }
                 }

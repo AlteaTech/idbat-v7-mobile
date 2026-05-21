@@ -101,6 +101,12 @@ dependencies {
     // Coil (chargement d'images)
     implementation(libs.coil.compose)
 
+    // CameraX
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+
     // ML Kit (OCR on-device)
     implementation("com.google.mlkit:text-recognition:16.0.0")
 }
