@@ -197,28 +197,6 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN isCreationByQRCode INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN carteGriseJ1 TEXT")
                 db.execSQL("ALTER TABLE carte_contrat ADD COLUMN carteGriseF3 INTEGER")
-
-                updateMockData(db)
-            }
-
-            private fun updateMockData(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
-                    UPDATE carte_contrat 
-                    SET type = 'Paiement', valeur = '100', uidRfid = 'A1B2C3D4', 
-                        isCreationByQRCode = 1, carteGriseJ1 = 'VP', carteGriseF3 = 1500 
-                    WHERE id = 1
-                """.trimIndent()
-                )
-
-                db.execSQL(
-                    """
-                    UPDATE carte_contrat 
-                    SET type = 'Acces', valeur = 'Illimite', uidRfid = 'E5F6G7H8', 
-                        isCreationByQRCode = 0, carteGriseJ1 = 'CTTE', carteGriseF3 = 3500 
-                    WHERE id = 2
-                """.trimIndent()
-                )
             }
         }
 
@@ -317,6 +295,8 @@ abstract class AppDatabase : RoomDatabase() {
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
                 ensureDefaultUserExists(db)
+                // Ici, vous pouvez vérifier/ajouter les mocks si webEnable == false
+                // mais le plus simple est de le faire au niveau de l'AppInitialization ou du repository
             }
 
             private fun insertDefaultUser(db: SupportSQLiteDatabase) {

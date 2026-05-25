@@ -11,16 +11,12 @@ import kotlinx.coroutines.flow.Flow
 interface ContratEvenementDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvenements(evenements: List<ContratEvenementEntity>)
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvenement(evenement: ContratEvenementEntity)
 
-    @Query("SELECT * FROM contrat_evenements")
-    fun getAllEvenementsFlow(): Flow<List<ContratEvenementEntity>>
-
     @Query("SELECT * FROM contrat_evenements WHERE contratId = :contratId")
     fun getEvenementsByContratFlow(contratId: Long): Flow<List<ContratEvenementEntity>>
-    
+
     @Query("DELETE FROM contrat_evenements")
-    suspend fun purge()
+    suspend fun clearEvenements()
 }

@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
@@ -190,6 +191,7 @@ class AuthManager @Inject constructor(
                 siteDao.purge()
                 if (!ConfigSingleton.webEnable) {
                     mockSites()
+                    insertMockEvenements()
                 }
             }
             database.utilisateurTPDao().getAllUtilisateurTPFlow().collect { utilisteursTps ->
@@ -247,6 +249,37 @@ class AuthManager @Inject constructor(
         utilisateurTPDao.insertUtilisateur(utilisateurTP)
     }
 
+    private suspend fun insertMockEvenements() {
+        val mockEvenements = listOf(
+            "Départ de feu",
+            "Fuite de produit toxique",
+            "Benne endommagée",
+            "Portail bloqué",
+            "Intrusion",
+            "Déversement sauvage",
+            "Panne presse",
+            "Accident voyageur",
+            "Matériel manquant",
+            "Odeur suspecte",
+            "Animal mort",
+            "Panne éclairage",
+            "Problème signalétique",
+            "Défaut de tri",
+            "Casse barrière"
+        )
+
+        val contratEvenementDao = database.contratEvenementDao()
+        // On insère les mocks pour le contratId 1 (qui est le contrat par défaut)
+        mockEvenements.forEachIndexed { index, libelle ->
+            val  ContratEvenement = ContratEvenementEntity(
+                evenementId = (index + 1).toLong(),
+                libelle = libelle,
+                jointureId = (index + 1).toLong(),
+                contratId = 1L
+            )
+            contratEvenementDao.insertEvenement(ContratEvenement)
+        }
+    }
     private suspend fun mockSites() {
         val contratDao = database.contratDao()
         val siteDao = database.siteDao()
@@ -302,7 +335,7 @@ class AuthManager @Inject constructor(
 
             matiereSiteDao.purge()
             siteDao.purge()
-            contratEvenementDao.purge()
+            contratEvenementDao.clearEvenements()
             contratDao.purge()
 
 
@@ -440,7 +473,7 @@ class AuthManager @Inject constructor(
                 }
                 val evenementsJob = async {
                     val evenementDao = database.contratEvenementDao()
-                    evenementDao.purge()
+                    evenementDao.clearEvenements()
 
                     contratDmo.evenementsContrat?.let { evenementsDmo ->
                         val evenementEntities = evenementsDmo.map { evenementDmo ->

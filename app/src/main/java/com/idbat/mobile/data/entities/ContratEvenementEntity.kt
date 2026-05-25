@@ -21,6 +21,7 @@ import com.squareup.moshi.Json
 data class ContratEvenementEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    @Json(name = "evenementId")
     val evenementId: Long,
     val libelle: String,
     val jointureId: Long,
