@@ -3,7 +3,7 @@ package com.idbat.mobile.data.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import java.util.Date
+import java.util.*
 
 @Entity(
     tableName = "usager_cartes",

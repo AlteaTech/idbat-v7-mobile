@@ -23,7 +23,6 @@
 
 package com.idbat.mobile.generated.client.model
 
-
 import com.squareup.moshi.Json
 
 /**
@@ -33,6 +32,7 @@ import com.squareup.moshi.Json
  * @param nom 
  * @param prenom 
  * @param contratId 
+ * @param cartes 
  * @param refClientIdBat 
  */
 
@@ -50,6 +50,9 @@ data class ContratUsagerDmo (
 
     @Json(name = "contratId")
     val contratId: kotlin.Long,
+
+    @Json(name = "cartes")
+    val cartes: kotlin.collections.List<CarteDmo>,
 
     @Json(name = "refClientIdBat")
     val refClientIdBat: kotlin.Long? = null

@@ -46,11 +46,21 @@ fun AutresCartesScreen(
 
     val usagers by viewModel.usagers.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val passageInfo by viewModel.passageInfo.collectAsStateWithLifecycle()
 
     var codebarresValue by remember { mutableStateOf("") }
     var immatriculationValue by remember { mutableStateOf("") }
     var selectedUsager by remember { mutableStateOf<UsagerEntity?>(null) }
     var showUsagerDialog by remember { mutableStateOf(false) }
+
+    if (passageInfo != null) {
+        PassageInfoScreen(
+            siteName = siteName,
+            info = passageInfo!!,
+            onBack = { viewModel.clearPassageInfo() }
+        )
+        return
+    }
 
     if (showUsagerDialog) {
         UsagerSelectionDialog(
@@ -59,6 +69,8 @@ fun AutresCartesScreen(
             onSearchChange = { viewModel.updateSearch(it) },
             onSelect = { usager ->
                 selectedUsager = usager
+                codebarresValue = ""
+                immatriculationValue = ""
                 viewModel.clearSearch()
                 showUsagerDialog = false
             },
@@ -172,7 +184,11 @@ fun AutresCartesScreen(
                                 }
                                 OutlinedTextField(
                                     value = codebarresValue,
-                                    onValueChange = { codebarresValue = it },
+                                    onValueChange = {
+                                        codebarresValue = it
+                                        immatriculationValue = ""
+                                        selectedUsager = null
+                                    },
                                     placeholder = {
                                         Text(text = "Taper le code", color = VeoliaPlaceholder)
                                     },
@@ -225,7 +241,11 @@ fun AutresCartesScreen(
                                 )
                                 OutlinedTextField(
                                     value = immatriculationValue,
-                                    onValueChange = { immatriculationValue = it },
+                                    onValueChange = {
+                                        immatriculationValue = it
+                                        codebarresValue = ""
+                                        selectedUsager = null
+                                    },
                                     placeholder = {
                                         Text(text = "AA123AA", color = VeoliaPlaceholder)
                                     },
@@ -288,8 +308,13 @@ fun AutresCartesScreen(
                 item { Spacer(modifier = Modifier.height(8.dp)) }
             }
 
+            val hasInput = selectedUsager != null
+                    || codebarresValue.isNotBlank()
+                    || immatriculationValue.isNotBlank()
+
             Button(
-                onClick = { },
+                onClick = { viewModel.valider(selectedUsager, codebarresValue, immatriculationValue) },
+                enabled = hasInput,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 16.dp)
