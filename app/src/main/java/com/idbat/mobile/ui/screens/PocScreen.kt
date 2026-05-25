@@ -133,7 +133,7 @@ fun PocScreen(
             }
 
             // ── RFID LECTURE ─────────────────────────────────────────────────
-            2 -> Box(
+          /*  2 -> Box(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
@@ -142,7 +142,8 @@ fun PocScreen(
                     onCardRead = { viewModel.onCardRead(it) }
                 )
             }
-
+            */
+            /*
             // ── RFID ÉCRITURE ─────────────────────────────────────────────────
             3 -> Column(
                 modifier = Modifier
@@ -303,7 +304,7 @@ fun PocScreen(
                 } else {
                     SignatureComponent(onValidate = { viewModel.setSignatureImage(it) })
                 }
-            }
+            }*/
         }
     }
 
