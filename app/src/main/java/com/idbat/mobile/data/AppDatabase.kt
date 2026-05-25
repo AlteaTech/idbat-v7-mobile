@@ -21,9 +21,10 @@ import com.idbat.mobile.data.entities.*
         MatiereSiteEntity::class,
         LastSynchroHistoryEntity::class,
         UsagerEntity::class,
-        ContratEvenementEntity::class
+        ContratEvenementEntity::class,
+        UsagerCarteEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lastSynchroHistoryDao(): LastSynchroHistoryDao
     abstract fun usagerDao(): UsagerDao
     abstract fun contratEvenementDao(): ContratEvenementDao
+    abstract fun usagerCarteDao(): UsagerCarteDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -66,7 +68,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, 
-            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -292,9 +294,26 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE contrats ADD COLUMN hasCodebarres INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE contrats ADD COLUMN hasImmatriculation INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE contrats ADD COLUMN hasSelectionusager INTEGER NOT NULL DEFAULT 0")
-                
-                // Mock: on met tout à true (1) pour le contrat par défaut
-                db.execSQL("UPDATE contrats SET hasPuce = 1, hasCodebarres = 1, hasImmatriculation = 1, hasSelectionusager = 1 WHERE id = 1")
+            }
+        }
+
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `usager_cartes` (
+                        `usagerId` INTEGER NOT NULL, 
+                        `carteId` INTEGER NOT NULL, 
+                        `dateDebut` INTEGER, 
+                        `dateFin` INTEGER, 
+                        PRIMARY KEY(`usagerId`, `carteId`), 
+                        FOREIGN KEY(`usagerId`) REFERENCES `usagers`(`id`) ON DELETE CASCADE, 
+                        FOREIGN KEY(`carteId`) REFERENCES `carte_contrat`(`id`) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_usagerId` ON `usager_cartes` (`usagerId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_carteId` ON `usager_cartes` (`carteId`)")
             }
         }
 

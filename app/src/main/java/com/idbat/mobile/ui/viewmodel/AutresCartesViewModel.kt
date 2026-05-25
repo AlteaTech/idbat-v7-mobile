@@ -21,7 +21,8 @@ class AutresCartesViewModel @Inject constructor(
     val usagers: StateFlow<List<UsagerEntity>> = _contratId
         .filterNotNull()
         .flatMapLatest { contratId ->
-            database.usagerDao().getUsagersByContratFlow(contratId)
+            val now = System.currentTimeMillis()
+            database.usagerDao().getUsagersWithActiveCarteICFlow(contratId, now)
         }
         .combine(_searchQuery) { list, query ->
             val filtered = if (query.isBlank()) list

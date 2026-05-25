@@ -192,6 +192,7 @@ class AuthManager @Inject constructor(
                 if (!ConfigSingleton.webEnable) {
                     mockSites()
                     mockUsagers()
+                    mockCartes()
                     insertMockEvenements()
                 }
             }
@@ -361,6 +362,47 @@ class AuthManager @Inject constructor(
             )
         )
         Log.d("AUTH_MANAGER", "3 Usagers mock insérés")
+    }
+
+    private suspend fun mockCartes() {
+        val dao = database.carteContratDao()
+        dao.clearCartes()
+
+        val cartes = listOf(
+            // Usager 1 : VIDAL jérémie (id=1)
+            CarteContratEntity(id = 1L,  libelle = "Carte Puce VIDAL",  type = "P", valeur = null,    uidRfid = "A1B2C3D4", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
+            CarteContratEntity(id = 2L,  libelle = "Carte CB VIDAL",    type = "C", valeur = "123456", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
+            CarteContratEntity(id = 3L,  libelle = "Carte Immat VIDAL", type = "I", valeur = null,     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "AB123CD", carteGriseF3 = null, contratId = 1L, carteId = 1L),
+            // Usager 2 : lan alicia (id=2)
+            CarteContratEntity(id = 4L,  libelle = "Carte Puce LAN",    type = "P", valeur = null,    uidRfid = "E5F6A7B8", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
+            CarteContratEntity(id = 5L,  libelle = "Carte CB LAN",      type = "C", valeur = "123457", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
+            CarteContratEntity(id = 6L,  libelle = "Carte Immat LAN",   type = "I", valeur = null,     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "EF456GH", carteGriseF3 = null, contratId = 1L, carteId = 2L),
+            // Usager 3 : rosier ronald (id=3)
+            CarteContratEntity(id = 7L,  libelle = "Carte Puce ROSIER",  type = "P", valeur = null,   uidRfid = "C9D0E1F2", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
+            CarteContratEntity(id = 8L,  libelle = "Carte CB ROSIER",    type = "C", valeur = "13",   uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
+            CarteContratEntity(id = 9L,  libelle = "Carte Immat ROSIER", type = "I", valeur = null,    uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "IJ789KL", carteGriseF3 = null, contratId = 1L, carteId = 3L),
+        )
+
+        dao.insertCartes(cartes)
+        Log.d("AUTH_MANAGER", "9 cartes mock insérées (3 par usager : P, C, I)")
+
+        val usagerCarteDao = database.usagerCarteDao()
+        usagerCarteDao.clearUsagerCartes()
+        val dateDebut = GregorianCalendar(2000, Calendar.JANUARY, 1).time
+        val dateFin = GregorianCalendar(3000, Calendar.DECEMBER, 31).time
+        val liens = listOf(
+            UsagerCarteEntity(usagerId = 1L, carteId = 1L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 1L, carteId = 2L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 1L, carteId = 3L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 2L, carteId = 4L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 2L, carteId = 5L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 2L, carteId = 6L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 3L, carteId = 7L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 3L, carteId = 8L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 3L, carteId = 9L, dateDebut = dateDebut, dateFin = dateFin),
+        )
+        usagerCarteDao.insertUsagerCartes(liens)
+        Log.d("AUTH_MANAGER", "9 liens usager_cartes mock insérés")
     }
 
     private suspend fun saveContractToDatabase(contratDmo: com.idbat.mobile.generated.client.model.ContratDmo) {
