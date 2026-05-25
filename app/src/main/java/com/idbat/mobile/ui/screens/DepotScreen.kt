@@ -9,6 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
@@ -30,6 +34,17 @@ fun DepotScreen(
     contrat: ContratEntity?,
     onBack: () -> Unit
 ) {
+    var showAutresScreen by remember { mutableStateOf(false) }
+
+    if (showAutresScreen) {
+        AutresCartesScreen(
+            siteName = siteName,
+            contrat = contrat,
+            onBack = { showAutresScreen = false }
+        )
+        return
+    }
+
     val bgColor = MaterialTheme.colorScheme.background
     val showCarteAPuce = contrat?.hasPuce == true
     val showAutres = contrat?.hasCodebarres == true
@@ -141,15 +156,14 @@ fun DepotScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { }
+                                .clickable { showAutresScreen = true }
                                 .padding(vertical = 28.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.autres_cartes),
+                                painter = painterResource(id = R.drawable.autres_cartes_2),
                                 contentDescription = null,
-                                modifier = Modifier.size(width = 91.dp, height = 40.dp),
-                                colorFilter = iconTint
+                                modifier = Modifier.size(width = 91.dp, height = 59.dp)
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
