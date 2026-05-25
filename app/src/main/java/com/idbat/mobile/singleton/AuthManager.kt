@@ -191,6 +191,7 @@ class AuthManager @Inject constructor(
                 siteDao.purge()
                 if (!ConfigSingleton.webEnable) {
                     mockSites()
+                    mockUsagers()
                     insertMockEvenements()
                 }
             }
@@ -328,6 +329,38 @@ class AuthManager @Inject constructor(
             )
         )
         Log.d("AUTH_MANAGER", "2 sites mock insérés")
+    }
+    private suspend fun mockUsagers() {
+        val usagerDao = database.usagerDao()
+        usagerDao.purge()
+        usagerDao.insertUsager(
+            UsagerEntity(
+                id = 1L,
+                nom = "VIDAL",
+                prenom = "jérémie",
+                contratId = 1L,
+                refClientIdBat = 123456
+            )
+        )
+        usagerDao.insertUsager(
+            UsagerEntity(
+                id = 2L,
+                nom = "lan",
+                prenom = "alicia",
+                contratId = 1L,
+                refClientIdBat = 123457
+            )
+        )
+        usagerDao.insertUsager(
+            UsagerEntity(
+                id = 3L,
+                nom = "rosier",
+                prenom = "ronald",
+                contratId = 1L,
+                refClientIdBat = 13
+            )
+        )
+        Log.d("AUTH_MANAGER", "3 Usagers mock insérés")
     }
 
     private suspend fun saveContractToDatabase(contratDmo: com.idbat.mobile.generated.client.model.ContratDmo) {

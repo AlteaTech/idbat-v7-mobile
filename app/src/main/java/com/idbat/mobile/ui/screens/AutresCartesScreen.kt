@@ -1,15 +1,16 @@
 package com.idbat.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,22 +20,54 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.entities.ContratEntity
+import com.idbat.mobile.data.entities.UsagerEntity
 import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.viewmodel.AutresCartesViewModel
 
 @Composable
 fun AutresCartesScreen(
     siteName: String,
     contrat: ContratEntity?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    viewModel: AutresCartesViewModel = hiltViewModel()
 ) {
     val bgColor = MaterialTheme.colorScheme.background
     val showCodebarres = contrat?.hasCodebarres == true
     val showImmatriculation = contrat?.hasImmatriculation == true
     val showSelectionUsager = contrat?.hasSelectionusager == true
 
+    LaunchedEffect(contrat?.id) {
+        contrat?.id?.let { viewModel.setContratId(it) }
+    }
+
+    val usagers by viewModel.usagers.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+
     var codebarresValue by remember { mutableStateOf("") }
     var immatriculationValue by remember { mutableStateOf("") }
+    var selectedUsager by remember { mutableStateOf<UsagerEntity?>(null) }
+    var showUsagerDialog by remember { mutableStateOf(false) }
+
+    if (showUsagerDialog) {
+        UsagerSelectionDialog(
+            usagers = usagers,
+            searchQuery = searchQuery,
+            onSearchChange = { viewModel.updateSearch(it) },
+            onSelect = { usager ->
+                selectedUsager = usager
+                viewModel.clearSearch()
+                showUsagerDialog = false
+            },
+            onDismiss = {
+                viewModel.clearSearch()
+                showUsagerDialog = false
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -141,10 +174,7 @@ fun AutresCartesScreen(
                                     value = codebarresValue,
                                     onValueChange = { codebarresValue = it },
                                     placeholder = {
-                                        Text(
-                                            text = "Taper le code",
-                                            color = VeoliaPlaceholder
-                                        )
+                                        Text(text = "Taper le code", color = VeoliaPlaceholder)
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp),
@@ -197,10 +227,7 @@ fun AutresCartesScreen(
                                     value = immatriculationValue,
                                     onValueChange = { immatriculationValue = it },
                                     placeholder = {
-                                        Text(
-                                            text = "AA123AA",
-                                            color = VeoliaPlaceholder
-                                        )
+                                        Text(text = "AA123AA", color = VeoliaPlaceholder)
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp),
@@ -249,29 +276,9 @@ fun AutresCartesScreen(
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                OutlinedTextField(
-                                    value = "",
-                                    onValueChange = { },
-                                    placeholder = {
-                                        Text(
-                                            text = "Sélectionner",
-                                            color = VeoliaPlaceholder
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    readOnly = true,
-                                    trailingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.ArrowDropDown,
-                                            contentDescription = null,
-                                            tint = VeoliaPrincipal
-                                        )
-                                    },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        unfocusedBorderColor = VeoliaSubtle,
-                                        focusedBorderColor = VeoliaPrincipal
-                                    )
+                                UsagerSelectField(
+                                    selectedUsager = selectedUsager,
+                                    onClick = { showUsagerDialog = true }
                                 )
                             }
                         }
@@ -303,6 +310,141 @@ fun AutresCartesScreen(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UsagerSelectField(
+    selectedUsager: UsagerEntity?,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .border(1.dp, VeoliaSubtle, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = selectedUsager?.let { "${it.nom.uppercase()} ${it.prenom}" }
+                    ?: "Sélectionner",
+                color = if (selectedUsager != null)
+                    MaterialTheme.colorScheme.onSurface
+                else
+                    VeoliaPlaceholder,
+                fontSize = 16.sp
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = VeoliaPrincipal
+            )
+        }
+    }
+}
+
+@Composable
+private fun UsagerSelectionDialog(
+    usagers: List<UsagerEntity>,
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    onSelect: (UsagerEntity) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 520.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Sélectionnez l'usager",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .border(1.5.dp, VeoliaPrincipal, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Fermer",
+                            tint = VeoliaPrincipal,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchChange,
+                        placeholder = {
+                            Text(text = "Rechercher", color = VeoliaPlaceholder)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = VeoliaSubtle,
+                            focusedBorderColor = VeoliaPrincipal
+                        )
+                    )
+                    Button(
+                        onClick = { },
+                        modifier = Modifier.size(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Rechercher",
+                            tint = White
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LazyColumn {
+                    items(usagers, key = { it.id }) { usager ->
+                        Text(
+                            text = "${usager.nom.uppercase()} ${usager.prenom}",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(usager) }
+                                .padding(vertical = 14.dp, horizontal = 4.dp),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 15.sp
+                        )
+                        HorizontalDivider(color = VeoliaSubtle)
+                    }
+                }
             }
         }
     }
