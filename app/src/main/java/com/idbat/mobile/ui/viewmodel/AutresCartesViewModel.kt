@@ -18,9 +18,11 @@ class AutresCartesViewModel @Inject constructor(
     private val _contratId = MutableStateFlow<Long?>(null)
     private val _searchQuery = MutableStateFlow("")
     private val _passageInfo = MutableStateFlow<InfoCartePassage?>(null)
+    private val _carteInconnue = MutableStateFlow(false)
 
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
     val passageInfo: StateFlow<InfoCartePassage?> = _passageInfo.asStateFlow()
+    val carteInconnue: StateFlow<Boolean> = _carteInconnue.asStateFlow()
 
     val usagers: StateFlow<List<UsagerEntity>> = _contratId
         .filterNotNull()
@@ -55,16 +57,37 @@ class AutresCartesViewModel @Inject constructor(
         _passageInfo.value = null
     }
 
+    fun clearCarteInconnue() {
+        _carteInconnue.value = false
+    }
+
     fun valider(usager: UsagerEntity?, codebarres: String, immatriculation: String) {
         viewModelScope.launch {
             val info = when {
                 usager != null -> buildInfoFromUsager(usager)
                 codebarres.isNotBlank() -> InfoCartePassage(numeroCarte = codebarres)
-                immatriculation.isNotBlank() -> InfoCartePassage(numeroCarte = immatriculation)
+                immatriculation.isNotBlank() -> buildInfoFromImmatriculation(immatriculation)
                 else -> return@launch
             }
-            _passageInfo.value = info
+            if (info != null) _passageInfo.value = info
         }
+    }
+
+    private suspend fun buildInfoFromImmatriculation(immatriculation: String): InfoCartePassage? {
+        val now = System.currentTimeMillis()
+        val carte = database.carteContratDao().getActiveCarteIByImmatriculation(immatriculation, now)
+        if (carte == null) {
+            _carteInconnue.value = true
+            return null
+        }
+        val usager = database.usagerDao().getUsagerByCarte(carte.id)
+        return InfoCartePassage(
+            societe = usager?.raisonSociale?.takeIf { it.isNotBlank() },
+            nomTitulaire = usager?.let { "${it.nom} ${it.prenom}" },
+            numeroCarte = carte.valeur,
+            typeApporteur = usager?.typeApporteurLibelle,
+            contact = usager?.couriel
+        )
     }
 
     private suspend fun buildInfoFromUsager(usager: UsagerEntity): InfoCartePassage {

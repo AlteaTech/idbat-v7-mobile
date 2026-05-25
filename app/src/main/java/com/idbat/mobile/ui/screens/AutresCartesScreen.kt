@@ -47,11 +47,17 @@ fun AutresCartesScreen(
     val usagers by viewModel.usagers.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val passageInfo by viewModel.passageInfo.collectAsStateWithLifecycle()
+    val carteInconnue by viewModel.carteInconnue.collectAsStateWithLifecycle()
 
     var codebarresValue by remember { mutableStateOf("") }
     var immatriculationValue by remember { mutableStateOf("") }
     var selectedUsager by remember { mutableStateOf<UsagerEntity?>(null) }
     var showUsagerDialog by remember { mutableStateOf(false) }
+    var showCarteInconnueDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(carteInconnue) {
+        if (carteInconnue) showCarteInconnueDialog = true
+    }
 
     if (passageInfo != null) {
         PassageInfoScreen(
@@ -77,6 +83,26 @@ fun AutresCartesScreen(
             onDismiss = {
                 viewModel.clearSearch()
                 showUsagerDialog = false
+            }
+        )
+    }
+
+    if (showCarteInconnueDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                immatriculationValue = ""
+                viewModel.clearCarteInconnue()
+                showCarteInconnueDialog = false
+            },
+            text = { Text("Carte inconnue") },
+            confirmButton = {
+                TextButton(onClick = {
+                    immatriculationValue = ""
+                    viewModel.clearCarteInconnue()
+                    showCarteInconnueDialog = false
+                }) {
+                    Text("OK")
+                }
             }
         )
     }

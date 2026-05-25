@@ -32,6 +32,14 @@ interface UsagerDao {
     """)
     fun getUsagersWithActiveCarteICFlow(contratId: Long, now: Long): Flow<List<UsagerEntity>>
     
+    @Query("""
+        SELECT u.* FROM usagers u
+        INNER JOIN usager_cartes uc ON uc.usagerId = u.id
+        WHERE uc.carteId = :carteId
+        LIMIT 1
+    """)
+    suspend fun getUsagerByCarte(carteId: Long): UsagerEntity?
+
     @Query("DELETE FROM usagers")
     suspend fun purge()
 }
