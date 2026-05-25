@@ -8,6 +8,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
@@ -405,6 +406,7 @@ class AuthManager @Inject constructor(
         Log.d("AUTH_MANAGER", "9 liens usager_cartes mock insérés")
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun saveContractToDatabase(contratDmo: com.idbat.mobile.generated.client.model.ContratDmo) {
         try {
             val contratDao = database.contratDao()
@@ -513,45 +515,77 @@ class AuthManager @Inject constructor(
                         )
                     }
                 }
-                val usagersJob = async{
+                val usagersJob = async {
                     val usagersDao = database.usagerDao()
                     usagersDao.purge()
+                    val carteContratDao = database.carteContratDao()
+                    carteContratDao.clearCartes() // cascade-delete usager_cartes
+                    val usagerCarteDao = database.usagerCarteDao()
 
                     contratDmo.contratUsagers?.let { contratUsagers ->
-                        val usagers = contratUsagers.map { contratUsager ->
+                        val usagerEntities = contratUsagers.map { contratUsager ->
                             UsagerEntity(
                                 id = contratUsager.id ?: 0,
                                 nom = contratUsager.nom,
                                 prenom = contratUsager.prenom,
                                 refClientIdBat = contratUsager.refClientIdBat,
-                                contratId =  contratUsager.contratId
+                                contratId = contratUsager.contratId,
+                                raisonSociale = contratUsager.raisonSociale,
+                                typeApporteurLibelle = contratUsager.typeApporteurLibelle,
+                                couriel = contratUsager.couriel
                             )
                         }
 
-
-                        // On utilise coroutineScope pour lancer et attendre toutes les coroutines enfants
                         coroutineScope {
-                            // 1. Découpage de la liste globale en sous-listes (lots) de 500 éléments maximum
-                            val lots = usagers.chunked(2000)
-
-                            // 2. Pour chaque lot, on crée une tâche asynchrone (async)
-                            val jobs = lots.map { lotDe500 ->
-                                async {
-                                    // Cette insertion se fait en parallèle des autres
-                                    usagersDao.insertUsagers(lotDe500)
-                                }
+                            val jobs = usagerEntities.chunked(2000).map { lot ->
+                                async { usagersDao.insertUsagers(lot) }
                             }
-
-                            // 3. On attend que TOUS les lots (toutes les tâches async) soient insérés en BDD
                             jobs.awaitAll()
                         }
+
+                        val allCartes = contratUsagers.flatMap { contratUsager ->
+                            contratUsager.cartes.map { carteDmo ->
+                                CarteContratEntity(
+                                    id = carteDmo.id,
+                                    libelle = "",
+                                    type = carteDmo.type,
+                                    valeur = carteDmo.valeur.ifBlank { null },
+                                    uidRfid = carteDmo.uidRfid,
+                                    isCreationByQRCode = carteDmo.isCreationByQRCode,
+                                    carteGriseJ1 = carteDmo.carteGriseJ1,
+                                    carteGriseF3 = carteDmo.carteGriseF3,
+                                    contratId = contratEntity.id,
+                                    carteId = carteDmo.id
+                                )
+                            }
+                        }
+                        carteContratDao.insertCartes(allCartes)
+
+                        val allUsagerCartes = contratUsagers.flatMap { contratUsager ->
+                            contratUsager.cartes.map { carteDmo ->
+                                UsagerCarteEntity(
+                                    usagerId = contratUsager.id ?: 0,
+                                    carteId = carteDmo.id,
+                                    dateDebut = java.util.Date.from(
+                                        carteDmo.dateDebutAffectation
+                                            .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                    ),
+                                    dateFin = carteDmo.dateFinAffectation?.let {
+                                        java.util.Date.from(
+                                            it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                        usagerCarteDao.insertUsagerCartes(allUsagerCartes)
+
                         Log.d(
                             "AUTH_MANAGER",
-                            "Sauvegarde de ${usagers.size} UsagerEntity pour le contrat ${contratEntity.nom}"
+                            "Sauvegarde de ${usagerEntities.size} usagers + ${allCartes.size} cartes pour le contrat ${contratEntity.nom}"
                         )
-
                     } ?: run {
-                        Log.w("AUTH_MANAGER", "Aucun usagers associé trouvé pour le contrat ${contratEntity.nom}")
+                        Log.w("AUTH_MANAGER", "Aucun usager associé trouvé pour le contrat ${contratEntity.nom}")
                     }
                 }
                 val evenementsJob = async {

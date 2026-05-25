@@ -106,7 +106,9 @@ fun PassageInfoScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    InfoRow(label = "Société", value = info.societe)
+                    if (!info.societe.isNullOrBlank()) {
+                        InfoRow(label = "Société", value = info.societe)
+                    }
                     InfoRow(label = "Nom du titulaire", value = info.nomTitulaire)
                     InfoRow(label = "N° de carte", value = info.numeroCarte)
                     InfoRow(label = "Type d'apporteur", value = info.typeApporteur)

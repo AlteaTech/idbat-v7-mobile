@@ -24,7 +24,7 @@ import com.idbat.mobile.data.entities.*
         ContratEvenementEntity::class,
         UsagerCarteEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -68,7 +68,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, 
-            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
+            MIGRATION_17_18
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -314,6 +315,14 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_usagerId` ON `usager_cartes` (`usagerId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_carteId` ON `usager_cartes` (`carteId`)")
+            }
+        }
+
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE usagers ADD COLUMN raisonSociale TEXT")
+                db.execSQL("ALTER TABLE usagers ADD COLUMN typeApporteurLibelle TEXT")
+                db.execSQL("ALTER TABLE usagers ADD COLUMN couriel TEXT")
             }
         }
 

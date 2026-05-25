@@ -308,13 +308,31 @@ fun AutresCartesScreen(
                 item { Spacer(modifier = Modifier.height(8.dp)) }
             }
 
+            var showEmptyInputDialog by remember { mutableStateOf(false) }
+
+            if (showEmptyInputDialog) {
+                AlertDialog(
+                    onDismissRequest = { showEmptyInputDialog = false },
+                    text = {
+                        Text("Vous devez renseigner une information d'identification de l'usager")
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showEmptyInputDialog = false }) {
+                            Text("OK")
+                        }
+                    }
+                )
+            }
+
             val hasInput = selectedUsager != null
                     || codebarresValue.isNotBlank()
                     || immatriculationValue.isNotBlank()
 
             Button(
-                onClick = { viewModel.valider(selectedUsager, codebarresValue, immatriculationValue) },
-                enabled = hasInput,
+                onClick = {
+                    if (hasInput) viewModel.valider(selectedUsager, codebarresValue, immatriculationValue)
+                    else showEmptyInputDialog = true
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 16.dp)

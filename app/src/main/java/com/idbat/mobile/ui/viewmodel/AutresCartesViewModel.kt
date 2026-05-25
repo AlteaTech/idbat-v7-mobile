@@ -71,8 +71,11 @@ class AutresCartesViewModel @Inject constructor(
         val now = System.currentTimeMillis()
         val carte = database.carteContratDao().getFirstActiveCarteICForUsager(usager.id, now)
         return InfoCartePassage(
-            nomTitulaire = usager.nom,
-            numeroCarte = carte?.valeur ?: carte?.carteGriseJ1
+            societe = usager.raisonSociale?.takeIf { it.isNotBlank() },
+            nomTitulaire = "${usager.nom} ${usager.prenom}",
+            numeroCarte = carte?.valeur,
+            typeApporteur = usager.typeApporteurLibelle,
+            contact = usager.couriel
         )
     }
 }
