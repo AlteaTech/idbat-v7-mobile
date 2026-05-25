@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.*
 
 @Composable
 fun SignatureComponent(
@@ -71,8 +71,8 @@ fun SignatureComponent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
-                    .background(Color(0xFFFAFAFA), RoundedCornerShape(12.dp))
-                    .border(1.5.dp, Color(0xFFDDDDDD), RoundedCornerShape(12.dp))
+                    .background(VeoliaDrawingBg, RoundedCornerShape(12.dp))
+                    .border(1.5.dp, VeoliaSubtle, RoundedCornerShape(12.dp))
                     .onSizeChanged { boxSize = it }
                     .pointerInput(Unit) {
                         detectDragGestures(
@@ -94,7 +94,7 @@ fun SignatureComponent(
                     fun drawStroke(points: List<Offset>) {
                         if (points.isEmpty()) return
                         if (points.size == 1) {
-                            drawCircle(Color(0xFF1C1C1E), radius = 2.dp.toPx(), center = points[0])
+                            drawCircle(VeoliaInk, radius = 2.dp.toPx(), center = points[0])
                             return
                         }
                         val path = Path()
@@ -107,7 +107,7 @@ fun SignatureComponent(
                             path.quadraticBezierTo(points[i].x, points[i].y, mid.x, mid.y)
                         }
                         path.lineTo(points.last().x, points.last().y)
-                        drawPath(path, Color(0xFF1C1C1E), style = stroke)
+                        drawPath(path, VeoliaInk, style = stroke)
                     }
 
                     completedStrokes.forEach { drawStroke(it) }
@@ -117,7 +117,7 @@ fun SignatureComponent(
                 if (isEmpty) {
                     Text(
                         "Signez ici",
-                        color = Color(0xFFBBBBBB),
+                        color = VeoliaPlaceholder,
                         fontSize = 15.sp,
                         modifier = Modifier.align(Alignment.Center)
                     )
@@ -129,7 +129,7 @@ fun SignatureComponent(
                         .padding(bottom = 32.dp)
                         .fillMaxWidth(0.75f)
                         .height(1.dp)
-                        .background(Color(0xFFDDDDDD))
+                        .background(VeoliaSubtle)
                 )
             }
 

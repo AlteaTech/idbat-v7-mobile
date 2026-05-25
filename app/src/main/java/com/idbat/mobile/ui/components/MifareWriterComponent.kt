@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -124,7 +124,7 @@ fun MifareWriterComponent(
                 is WriteState.Success -> Column(modifier = Modifier.fillMaxWidth()) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF4CAF50).copy(alpha = 0.08f)
+                        color = VeoliaSuccess.copy(alpha = 0.08f)
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -132,7 +132,7 @@ fun MifareWriterComponent(
                         ) {
                             Icon(
                                 Icons.Outlined.Check, null,
-                                tint = Color(0xFF4CAF50),
+                                tint = VeoliaSuccess,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -140,7 +140,7 @@ fun MifareWriterComponent(
                                 Text(
                                     "Écriture réussie",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF4CAF50),
+                                    color = VeoliaSuccess,
                                     fontSize = 14.sp
                                 )
                                 Text(
@@ -162,7 +162,7 @@ fun MifareWriterComponent(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Erreur d'écriture", fontWeight = FontWeight.Bold, color = Color.Red)
+                    Text("Erreur d'écriture", fontWeight = FontWeight.Bold, color = VeoliaErrorDark)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(state.message, fontSize = 12.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(12.dp))

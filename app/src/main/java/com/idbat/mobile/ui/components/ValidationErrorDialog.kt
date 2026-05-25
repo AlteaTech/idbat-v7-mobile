@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.*
 import kotlin.system.exitProcess
 
 @Composable
@@ -36,7 +36,6 @@ fun ValidationErrorDialog() {
                 .fillMaxWidth()
                 .padding(24.dp),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
             shadowElevation = 8.dp
         ) {
             Column(
@@ -47,7 +46,7 @@ fun ValidationErrorDialog() {
                 Icon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = null,
-                    tint = Color(0xFFF57C00), // Orange
+                    tint = VeoliaAlertOrange,
                     modifier = Modifier.size(48.dp)
                 )
 
@@ -58,7 +57,7 @@ fun ValidationErrorDialog() {
                     text = "Validation requise",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 

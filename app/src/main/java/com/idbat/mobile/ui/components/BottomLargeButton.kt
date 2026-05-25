@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.R
+import com.idbat.mobile.ui.theme.VeoliaCoral
 
 @Composable
 fun BottomLargeButton(title: String, onClick: () -> Unit) {
@@ -24,7 +25,7 @@ fun BottomLargeButton(title: String, onClick: () -> Unit) {
             .height(90.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(45.dp),
-        color = Color(0xFFF27059).copy(alpha = 0.8f) // Rose corail
+        color = VeoliaCoral.copy(alpha = 0.8f)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 24.dp),

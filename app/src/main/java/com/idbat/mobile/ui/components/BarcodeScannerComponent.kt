@@ -40,7 +40,7 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.*
 import java.util.concurrent.Executors
 
 @Composable
@@ -161,7 +161,7 @@ private fun ScannerOverlay(found: Boolean) {
         val left = (size.width - side) / 2f
         val top = (size.height - side) / 2f
         val corner = CornerRadius(12.dp.toPx())
-        val accentColor = if (found) Color(0xFF4CAF50) else Color(0xFFF27059)
+        val accentColor = if (found) VeoliaSuccess else VeoliaCoral
 
         drawRect(Color.Black.copy(alpha = 0.45f))
         drawRoundRect(

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.ui.components.BarcodeScannerComponent
@@ -27,7 +28,7 @@ import com.idbat.mobile.ui.components.MifareReaderComponent
 import com.idbat.mobile.ui.components.MifareWriterComponent
 import com.idbat.mobile.ui.components.PhotoPickerComponent
 import com.idbat.mobile.ui.components.SignatureComponent
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.*
 
 private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture", "Signature")
 
@@ -96,7 +97,7 @@ fun PocScreen(onBack: () -> Unit) {
                 Icon(
                     imageVector = Icons.Outlined.ArrowBack,
                     contentDescription = "Retour",
-                    tint = Color(0xFFF27059)
+                    tint = VeoliaCoral
                 )
             }
             Text(
@@ -269,7 +270,9 @@ fun PocScreen(onBack: () -> Unit) {
                         onValueChange = { if (it.length <= 4) fMotDePasse = it },
                         label = { Text("Mot de passe (4 car.)") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        visualTransformation = VisualTransformation.None,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                     )
                 }
 

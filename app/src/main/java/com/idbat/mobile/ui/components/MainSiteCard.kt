@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.*
+import com.idbat.mobile.ui.theme.VeoliaDisabled
 
 @Composable
 fun MainSiteCard(
@@ -59,7 +60,7 @@ fun MainSiteCard(
                 Button(
                     onClick = onSuiviClick,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE0E0E0)),
+                    colors = ButtonDefaults.buttonColors(containerColor = VeoliaDisabled),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text("Suivi", color = Color.Black, fontWeight = FontWeight.Bold)

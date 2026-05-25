@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import com.idbat.mobile.ui.theme.VeoliaCoral
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import com.idbat.mobile.R
@@ -63,7 +64,7 @@ fun HomeScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
-                        0f to Color(0xFFF27059),
+                        0f to VeoliaCoral,
                         0.75f to bgColor,
                         1f to bgColor
                     )

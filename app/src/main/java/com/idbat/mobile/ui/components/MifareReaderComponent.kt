@@ -27,7 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -115,7 +115,7 @@ fun MifareReaderComponent(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Erreur de lecture", fontWeight = FontWeight.Bold, color = Color.Red)
+                    Text("Erreur de lecture", fontWeight = FontWeight.Bold, color = VeoliaErrorDark)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(errorMessage!!, fontSize = 12.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -173,12 +173,12 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
                 Column {
                     Text("UID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VeoliaPrincipal)
                     Text(carte.uid, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text("N° série : ${carte.numeroSerie}", fontSize = 11.sp, color = Color.Gray)
+                    Text("N° série : ${carte.numeroSerie}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Icon(
                     imageVector = if (carte.isCrcValid) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
                     contentDescription = null,
-                    tint = if (carte.isCrcValid) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                    tint = if (carte.isCrcValid) VeoliaSuccess else VeoliaWarning,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -213,7 +213,7 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
             CartePuceField(
                 "CRC",
                 if (carte.isCrcValid) "Valide ✓" else "Invalide ✗",
-                valueColor = if (carte.isCrcValid) Color(0xFF4CAF50) else Color.Red
+                valueColor = if (carte.isCrcValid) VeoliaSuccess else VeoliaErrorDark
             )
         }
 
@@ -227,7 +227,7 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
 private fun CartePuceSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-            Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(6.dp))
             content()
         }
@@ -238,8 +238,13 @@ private fun CartePuceSection(title: String, content: @Composable ColumnScope.() 
 private fun CartePuceField(label: String, value: String, valueColor: Color = Color.Unspecified) {
     if (value.isBlank()) return
     Column(modifier = Modifier.padding(bottom = 4.dp)) {
-        Text(label, fontSize = 10.sp, color = Color.Gray)
-        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = valueColor)
+        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (valueColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else valueColor
+        )
     }
 }
 
@@ -247,13 +252,13 @@ private fun CartePuceField(label: String, value: String, valueColor: Color = Col
 private fun CartePuceChip(label: String, active: Boolean) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = if (active) VeoliaPrincipal else Color(0xFFE0E0E0)
+        color = if (active) VeoliaPrincipal else VeoliaDisabled
     ) {
         Text(
             label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             fontSize = 10.sp,
-            color = if (active) Color.White else Color.Gray,
+            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (active) FontWeight.Bold else FontWeight.Normal
         )
     }

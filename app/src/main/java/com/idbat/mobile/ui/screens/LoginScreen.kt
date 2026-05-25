@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.data.entities.UtilisateurTPEntity
+import com.idbat.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,16 +37,12 @@ fun LoginScreen(
     var expandedUser by remember { mutableStateOf(false) }
     var selectedUser by remember { mutableStateOf<UtilisateurTPEntity?>(null) }
 
-    val GradientTop = Color(0xFFF8A282) // Orange clair
-    val GradientBottom = Color(0xFFE96D71) // Rose corail
-    val CoralText = Color(0xFFEA6E72) // Couleur du texte du bouton et des flèches
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(GradientTop, GradientBottom)
+                    colors = listOf(VeoliaGradientTop, VeoliaGradientBot)
                 )
             )
     ) {
@@ -100,7 +97,7 @@ fun LoginScreen(
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
-                                tint = CoralText,
+                                tint = VeoliaCoralText,
                                 modifier = Modifier.size(32.dp)
                             )
                         },
@@ -162,7 +159,7 @@ fun LoginScreen(
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
-                                tint = CoralText,
+                                tint = VeoliaCoralText,
                                 modifier = Modifier.size(32.dp)
                             )
                         },
@@ -221,7 +218,7 @@ fun LoginScreen(
                         unfocusedContainerColor = Color.White.copy(alpha = 0.9f),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = CoralText,
+                        cursorColor = VeoliaCoralText,
                         focusedTextColor = Color.DarkGray,
                         unfocusedTextColor = Color.DarkGray
                     ),
@@ -261,7 +258,7 @@ fun LoginScreen(
                     text = "Connexion",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = CoralText // Texte couleur corail
+                    color = VeoliaCoralText // Texte couleur corail
                 )
             }
 
