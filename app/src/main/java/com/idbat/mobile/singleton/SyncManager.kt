@@ -14,7 +14,8 @@ import kotlin.random.Random
 
 @Singleton
 class SyncManager @Inject constructor(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val tokenStore: TokenStore
 ) {
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState
@@ -46,7 +47,7 @@ class SyncManager @Inject constructor(
         val tente = Random.nextLong(1, 200)
         val reussie = Random.nextLong(1, tente)
         try {
-            Log.d("SYNC_MANAGER", "Mon token est : ${ConfigSingleton.tokenApi}")
+            Log.d("SYNC_MANAGER", "Mon token est : ${tokenStore.token}")
 
             val dateExec = Date()
             val dao = database.lastSynchroHistoryDao()

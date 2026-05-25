@@ -16,14 +16,14 @@ Application Android native pour les techniciens de terrain Veolia. Elle permet d
 
 ```
 ui/           → Composables + ViewModels (MVVM)
-singleton/    → Managers métier (AuthManager, SyncManager, ApiClient, ConfigSingleton)
+singleton/    → Managers métier (AuthManager, SyncManager, ConfigSingleton, TokenStore)
 data/
   entities/   → Entités Room
   dao/        → Interfaces Room DAO
   repository/ → Repositories (Room + API)
-  model/      → Modèles métier purs (ex. CartePuce)
+  model/      → Modèles métier purs (CartePuce, BarcodeFormat)
   nfc/        → Logique NFC : NfcRepository, NfcConfig
-di/           → Modules Hilt
+di/           → Modules Hilt (DatabaseModule, ApiModule)
 generated/    → Client API auto-généré (OpenAPI)
 utils/        → Utilitaires divers
 ```
@@ -243,8 +243,12 @@ Toutes les couleurs du projet sont centralisées dans `Color.kt`. **Ne jamais é
 - **State hoisting** : `PhotoPickerComponent`, `CardScanComponent`, `SignatureComponent` et `MifareReaderComponent` n'ont pas d'état interne — l'état est géré par le parent (`PocScreen`). Ne pas ré-internaliser cet état.
 - **Couleurs** : ne jamais écrire `Color(0x...)` en inline — voir section "Design system — Couleurs" ci-dessus.
 - **Logique NFC** : toute opération Mifare (lecture/écriture de blocs, authentification, sérialisation) doit passer par `NfcRepository`. Les composants `MifareReaderComponent` et `MifareWriterComponent` ne font que gérer le cycle de vie NFC adapter et les callbacks UI.
-- **Modèles métier** : les modèles sans persistance Room vont dans `data/model/`, pas dans `ui/components/`.
+- **Modèles métier** : les modèles sans persistance Room vont dans `data/model/`, pas dans `ui/components/`. Ex : `CartePuce`, `BarcodeFormat`.
 - **Clés cryptographiques** : les constantes sensibles sont dans `data/nfc/NfcConfig.kt` avec visibilité `internal`. Ne pas les dupliquer ou les déplacer dans `BuildConfig` sans concertation (la clé est partagée avec le back-end .NET).
+- **Réseau (Retrofit/OkHttp)** : toute la configuration HTTP est dans `di/ApiModule.kt`. Ne jamais recréer de client Retrofit ailleurs. Les API interfaces (`AuthMobileControllerApi`, `ContratsControllerApi`, `SmartphonesMobileControllerApi`) sont des singletons Hilt injectés directement dans les Managers.
+- **Token API** : le token Bearer est géré par `singleton/TokenStore.kt` (`@Singleton @Inject`). L'intercepteur `ApiModule` le lit, `AuthManager` l'écrit après authentification. Ne jamais stocker le token dans une variable globale ou `ConfigSingleton`.
+- **URLs** : les URLs sont dans `ConfigSingleton` avec des constantes nommées `BASE_URL_DEV` et `BASE_URL_STAGING`. Pour changer d'environnement, modifier `val baseUrl = BASE_URL_XXX` dans `ConfigSingleton`.
+- **Formats de code-barres** : la fonction `Int.toFormatName()` est dans `data/model/BarcodeFormat.kt`. Ne pas la redéfinir localement dans les composants.
 - **Navigation secondaire** : pas de NavHost — utiliser `var showXxx by remember { mutableStateOf(false) }` dans le composable parent et un `if (showXxx) { XxxScreen(onBack = { showXxx = false }) ; return }` pour les nouvelles pages.
 
 ---
