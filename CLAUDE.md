@@ -17,7 +17,12 @@ Application Android native pour les techniciens de terrain Veolia. Elle permet d
 ```
 ui/           → Composables + ViewModels (MVVM)
 singleton/    → Managers métier (AuthManager, SyncManager, ApiClient, ConfigSingleton)
-data/         → Entités Room, DAOs, Repositories, Converters
+data/
+  entities/   → Entités Room
+  dao/        → Interfaces Room DAO
+  repository/ → Repositories (Room + API)
+  model/      → Modèles métier purs (ex. CartePuce)
+  nfc/        → Logique NFC : NfcRepository, NfcConfig
 di/           → Modules Hilt
 generated/    → Client API auto-généré (OpenAPI)
 utils/        → Utilitaires divers
@@ -144,7 +149,13 @@ lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
 data class CardData(val cardNumber: String?, val expiryDate: String?, val cardholderName: String?)
 ```
 
-**`CartePuce`** (défini dans `MifareReaderComponent.kt`) : modèle de données carte Mifare avec `uid`, `numeroSerie`, `numeroIdentification`, `motDePasse`, `societe`, `nomPrenom`, `identClient`, `soldePoints`, `cumulPoints`, `paiementComptant`, flags booléens (`interne`, `prepaiement`, `facturation`, `gratuit`), `crc`. Méthodes : `serialize()` (240 octets ISO-8859-1), `parse(uid, numSerie, content)`, `isCrcValid`.
+**`CartePuce`** (package `data.model`) : modèle métier carte Mifare avec `uid`, `numeroSerie`, `numeroIdentification`, `motDePasse`, `societe`, `nomPrenom`, `identClient`, `soldePoints`, `cumulPoints`, `paiementComptant`, flags booléens (`interne`, `prepaiement`, `facturation`, `gratuit`), `crc`. Méthodes : `serialize()` (240 octets ISO-8859-1), `parse(uid, numSerie, content)`, `isCrcValid`, `computeCrc()` (Triple-DES CBC).
+
+**NFC** (`data.nfc`) :
+- `NfcConfig.kt` — constantes `NFC_TRIPLE_DES_KEY` et `NFC_TRIPLE_DES_IV` (visibilité `internal`)
+- `NfcRepository` — `@Singleton @Inject constructor()`, expose `suspend readCartePuce(tag)` et `suspend writeCartePuce(tag, carte)` avec dispatching IO interne (`withContext(Dispatchers.IO)`)
+
+**`PocViewModel`** (`ui/viewmodel`) — `@HiltViewModel` qui injecte `NfcRepository` et l'expose aux composants Mifare. Les composants gèrent le cycle de vie NFC adapter (`DisposableEffect` → `enableReaderMode`/`disableReaderMode`) mais délèguent tout le protocole I/O au repository.
 
 ---
 
@@ -231,6 +242,9 @@ Toutes les couleurs du projet sont centralisées dans `Color.kt`. **Ne jamais é
 - **FileProvider** : toute nouvelle fonctionnalité utilisant `TakePicture()` doit passer par `createCameraUri()` (`CameraUtils.kt`) — ne pas créer de URI caméra directement.
 - **State hoisting** : `PhotoPickerComponent`, `CardScanComponent`, `SignatureComponent` et `MifareReaderComponent` n'ont pas d'état interne — l'état est géré par le parent (`PocScreen`). Ne pas ré-internaliser cet état.
 - **Couleurs** : ne jamais écrire `Color(0x...)` en inline — voir section "Design system — Couleurs" ci-dessus.
+- **Logique NFC** : toute opération Mifare (lecture/écriture de blocs, authentification, sérialisation) doit passer par `NfcRepository`. Les composants `MifareReaderComponent` et `MifareWriterComponent` ne font que gérer le cycle de vie NFC adapter et les callbacks UI.
+- **Modèles métier** : les modèles sans persistance Room vont dans `data/model/`, pas dans `ui/components/`.
+- **Clés cryptographiques** : les constantes sensibles sont dans `data/nfc/NfcConfig.kt` avec visibilité `internal`. Ne pas les dupliquer ou les déplacer dans `BuildConfig` sans concertation (la clé est partagée avec le back-end .NET).
 - **Navigation secondaire** : pas de NavHost — utiliser `var showXxx by remember { mutableStateOf(false) }` dans le composable parent et un `if (showXxx) { XxxScreen(onBack = { showXxx = false }) ; return }` pour les nouvelles pages.
 
 ---

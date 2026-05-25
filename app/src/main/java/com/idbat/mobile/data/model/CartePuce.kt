@@ -1,6 +1,8 @@
-package com.idbat.mobile.ui.components
+package com.idbat.mobile.data.model
 
 import android.util.Base64
+import com.idbat.mobile.data.nfc.NFC_TRIPLE_DES_IV
+import com.idbat.mobile.data.nfc.NFC_TRIPLE_DES_KEY
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -73,13 +75,13 @@ data class CartePuce(
         }
 
         /**
-         * Réplique exacte du CryptePuce .NET :
-         * Triple-DES CBC → Base64 (44 chars) + 4 chars aux positions 10, 21, 32, 43 = 48 chars
+         * Triple-DES CBC → Base64 (44 chars) + 4 chars aux positions 10, 21, 32, 43 = 48 chars.
+         * Réplique exacte du CryptePuce .NET.
          */
         fun computeCrc(numeroSerie: String, numeroIdentification: String): String {
             val input = (numeroSerie + numeroIdentification).toByteArray(Charsets.UTF_8)
-            val key = "CLESECURISATIONIDBATPUCE".toByteArray(Charsets.UTF_8)
-            val iv  = "Cherche!".toByteArray(Charsets.UTF_8)
+            val key = NFC_TRIPLE_DES_KEY.toByteArray(Charsets.UTF_8)
+            val iv  = NFC_TRIPLE_DES_IV.toByteArray(Charsets.UTF_8)
             val cipher = Cipher.getInstance("DESede/CBC/PKCS5Padding")
             cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "DESede"), IvParameterSpec(iv))
             val base64 = Base64.encodeToString(cipher.doFinal(input), Base64.NO_WRAP)

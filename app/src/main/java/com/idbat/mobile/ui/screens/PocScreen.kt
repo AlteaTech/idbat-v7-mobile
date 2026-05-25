@@ -22,18 +22,23 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.idbat.mobile.data.model.CartePuce
 import com.idbat.mobile.ui.components.BarcodeScannerComponent
-import com.idbat.mobile.ui.components.CartePuce
 import com.idbat.mobile.ui.components.MifareReaderComponent
 import com.idbat.mobile.ui.components.MifareWriterComponent
 import com.idbat.mobile.ui.components.PhotoPickerComponent
 import com.idbat.mobile.ui.components.SignatureComponent
 import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.viewmodel.PocViewModel
 
 private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture", "Signature")
 
 @Composable
-fun PocScreen(onBack: () -> Unit) {
+fun PocScreen(
+    onBack: () -> Unit,
+    viewModel: PocViewModel = hiltViewModel()
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
     // ── Photo ───────────────────────────────────────────────────────────────
@@ -177,7 +182,10 @@ fun PocScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize().padding(16.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
-                MifareReaderComponent(onCardRead = { rfidCard = it })
+                MifareReaderComponent(
+                    nfcRepository = viewModel.nfcRepository,
+                    onCardRead = { rfidCard = it }
+                )
             }
 
             // ── SIGNATURE ───────────────────────────────────────────────────
@@ -322,6 +330,7 @@ fun PocScreen(onBack: () -> Unit) {
 
                 // Composant NFC — buildCarte appelé avec l'UID réel de la carte cible
                 MifareWriterComponent(
+                    nfcRepository = viewModel.nfcRepository,
                     buildCarte = { uid, numSerie ->
                         CartePuce(
                             uid = uid,
