@@ -9,7 +9,6 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
@@ -21,7 +20,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.Date
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,6 +41,7 @@ class AuthManager @Inject constructor(
         val isInitialized: Boolean = false,
         val loginError: String? = null,
         val loggedInSite: SiteEntity? = null,
+        val loggedInContrat: ContratEntity? = null,
         val availableSites: List<SiteEntity> = emptyList(),
         val isLoadingContracts: Boolean = false,
         val showValidationError: Boolean = false, // Nouveau champ
@@ -287,7 +287,11 @@ class AuthManager @Inject constructor(
         val contrat = ContratEntity(
             id = 1L,
             trigramme = "VEO",
-            nom = "Veolia Recyclage"
+            nom = "Veolia Recyclage",
+            hasCodebarres = true,
+            hasPuce = true,
+            hasImmatriculation = true,
+            hasSelectionusager = true
         )
         contratDao.insertContrat(contrat)
 
@@ -342,7 +346,11 @@ class AuthManager @Inject constructor(
             val contratEntity = ContratEntity(
                 id = contratDmo.id ?: 0,
                 trigramme = contratDmo.trigramme ?: "",
-                nom = contratDmo.nom ?: ""
+                nom = contratDmo.nom ?: "",
+                hasPuce = contratDmo.hasPuce,
+                hasCodebarres = contratDmo.hasCodebarres,
+                hasImmatriculation = contratDmo.hasImmatriculation,
+                hasSelectionusager = contratDmo.hasSelectionusager,
             )
 
             contratDao.insertContrat(contratEntity)
@@ -537,9 +545,11 @@ class AuthManager @Inject constructor(
 
             if (utilisateur != null && utilisateur.pin == password && siteId != null) {
                 val selectedSite = _authState.value.availableSites.find { it.id == siteId }
+                val contrat = selectedSite?.let { database.contratDao().getContratById(it.contratId) }
                 _authState.value = _authState.value.copy(
                     isLoggedIn = true,
                     loggedInSite = selectedSite,
+                    loggedInContrat = contrat,
                 )
                 Log.d("AUTH_MANAGER", "Connexion réussie pour ${selectedSite?.nom}")
             } else {

@@ -51,6 +51,7 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
         composable(AppDestination.Home.route) {
             HomeScreen(
                 selectedSite = uiState.authState.loggedInSite,
+                contrat = uiState.authState.loggedInContrat,
                 lastSynchroDateEnvoi = uiState.syncState.lastSynchroDateEnvoi,
                 lastSynchroDateReception = uiState.syncState.lastSynchroDateReception,
                 onTransferClick = { viewModel.executeTransfer() },

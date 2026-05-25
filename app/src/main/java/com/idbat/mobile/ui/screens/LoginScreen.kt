@@ -6,7 +6,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -17,7 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.theme.VeoliaCoralText
+import com.idbat.mobile.ui.theme.VeoliaGradientBot
+import com.idbat.mobile.ui.theme.VeoliaGradientTop
 import com.idbat.mobile.ui.viewmodel.LoginViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

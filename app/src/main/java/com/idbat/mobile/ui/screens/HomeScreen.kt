@@ -1,31 +1,27 @@
 package com.idbat.mobile.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import com.idbat.mobile.ui.theme.VeoliaCoral
 import androidx.compose.material3.Text
-import androidx.compose.ui.res.painterResource
-import com.idbat.mobile.R
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idbat.mobile.R
+import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.ui.components.*
+import com.idbat.mobile.ui.theme.VeoliaCoral
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,6 +29,7 @@ import java.util.*
 @Composable
 fun HomeScreen(
     selectedSite: SiteEntity?,
+    contrat: ContratEntity?,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
     onTransferClick: () -> Unit,
@@ -42,6 +39,16 @@ fun HomeScreen(
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
     var showCarteSheet by remember { mutableStateOf(false) }
+    var showDepotScreen by remember { mutableStateOf(false) }
+
+    if (showDepotScreen) {
+        DepotScreen(
+            siteName = selectedSite?.nom ?: "",
+            contrat = contrat,
+            onBack = { showDepotScreen = false }
+        )
+        return
+    }
 
     val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
     val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
@@ -138,12 +145,7 @@ fun HomeScreen(
 
             BottomLargeButton(
                 title = "Passage en déchetterie",
-                onClick = {
-                    toastState.showToast(
-                        title = "Passage en déchetterie",
-                        content = "Gestion des passages et contrôles d'accès aux déchetteries. Inclut la vérification des autorisations, l'enregistrement des dépôts et le suivi des quotas."
-                    )
-                }
+                onClick = { showDepotScreen = true }
             )
 
             Spacer(modifier = Modifier.height(24.dp))

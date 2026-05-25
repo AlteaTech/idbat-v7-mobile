@@ -2,11 +2,7 @@ package com.idbat.mobile.ui.components
 
 import android.nfc.NfcAdapter
 import androidx.activity.ComponentActivity
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,7 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.model.CartePuce
 import com.idbat.mobile.data.nfc.NfcRepository
-import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.theme.VeoliaErrorDark
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.VeoliaSuccess
 import kotlinx.coroutines.launch
 
 private sealed class WriteState {
