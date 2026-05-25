@@ -35,7 +35,6 @@ fun HomeScreen(
     selectedSite: SiteEntity?,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
-    onLogoutClick: () -> Unit,
     onTransferClick: () -> Unit,
     onNavigateToPoc: () -> Unit,
     getSuiviContent: suspend (Long) -> CharSequence = { "" }

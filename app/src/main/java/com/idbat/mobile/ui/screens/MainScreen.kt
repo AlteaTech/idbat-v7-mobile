@@ -53,7 +53,6 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
                 selectedSite = uiState.authState.loggedInSite,
                 lastSynchroDateEnvoi = uiState.syncState.lastSynchroDateEnvoi,
                 lastSynchroDateReception = uiState.syncState.lastSynchroDateReception,
-                onLogoutClick = { viewModel.logout() },
                 onTransferClick = { viewModel.executeTransfer() },
                 getSuiviContent = { siteId -> viewModel.getSuiviContentAsync(siteId) },
                 onNavigateToPoc = { navController.navigate(AppDestination.Poc.route) }
