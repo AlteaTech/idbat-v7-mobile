@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.idbat.mobile.ui.theme.*
 
 @Composable
 fun PhotoPickerComponent(
@@ -76,8 +77,7 @@ fun PhotoPickerComponent(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        shadowElevation = 4.dp,
-        color = Color.White
+        shadowElevation = 4.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -109,7 +109,7 @@ fun PhotoPickerComponent(
                                     .align(Alignment.TopEnd)
                                     .offset(x = 6.dp, y = (-6).dp)
                                     .clip(RoundedCornerShape(50))
-                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .background(VeoliaInk.copy(alpha = 0.6f))
                                     .clickable { onPhotosChange(photos - uri) },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -134,7 +134,7 @@ fun PhotoPickerComponent(
                     .clip(RoundedCornerShape(26.dp))
                     .background(
                         Brush.horizontalGradient(
-                            colors = listOf(Color(0xFFF27059), Color(0xFFFF9A82))
+                            colors = listOf(VeoliaCoral, VeoliaCoralLight)
                         )
                     )
                     .clickable { showSourceDialog = true },

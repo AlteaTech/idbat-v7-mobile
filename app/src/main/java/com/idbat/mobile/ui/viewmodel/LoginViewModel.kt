@@ -3,75 +3,51 @@ package com.idbat.mobile.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.entities.SiteEntity
-import com.idbat.mobile.data.repository.SiteRepository
-import com.idbat.mobile.data.repository.UtilisateurRepository
+import com.idbat.mobile.data.entities.UtilisateurTPEntity
+import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class LoginUiState(
-    val availableSites: List<SiteEntity> = emptyList(),
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val isLoginSuccessful: Boolean = false
+data class LoginFormState(
+    val selectedSite: SiteEntity? = null,
+    val selectedUser: UtilisateurTPEntity? = null,
+    val password: String = "",
+    val expandedSite: Boolean = false,
+    val expandedUser: Boolean = false,
 )
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val utilisateurRepository: UtilisateurRepository,
-    private val siteRepository: SiteRepository
+    private val authManager: AuthManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    val authState = authManager.authState
 
-    init {
-        loadSites()
-    }
+    private val _formState = MutableStateFlow(LoginFormState())
+    val formState: StateFlow<LoginFormState> = _formState.asStateFlow()
 
-    private fun loadSites() {
-        siteRepository.getAllSites()
-            .onEach { sites ->
-                _uiState.update { it.copy(availableSites = sites) }
-            }
-            .catch { e ->
-                _uiState.update { it.copy(errorMessage = "Erreur chargement sites: ${e.message}") }
-            }
-            .launchIn(viewModelScope)
-    }
+    fun selectSite(site: SiteEntity) =
+        _formState.update { it.copy(selectedSite = site, expandedSite = false) }
 
-    fun login(username: String, pin: String, siteId: Long?) {
-        if (siteId == null) {
-            _uiState.update { it.copy(errorMessage = "Veuillez sélectionner un site") }
-            return
-        }
+    fun selectUser(user: UtilisateurTPEntity) =
+        _formState.update { it.copy(selectedUser = user, expandedUser = false) }
 
-        if (username.isBlank() || pin.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Veuillez remplir tous les champs") }
-            return
-        }
+    fun setPassword(password: String) = _formState.update { it.copy(password = password) }
+    fun toggleSiteExpanded() = _formState.update { it.copy(expandedSite = !it.expandedSite) }
+    fun toggleUserExpanded() = _formState.update { it.copy(expandedUser = !it.expandedUser) }
+    fun dismissSite() = _formState.update { it.copy(expandedSite = false) }
+    fun dismissUser() = _formState.update { it.copy(expandedUser = false) }
 
+    fun submit() {
+        val form = _formState.value
+        val user = form.selectedUser ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            val user = utilisateurRepository.checkCredentials(username, pin)
-
-            if (user != null) {
-                utilisateurRepository.updateLastLogin(user)
-                _uiState.update { it.copy(isLoading = false, isLoginSuccessful = true) }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Identifiant ou mot de passe incorrect"
-                    )
-                }
-            }
+            authManager.login(user.login, form.password, form.selectedSite?.id)
         }
-    }
-
-    fun resetState() {
-        _uiState.update { it.copy(isLoginSuccessful = false, errorMessage = null) }
     }
 }

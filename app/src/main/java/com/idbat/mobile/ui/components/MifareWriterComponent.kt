@@ -1,9 +1,6 @@
 package com.idbat.mobile.ui.components
 
 import android.nfc.NfcAdapter
-import android.nfc.Tag
-import android.nfc.tech.MifareClassic
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -26,12 +23,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
-import kotlinx.coroutines.Dispatchers
+import com.idbat.mobile.data.model.CartePuce
+import com.idbat.mobile.data.nfc.NfcRepository
+import com.idbat.mobile.ui.theme.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-private const val TAG = "MifareWriter"
 
 private sealed class WriteState {
     object Idle : WriteState()
@@ -49,6 +44,7 @@ private sealed class WriteState {
  */
 @Composable
 fun MifareWriterComponent(
+    nfcRepository: NfcRepository,
     buildCarte: (uid: String, numeroSerie: String) -> CartePuce?,
     modifier: Modifier = Modifier
 ) {
@@ -71,15 +67,13 @@ fun MifareWriterComponent(
                 val numSerie = tag.id.take(4).joinToString("") { "%02X".format(it) }
                 val carte = currentBuilder.value(uid, numSerie) ?: return@enableReaderMode
 
-                coroutineScope.launch(Dispatchers.Main) { writeState = WriteState.Writing }
-                coroutineScope.launch(Dispatchers.IO) {
+                coroutineScope.launch {
+                    writeState = WriteState.Writing
                     try {
-                        writeCartePuce(tag, carte)
-                        withContext(Dispatchers.Main) { writeState = WriteState.Success(uid) }
+                        nfcRepository.writeCartePuce(tag, carte)
+                        writeState = WriteState.Success(uid)
                     } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            writeState = WriteState.Error(e.message ?: "Erreur d'écriture")
-                        }
+                        writeState = WriteState.Error(e.message ?: "Erreur d'écriture")
                     }
                 }
             },
@@ -124,7 +118,7 @@ fun MifareWriterComponent(
                 is WriteState.Success -> Column(modifier = Modifier.fillMaxWidth()) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF4CAF50).copy(alpha = 0.08f)
+                        color = VeoliaSuccess.copy(alpha = 0.08f)
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp).fillMaxWidth(),
@@ -132,7 +126,7 @@ fun MifareWriterComponent(
                         ) {
                             Icon(
                                 Icons.Outlined.Check, null,
-                                tint = Color(0xFF4CAF50),
+                                tint = VeoliaSuccess,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -140,7 +134,7 @@ fun MifareWriterComponent(
                                 Text(
                                     "Écriture réussie",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF4CAF50),
+                                    color = VeoliaSuccess,
                                     fontSize = 14.sp
                                 )
                                 Text(
@@ -162,7 +156,7 @@ fun MifareWriterComponent(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Erreur d'écriture", fontWeight = FontWeight.Bold, color = Color.Red)
+                    Text("Erreur d'écriture", fontWeight = FontWeight.Bold, color = VeoliaErrorDark)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(state.message, fontSize = 12.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -195,49 +189,4 @@ private fun WriteReadyIdle() {
         Spacer(modifier = Modifier.height(10.dp))
         Text("Approchez la carte à écrire", fontSize = 14.sp, color = Color.Gray)
     }
-}
-
-// ── Écriture Mifare ─────────────────────────────────────────────────────────
-
-private fun writeCartePuce(tag: Tag, carte: CartePuce) {
-    val content = carte.serialize()
-    check(content.length == 240) { "Sérialisation invalide (${content.length}/240)" }
-    val bytes = content.toByteArray(Charsets.ISO_8859_1)
-
-    data class Block(val sector: Int, val offset: Int)
-
-    val sequence = buildList {
-        add(Block(0, 1)); add(Block(0, 2))
-        for (s in 1..4) { add(Block(s, 0)); add(Block(s, 1)); add(Block(s, 2)) }
-        add(Block(5, 0))
-    }
-
-    val mifare = MifareClassic.get(tag) ?: throw Exception("Carte non supportée")
-
-    mifare.use { card ->
-        card.connect()
-        var authenticatedSector = -1
-
-        sequence.forEachIndexed { i, blk ->
-            if (blk.sector != authenticatedSector) {
-                val ok = card.authenticateSectorWithKeyB(blk.sector, MifareClassic.KEY_DEFAULT)
-                    || card.authenticateSectorWithKeyA(blk.sector, MifareClassic.KEY_DEFAULT)
-                    || card.authenticateSectorWithKeyA(blk.sector, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)
-                if (!ok) throw Exception("Authentification échouée — secteur ${blk.sector}")
-                authenticatedSector = blk.sector
-            }
-
-            val blockIndex = card.sectorToBlock(blk.sector) + blk.offset
-            val data = bytes.sliceArray(i * 16 until (i + 1) * 16)
-
-            Log.d(TAG, "writeBlock($blockIndex) [S${blk.sector}B${blk.offset}]")
-            card.writeBlock(blockIndex, data)
-
-            val readBack = card.readBlock(blockIndex)
-            if (!readBack.contentEquals(data))
-                throw Exception("Vérification échouée — S${blk.sector}B${blk.offset}")
-        }
-    }
-
-    Log.d(TAG, "Écriture OK — UID ${carte.uid}")
 }

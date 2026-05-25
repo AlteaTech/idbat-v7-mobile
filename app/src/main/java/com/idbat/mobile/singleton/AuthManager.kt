@@ -11,6 +11,9 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
+import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
+import com.idbat.mobile.generated.client.api.ContratsControllerApi
+import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
 import com.idbat.mobile.generated.client.model.LoginMobileRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -24,6 +27,10 @@ import javax.inject.Singleton
 @Singleton
 class AuthManager @Inject constructor(
     private val database: AppDatabase,
+    private val authApi: AuthMobileControllerApi,
+    private val contratsApi: ContratsControllerApi,
+    private val smartphonesApi: SmartphonesMobileControllerApi,
+    private val tokenStore: TokenStore,
     @ApplicationContext private val context: Context
 ) {
     private val _authState = MutableStateFlow(AuthState())
@@ -104,7 +111,7 @@ class AuthManager @Inject constructor(
                     )
 
                     // D'abord, vérifier si le smartphone existe
-                    val checkResponse = ApiClient.smartphonesApi.checkSmartphoneExists(identifiantDevice)
+                    val checkResponse = smartphonesApi.checkSmartphoneExists(identifiantDevice)
 
                     if (checkResponse.isSuccessful) {
                         val smartphoneExists = checkResponse.body() ?: false
@@ -126,7 +133,7 @@ class AuthManager @Inject constructor(
                                 latitude = latitude
                             )
 
-                            val creerResponse = ApiClient.smartphonesApi.creerSmartphone(creerSmartphoneRequest)
+                            val creerResponse = smartphonesApi.creerSmartphone(creerSmartphoneRequest)
 
                             if (creerResponse.isSuccessful) {
                                 Log.d("AUTH_MANAGER", "Smartphone créé avec succès (lat: $latitude, lng: $longitude)")
@@ -139,12 +146,12 @@ class AuthManager @Inject constructor(
                         }
 
                         val requete = LoginMobileRequest(idMobile = identifiantDevice)
-                        val reponse = ApiClient.authApi.authenticateUser(loginMobileRequest = requete)
+                        val reponse = authApi.authenticateUser(loginMobileRequest = requete)
 
                         if (reponse.isSuccessful) {
                             val donnees = reponse.body()
-                            ConfigSingleton.tokenApi = donnees?.get("token") ?: ""
-                            Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${ConfigSingleton.tokenApi}")
+                            tokenStore.token = donnees?.get("token") ?: ""
+                            Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${tokenStore.token}")
 
                             val contratDao = database.contratDao()
                             val siteDao = database.siteDao()
@@ -210,7 +217,7 @@ class AuthManager @Inject constructor(
             _authState.value = _authState.value.copy(isLoadingContracts = true)
             Log.d("AUTH_MANAGER", "Récupération des contrats depuis l'API...")
 
-            val response = ApiClient.contratsApi.getByDevice()
+            val response = contratsApi.getByDevice()
 
             if (response.isSuccessful) {
                 val contratDmo = response.body()

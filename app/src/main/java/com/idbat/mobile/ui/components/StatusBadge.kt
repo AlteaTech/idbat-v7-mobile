@@ -15,11 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idbat.mobile.ui.theme.*
 
 @Composable
 fun StatusBadge(text: String, isSuccess: Boolean) {
     Surface(
-        color = if (isSuccess) Color(0xFF007F2D) else Color(0xFFC60000),
+        color = if (isSuccess) VeoliaSuccessDark else VeoliaErrorDark,
         shape = RoundedCornerShape(50),
     ) {
         Row(

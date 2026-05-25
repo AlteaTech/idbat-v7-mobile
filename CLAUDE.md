@@ -16,9 +16,14 @@ Application Android native pour les techniciens de terrain Veolia. Elle permet d
 
 ```
 ui/           → Composables + ViewModels (MVVM)
-singleton/    → Managers métier (AuthManager, SyncManager, ApiClient, ConfigSingleton)
-data/         → Entités Room, DAOs, Repositories, Converters
-di/           → Modules Hilt
+singleton/    → Managers métier (AuthManager, SyncManager, ConfigSingleton, TokenStore)
+data/
+  entities/   → Entités Room
+  dao/        → Interfaces Room DAO
+  repository/ → Repositories (Room + API)
+  model/      → Modèles métier purs (CartePuce, BarcodeFormat)
+  nfc/        → Logique NFC : NfcRepository, NfcConfig
+di/           → Modules Hilt (DatabaseModule, ApiModule)
 generated/    → Client API auto-généré (OpenAPI)
 utils/        → Utilitaires divers
 ```
@@ -53,9 +58,12 @@ La navigation est conditionnelle (pas de NavHost) : `MainScreen` route vers `Log
 
 **`CarteActionSheet`** propose : Créer une carte · Recharger une carte · POC (navigue vers `PocScreen`)
 
-**`PocScreen`** contient 4 onglets : PHOTO · CB · RFID Lecture · RFID Écriture  
+**`PocScreen`** contient 5 onglets : PHOTO · CB · RFID Lecture · RFID Écriture · Signature  
 - Onglet **PHOTO** : `PhotoPickerComponent` (état hoisted) + bouton compteur  
-- Onglet **CB** : `CardScanComponent` (OCR ML Kit) + affichage des champs extraits
+- Onglet **CB** : `BarcodeScannerComponent` + `OutlinedTextField` affichant la valeur scannée  
+- Onglet **RFID Lecture** : `MifareReaderComponent` — résultat hoisted dans `rfidCard`  
+- Onglet **RFID Écriture** : formulaire `OutlinedTextField` pré-rempli depuis `rfidCard` + `MifareWriterComponent`  
+- Onglet **Signature** : `SignatureComponent` — image validée hoisted dans `signatureImage`
 
 ---
 
@@ -128,6 +136,10 @@ lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
 | `BottomLargeButton` | Grand bouton bas d'écran corail avec image droite |
 | `CarteActionSheet` | Bottom sheet Material3 avec 3 actions carte |
 | `PhotoPickerComponent` | Prise/sélection photos, thumbnails suppressibles — état **hoisted** (`photos`, `onPhotosChange`) |
+| `BarcodeScannerComponent` | Scan code-barres via caméra/galerie + ML Kit → callback `onBarcodeDetected(value, format)` |
+| `MifareReaderComponent` | Lecture NFC Mifare Classic → callback `onCardRead: (CartePuce) -> Unit` |
+| `MifareWriterComponent` | Écriture NFC Mifare Classic → lambda `buildCarte: (uid, numSerie) -> CartePuce?` appelé au moment du tap |
+| `SignatureComponent` | Canvas de dessin (bezier quadratique) → callback `onValidate: ((ImageBitmap) -> Unit)?` |
 | `CardScanComponent` | Scan CB via caméra/galerie + OCR ML Kit → retourne `CardData` via `onCardDataExtracted` |
 | `CameraUtils` | `createCameraUri(context)` — helper interne partagé pour FileProvider |
 | `ToastHost` / `rememberToastState` | Système de toasts custom avec titre + contenu rich text |
@@ -136,6 +148,14 @@ lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
 ```kotlin
 data class CardData(val cardNumber: String?, val expiryDate: String?, val cardholderName: String?)
 ```
+
+**`CartePuce`** (package `data.model`) : modèle métier carte Mifare avec `uid`, `numeroSerie`, `numeroIdentification`, `motDePasse`, `societe`, `nomPrenom`, `identClient`, `soldePoints`, `cumulPoints`, `paiementComptant`, flags booléens (`interne`, `prepaiement`, `facturation`, `gratuit`), `crc`. Méthodes : `serialize()` (240 octets ISO-8859-1), `parse(uid, numSerie, content)`, `isCrcValid`, `computeCrc()` (Triple-DES CBC).
+
+**NFC** (`data.nfc`) :
+- `NfcConfig.kt` — constantes `NFC_TRIPLE_DES_KEY` et `NFC_TRIPLE_DES_IV` (visibilité `internal`)
+- `NfcRepository` — `@Singleton @Inject constructor()`, expose `suspend readCartePuce(tag)` et `suspend writeCartePuce(tag, carte)` avec dispatching IO interne (`withContext(Dispatchers.IO)`)
+
+**`PocViewModel`** (`ui/viewmodel`) — `@HiltViewModel` qui injecte `NfcRepository` et l'expose aux composants Mifare. Les composants gèrent le cycle de vie NFC adapter (`DisposableEffect` → `enableReaderMode`/`disableReaderMode`) mais délèguent tout le protocole I/O au repository.
 
 ---
 
@@ -168,6 +188,50 @@ FileProvider configuré : autorité `${applicationId}.fileprovider`, chemins dan
 
 ---
 
+## Design system — Couleurs
+
+### Tokens (`ui/theme/Color.kt`)
+
+Toutes les couleurs du projet sont centralisées dans `Color.kt`. **Ne jamais écrire `Color(0x...)` en inline dans un composable — utiliser toujours un token nommé.**
+
+| Token | Valeur | Usage |
+|---|---|---|
+| `VeoliaPrincipal` | `0xFFD96A56` | Interactions, boutons, tabs actifs |
+| `VeoliaCoral` | `0xFFF27059` | Dégradés décoratifs, accents |
+| `VeoliaCoralLight` | `0xFFFF9A82` | Fin de dégradé bouton photo |
+| `VeoliaGradientTop` | `0xFFF8A282` | Haut du dégradé LoginScreen |
+| `VeoliaGradientBot` | `0xFFE96D71` | Bas du dégradé LoginScreen |
+| `VeoliaCoralText` | `0xFFEA6E72` | Texte corail sur fond blanc (bouton connexion) |
+| `VeoliaSuccess` | `0xFF4CAF50` | Icônes / textes succès NFC |
+| `VeoliaSuccessDark` | `0xFF007F2D` | Badge StatusBadge "Envoi/Réception" OK |
+| `VeoliaWarning` | `0xFFFF9800` | Avertissement CRC |
+| `VeoliaErrorDark` | `0xFFC60000` | Badge StatusBadge en échec, texte erreur |
+| `VeoliaAlertOrange` | `0xFFF57C00` | Icône ValidationErrorDialog |
+| `VeoliaInk` | `0xFF1C1C1E` | Trait de signature (canvas) |
+| `VeoliaDisabled` | `0xFFE0E0E0` | Éléments inactifs / chips désactivés |
+| `VeoliaSubtle` | `0xFFDDDDDD` | Bordures et séparateurs |
+| `VeoliaPlaceholder` | `0xFFBBBBBB` | Placeholder zone signature |
+| `VeoliaDrawingBg` | `0xFFFAFAFA` | Fond zone de dessin |
+| `VeoliaGray` | `0xFF333333` | Texte secondaire foncé |
+| `VeoliaLightGray` | `0xFFF5F5F5` | Fond général, surfaceVariant light |
+| `White` / `Black` | — | Alias explicites |
+
+### Règles d'import et d'utilisation
+
+- **Import** : utiliser `import com.idbat.mobile.ui.theme.*` (wildcard) dans tout fichier UI utilisant des tokens couleur.
+- **Texte principal** : `MaterialTheme.colorScheme.onSurface` (jamais `Color.Black` hardcodé).
+- **Texte secondaire / labels** : `MaterialTheme.colorScheme.onSurfaceVariant` (jamais `Color.Gray` hardcodé — contraste insuffisant sur `surfaceVariant` en light).
+- **Valeur par défaut de `CartePuceField`** : passer `MaterialTheme.colorScheme.onSurface` plutôt que `Color.Unspecified`.
+- **Surfaces** : ne jamais passer `color = Color.White` à une `Surface` — laisser le thème gérer via `MaterialTheme.colorScheme.surface`.
+- **Champs "mot de passe" non-secret** (ex. code carte RFID) : toujours ajouter `visualTransformation = VisualTransformation.None` pour éviter que l'IME Android masque le texte automatiquement sur détection du label.
+
+### Thème (`ui/theme/Theme.kt`)
+
+- **Dark mode commenté** : le vrai `DarkColorScheme` (avec `darkColorScheme(...)`) est présent mais commenté dans `Theme.kt`. **Ne pas le supprimer.** La variable `DarkColorScheme` pointe actuellement sur `lightColorScheme(...)` identique au light — les deux modes affichent le même rendu en attendant la validation du dark mode.
+- `surfaceVariant` light = `VeoliaLightGray` (0xFFF5F5F5) ; `onSurfaceVariant` light = `VeoliaGray` (0xFF333333).
+
+---
+
 ## Points d'attention pour les modifications
 
 - **Migrations Room** : toute modification de schéma doit s'accompagner d'une migration incrémentale dans `AppDatabase.kt` et d'un bump de version. Ne pas utiliser `fallbackToDestructiveMigration` en prod.
@@ -176,7 +240,15 @@ FileProvider configuré : autorité `${applicationId}.fileprovider`, chemins dan
 - **Imports en batch** : `UsagerEntity` est inséré par tranches de 2000 ; ne pas casser cette logique lors de refactorisations.
 - **Permissions Android** : `INTERNET` + localisation + `CAMERA` déclarées dans `AndroidManifest.xml` ; la localisation est utilisée à l'enregistrement du device uniquement ; la caméra est demandée à la volée (runtime permission) dans `PhotoPickerComponent` et `CardScanComponent`.
 - **FileProvider** : toute nouvelle fonctionnalité utilisant `TakePicture()` doit passer par `createCameraUri()` (`CameraUtils.kt`) — ne pas créer de URI caméra directement.
-- **State hoisting** : les composants photo (`PhotoPickerComponent`, `CardScanComponent`) n'ont pas d'état interne — l'état est géré par le parent. Ne pas ré-internaliser cet état.
+- **State hoisting** : `PhotoPickerComponent`, `CardScanComponent`, `SignatureComponent` et `MifareReaderComponent` n'ont pas d'état interne — l'état est géré par le parent (`PocScreen`). Ne pas ré-internaliser cet état.
+- **Couleurs** : ne jamais écrire `Color(0x...)` en inline — voir section "Design system — Couleurs" ci-dessus.
+- **Logique NFC** : toute opération Mifare (lecture/écriture de blocs, authentification, sérialisation) doit passer par `NfcRepository`. Les composants `MifareReaderComponent` et `MifareWriterComponent` ne font que gérer le cycle de vie NFC adapter et les callbacks UI.
+- **Modèles métier** : les modèles sans persistance Room vont dans `data/model/`, pas dans `ui/components/`. Ex : `CartePuce`, `BarcodeFormat`.
+- **Clés cryptographiques** : les constantes sensibles sont dans `data/nfc/NfcConfig.kt` avec visibilité `internal`. Ne pas les dupliquer ou les déplacer dans `BuildConfig` sans concertation (la clé est partagée avec le back-end .NET).
+- **Réseau (Retrofit/OkHttp)** : toute la configuration HTTP est dans `di/ApiModule.kt`. Ne jamais recréer de client Retrofit ailleurs. Les API interfaces (`AuthMobileControllerApi`, `ContratsControllerApi`, `SmartphonesMobileControllerApi`) sont des singletons Hilt injectés directement dans les Managers.
+- **Token API** : le token Bearer est géré par `singleton/TokenStore.kt` (`@Singleton @Inject`). L'intercepteur `ApiModule` le lit, `AuthManager` l'écrit après authentification. Ne jamais stocker le token dans une variable globale ou `ConfigSingleton`.
+- **URLs** : les URLs sont dans `ConfigSingleton` avec des constantes nommées `BASE_URL_DEV` et `BASE_URL_STAGING`. Pour changer d'environnement, modifier `val baseUrl = BASE_URL_XXX` dans `ConfigSingleton`.
+- **Formats de code-barres** : la fonction `Int.toFormatName()` est dans `data/model/BarcodeFormat.kt`. Ne pas la redéfinir localement dans les composants.
 - **Navigation secondaire** : pas de NavHost — utiliser `var showXxx by remember { mutableStateOf(false) }` dans le composable parent et un `if (showXxx) { XxxScreen(onBack = { showXxx = false }) ; return }` pour les nouvelles pages.
 
 ---

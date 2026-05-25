@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.idbat.mobile.ui.theme.VeoliaCoral
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +49,7 @@ fun CarteActionSheet(
                     Icon(
                         imageVector = Icons.Outlined.Cancel,
                         contentDescription = "Fermer",
-                        tint = Color(0xFFF27059),
+                        tint = VeoliaCoral,
                         modifier = Modifier.size(32.dp)
                     )
                 }

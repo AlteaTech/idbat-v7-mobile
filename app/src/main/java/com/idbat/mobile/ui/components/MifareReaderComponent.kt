@@ -1,8 +1,6 @@
 package com.idbat.mobile.ui.components
 
 import android.nfc.NfcAdapter
-import android.nfc.Tag
-import android.nfc.tech.MifareClassic
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -27,13 +25,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
-import kotlinx.coroutines.Dispatchers
+import com.idbat.mobile.data.model.CartePuce
+import com.idbat.mobile.data.nfc.NfcRepository
+import com.idbat.mobile.ui.theme.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun MifareReaderComponent(
+    nfcRepository: NfcRepository,
     onCardRead: (CartePuce) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -53,20 +52,17 @@ fun MifareReaderComponent(
             activity,
             { tag ->
                 if (tag == null) return@enableReaderMode
-                coroutineScope.launch(Dispatchers.Main) { isReading = true; errorMessage = null }
-                coroutineScope.launch(Dispatchers.IO) {
+                coroutineScope.launch {
+                    isReading = true
+                    errorMessage = null
                     try {
-                        val data = readCartePuce(tag)
-                        withContext(Dispatchers.Main) {
-                            cardData = data
-                            isReading = false
-                            onCardRead(data)
-                        }
+                        val data = nfcRepository.readCartePuce(tag)
+                        cardData = data
+                        isReading = false
+                        onCardRead(data)
                     } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            errorMessage = e.message ?: "Erreur de lecture"
-                            isReading = false
-                        }
+                        errorMessage = e.message ?: "Erreur de lecture"
+                        isReading = false
                     }
                 }
             },
@@ -115,7 +111,7 @@ fun MifareReaderComponent(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Erreur de lecture", fontWeight = FontWeight.Bold, color = Color.Red)
+                    Text("Erreur de lecture", fontWeight = FontWeight.Bold, color = VeoliaErrorDark)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(errorMessage!!, fontSize = 12.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -160,7 +156,6 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // UID + CRC validity
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = VeoliaPrincipal.copy(alpha = 0.08f)
@@ -173,18 +168,17 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
                 Column {
                     Text("UID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VeoliaPrincipal)
                     Text(carte.uid, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text("N° série : ${carte.numeroSerie}", fontSize = 11.sp, color = Color.Gray)
+                    Text("N° série : ${carte.numeroSerie}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Icon(
                     imageVector = if (carte.isCrcValid) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
                     contentDescription = null,
-                    tint = if (carte.isCrcValid) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                    tint = if (carte.isCrcValid) VeoliaSuccess else VeoliaWarning,
                     modifier = Modifier.size(28.dp)
                 )
             }
         }
 
-        // Identité
         CartePuceSection("Identification") {
             CartePuceField("N° identification", carte.numeroIdentification)
             CartePuceField("Société", carte.societe)
@@ -192,13 +186,11 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
             CartePuceField("Client", carte.identClient)
         }
 
-        // Points
         CartePuceSection("Soldes") {
             CartePuceField("Solde points", "%.2f pts".format(carte.soldePoints))
             CartePuceField("Cumul points", "%.2f pts".format(carte.cumulPoints))
         }
 
-        // Flags
         CartePuceSection("Options") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CartePuceChip("Interne", carte.interne)
@@ -208,12 +200,11 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
             }
         }
 
-        // CRC
         CartePuceSection("Sécurité") {
             CartePuceField(
                 "CRC",
                 if (carte.isCrcValid) "Valide ✓" else "Invalide ✗",
-                valueColor = if (carte.isCrcValid) Color(0xFF4CAF50) else Color.Red
+                valueColor = if (carte.isCrcValid) VeoliaSuccess else VeoliaErrorDark
             )
         }
 
@@ -227,7 +218,7 @@ private fun CartePuceDisplay(carte: CartePuce, onReset: () -> Unit) {
 private fun CartePuceSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-            Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+            Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(6.dp))
             content()
         }
@@ -238,8 +229,13 @@ private fun CartePuceSection(title: String, content: @Composable ColumnScope.() 
 private fun CartePuceField(label: String, value: String, valueColor: Color = Color.Unspecified) {
     if (value.isBlank()) return
     Column(modifier = Modifier.padding(bottom = 4.dp)) {
-        Text(label, fontSize = 10.sp, color = Color.Gray)
-        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = valueColor)
+        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (valueColor == Color.Unspecified) MaterialTheme.colorScheme.onSurface else valueColor
+        )
     }
 }
 
@@ -247,57 +243,14 @@ private fun CartePuceField(label: String, value: String, valueColor: Color = Col
 private fun CartePuceChip(label: String, active: Boolean) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = if (active) VeoliaPrincipal else Color(0xFFE0E0E0)
+        color = if (active) VeoliaPrincipal else VeoliaDisabled
     ) {
         Text(
             label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             fontSize = 10.sp,
-            color = if (active) Color.White else Color.Gray,
+            color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (active) FontWeight.Bold else FontWeight.Normal
         )
     }
-}
-
-// ── Lecture Mifare ──────────────────────────────────────────────────────────
-
-/**
- * Lit les 240 octets du CartePuce depuis les blocs Mifare Classic.
- * Layout : S0B1, S0B2, S1B0-B2, S2B0-B2, S3B0-B2, S4B0-B2, S5B0 (15 blocs × 16 = 240 bytes)
- */
-private fun readCartePuce(tag: Tag): CartePuce {
-    val uid = tag.id.joinToString(" ") { "%02X".format(it) }
-    val numeroSerie = tag.id.take(4).joinToString("") { "%02X".format(it) }
-
-    if (MifareClassic::class.java.name !in tag.techList)
-        throw Exception("Carte non supportée (Mifare Classic requis)")
-
-    val mifare = MifareClassic.get(tag) ?: throw Exception("Impossible d'accéder à la carte")
-    val contentBytes = ByteArray(240)
-
-    data class Block(val sector: Int, val offset: Int)
-
-    val sequence = buildList {
-        add(Block(0, 1)); add(Block(0, 2))
-        for (s in 1..4) { add(Block(s, 0)); add(Block(s, 1)); add(Block(s, 2)) }
-        add(Block(5, 0))
-    }
-
-    mifare.use { card ->
-        card.connect()
-        var authenticatedSector = -1
-        sequence.forEachIndexed { i, blk ->
-            if (blk.sector != authenticatedSector) {
-                val ok = card.authenticateSectorWithKeyA(blk.sector, MifareClassic.KEY_DEFAULT)
-                    || card.authenticateSectorWithKeyA(blk.sector, MifareClassic.KEY_MIFARE_APPLICATION_DIRECTORY)
-                    || card.authenticateSectorWithKeyB(blk.sector, MifareClassic.KEY_DEFAULT)
-                if (!ok) throw Exception("Authentification échouée — secteur ${blk.sector}")
-                authenticatedSector = blk.sector
-            }
-            card.readBlock(card.sectorToBlock(blk.sector) + blk.offset)
-                .copyInto(contentBytes, i * 16)
-        }
-    }
-
-    return CartePuce.parse(uid, numeroSerie, String(contentBytes, Charsets.ISO_8859_1))
 }

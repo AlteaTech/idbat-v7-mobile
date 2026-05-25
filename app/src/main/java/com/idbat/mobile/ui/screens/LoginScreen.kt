@@ -13,54 +13,38 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.data.entities.SiteEntity
-import com.idbat.mobile.data.entities.UtilisateurTPEntity
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.viewmodel.LoginViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
-    errorMessage: String? = null,
-    availableSites: List<SiteEntity> = emptyList(),
-    availableUsers: List<UtilisateurTPEntity> = emptyList(),
-    onLoginClick: (String, String, Long?) -> Unit
-) {
-    var password by remember { mutableStateOf("") }
-    val passwordVisible by remember { mutableStateOf(false) }
-
-    var expandedSite by remember { mutableStateOf(false) }
-    var selectedSite by remember { mutableStateOf<SiteEntity?>(null) }
-
-    var expandedUser by remember { mutableStateOf(false) }
-    var selectedUser by remember { mutableStateOf<UtilisateurTPEntity?>(null) }
-
-    val GradientTop = Color(0xFFF8A282) // Orange clair
-    val GradientBottom = Color(0xFFE96D71) // Rose corail
-    val CoralText = Color(0xFFEA6E72) // Couleur du texte du bouton et des flèches
+fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(GradientTop, GradientBottom)
+                    colors = listOf(VeoliaGradientTop, VeoliaGradientBot)
                 )
             )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding() // Gère l'espace de la barre de statut (heure/batterie)
+                .statusBarsPadding()
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             Spacer(modifier = Modifier.height(60.dp))
 
-            // --- LOGO ---
-            // Placeholder temporaire en attendant l'image :
             Text(
                 text = "idbat",
                 color = Color.White,
@@ -79,39 +63,32 @@ fun LoginScreen(
 
             // --- DROPDOWN SITE ---
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = "Site",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Text(text = "Site", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 ExposedDropdownMenuBox(
-                    expanded = expandedSite,
-                    onExpandedChange = { expandedSite = !expandedSite },
+                    expanded = formState.expandedSite,
+                    onExpandedChange = { viewModel.toggleSiteExpanded() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = selectedSite?.nom ?: "Selectionner un site", // ou "" par défaut
+                        value = formState.selectedSite?.nom ?: "Selectionner un site",
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = {
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
-                                tint = CoralText,
+                                tint = VeoliaCoralText,
                                 modifier = Modifier.size(32.dp)
                             )
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
                             unfocusedContainerColor = Color.White,
-                            focusedIndicatorColor = Color.Transparent, // Enlève la ligne du bas
+                            focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             focusedTextColor = Color.DarkGray,
                             unfocusedTextColor = Color.DarkGray
@@ -120,17 +97,14 @@ fun LoginScreen(
                     )
 
                     ExposedDropdownMenu(
-                        expanded = expandedSite,
-                        onDismissRequest = { expandedSite = false },
+                        expanded = formState.expandedSite,
+                        onDismissRequest = { viewModel.dismissSite() },
                         modifier = Modifier.background(Color.White)
                     ) {
-                        availableSites.forEach { site ->
+                        authState.availableSites.forEach { site ->
                             DropdownMenuItem(
                                 text = { Text(site.nom, color = Color.DarkGray) },
-                                onClick = {
-                                    selectedSite = site
-                                    expandedSite = false
-                                }
+                                onClick = { viewModel.selectSite(site) }
                             )
                         }
                     }
@@ -139,36 +113,29 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- IDENTIFIANT (Désormais un Dropdown) ---
+            // --- DROPDOWN IDENTIFIANT ---
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = "Identifiant",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Text(text = "Identifiant", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 ExposedDropdownMenuBox(
-                    expanded = expandedUser,
-                    onExpandedChange = { expandedUser = !expandedUser },
+                    expanded = formState.expandedUser,
+                    onExpandedChange = { viewModel.toggleUserExpanded() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = selectedUser?.login ?: "Ex: Gardien",
+                        value = formState.selectedUser?.login ?: "Ex: Gardien",
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = {
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
-                                tint = CoralText,
+                                tint = VeoliaCoralText,
                                 modifier = Modifier.size(32.dp)
                             )
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.White,
@@ -176,23 +143,20 @@ fun LoginScreen(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             focusedTextColor = Color.DarkGray,
-                            unfocusedTextColor = if (selectedUser == null) Color.LightGray else Color.DarkGray
+                            unfocusedTextColor = if (formState.selectedUser == null) Color.LightGray else Color.DarkGray
                         ),
                         shape = RoundedCornerShape(12.dp)
                     )
 
                     ExposedDropdownMenu(
-                        expanded = expandedUser,
-                        onDismissRequest = { expandedUser = false },
+                        expanded = formState.expandedUser,
+                        onDismissRequest = { viewModel.dismissUser() },
                         modifier = Modifier.background(Color.White)
                     ) {
-                        availableUsers.forEach { user ->
+                        authState.availableUtilisateursTps.forEach { user ->
                             DropdownMenuItem(
                                 text = { Text(user.login, color = Color.DarkGray) },
-                                onClick = {
-                                    selectedUser = user
-                                    expandedUser = false
-                                }
+                                onClick = { viewModel.selectUser(user) }
                             )
                         }
                     }
@@ -203,17 +167,12 @@ fun LoginScreen(
 
             // --- MOT DE PASSE ---
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = "Mot de passe",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
+                Text(text = "Mot de passe", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 TextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    value = formState.password,
+                    onValueChange = { viewModel.setPassword(it) },
+                    visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
@@ -221,7 +180,7 @@ fun LoginScreen(
                         unfocusedContainerColor = Color.White.copy(alpha = 0.9f),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = CoralText,
+                        cursorColor = VeoliaCoralText,
                         focusedTextColor = Color.DarkGray,
                         unfocusedTextColor = Color.DarkGray
                     ),
@@ -229,43 +188,37 @@ fun LoginScreen(
                 )
             }
 
-            if (errorMessage != null) {
+            if (authState.loginError != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = errorMessage,
-                    color = Color.Yellow, // Mieux visible sur fond rouge/rose que le Material error standard
+                    text = authState.loginError!!,
+                    color = Color.Yellow,
                     fontSize = 14.sp
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f)) // Pousse le bouton vers le bas
+            Spacer(modifier = Modifier.weight(1f))
 
             // --- BOUTON CONNEXION ---
             Button(
-                onClick = {
-                    selectedUser?.let { user ->
-                        onLoginClick(user.login, password, selectedSite?.id)
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                onClick = { viewModel.submit() },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     disabledContainerColor = Color.White.copy(alpha = 0.5f)
                 ),
-                shape = RoundedCornerShape(30.dp), // Bouton très arrondi (Pill shape)
-                enabled = selectedSite != null && selectedUser != null && password.isNotBlank()
+                shape = RoundedCornerShape(30.dp),
+                enabled = formState.selectedSite != null && formState.selectedUser != null && formState.password.isNotBlank()
             ) {
                 Text(
                     text = "Connexion",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = CoralText // Texte couleur corail
+                    color = VeoliaCoralText
                 )
             }
 
-            Spacer(modifier = Modifier.height(40.dp)) // Espace en bas de l'écran
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import com.idbat.mobile.ui.theme.VeoliaCoral
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import com.idbat.mobile.R
@@ -34,19 +35,13 @@ fun HomeScreen(
     selectedSite: SiteEntity?,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
-    onLogoutClick: () -> Unit,
     onTransferClick: () -> Unit,
+    onNavigateToPoc: () -> Unit,
     getSuiviContent: suspend (Long) -> CharSequence = { "" }
 ) {
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
     var showCarteSheet by remember { mutableStateOf(false) }
-    var showPocScreen by remember { mutableStateOf(false) }
-
-    if (showPocScreen) {
-        PocScreen(onBack = { showPocScreen = false })
-        return
-    }
 
     val lastSynchroDate = listOfNotNull(lastSynchroDateEnvoi, lastSynchroDateReception).maxOrNull()
     val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
@@ -63,7 +58,7 @@ fun HomeScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
-                        0f to Color(0xFFF27059),
+                        0f to VeoliaCoral,
                         0.75f to bgColor,
                         1f to bgColor
                     )
@@ -159,7 +154,10 @@ fun HomeScreen(
         if (showCarteSheet) {
             CarteActionSheet(
                 onDismiss = { showCarteSheet = false },
-                onPocClick = { showPocScreen = true }
+                onPocClick = {
+                    showCarteSheet = false
+                    onNavigateToPoc()
+                }
             )
         }
     }

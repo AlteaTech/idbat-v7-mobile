@@ -1,9 +1,10 @@
 package com.idbat.mobile.singleton
 
 object ConfigSingleton {
-    var tokenApi: String = ""
     val webEnable = false
 
-    val baseUrl = "http://10.0.2.2:8091/"
-    //val baseUrl = "https://idbat-mobile-rec.recyclage.veolia.fr/"
+    const val BASE_URL_DEV     = "http://10.0.2.2:8091/"
+    const val BASE_URL_STAGING = "https://idbat-mobile-rec.recyclage.veolia.fr/"
+
+    val baseUrl = BASE_URL_DEV
 }
