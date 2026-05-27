@@ -35,6 +35,10 @@ import com.squareup.moshi.Json
  * @param contratUtilisateursTps 
  * @param contratUsagers 
  * @param evenementsContrat 
+ * @param hasPuce 
+ * @param hasCodebarres 
+ * @param hasImmatriculation 
+ * @param hasSelectionusager 
  */
 
 
@@ -59,7 +63,19 @@ data class ContratDmo (
     val contratUsagers: kotlin.collections.List<ContratUsagerDmo>,
 
     @Json(name = "evenementsContrat")
-    val evenementsContrat: kotlin.collections.List<ContratEvenementDmo>
+    val evenementsContrat: kotlin.collections.List<ContratEvenementDmo>,
+
+    @Json(name = "hasPuce")
+    val hasPuce: kotlin.Boolean,
+
+    @Json(name = "hasCodebarres")
+    val hasCodebarres: kotlin.Boolean,
+
+    @Json(name = "hasImmatriculation")
+    val hasImmatriculation: kotlin.Boolean,
+
+    @Json(name = "hasSelectionusager")
+    val hasSelectionusager: kotlin.Boolean
 
 ) {
 

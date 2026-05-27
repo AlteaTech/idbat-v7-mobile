@@ -21,9 +21,10 @@ import com.idbat.mobile.data.entities.*
         MatiereSiteEntity::class,
         LastSynchroHistoryEntity::class,
         UsagerEntity::class,
-        ContratEvenementEntity::class
+        ContratEvenementEntity::class,
+        UsagerCarteEntity::class
     ],
-    version = 15,
+    version = 18,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lastSynchroHistoryDao(): LastSynchroHistoryDao
     abstract fun usagerDao(): UsagerDao
     abstract fun contratEvenementDao(): ContratEvenementDao
+    abstract fun usagerCarteDao(): UsagerCarteDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -66,7 +68,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, 
-            MIGRATION_13_14, MIGRATION_14_15
+            MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
+            MIGRATION_17_18
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -286,6 +289,43 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasPuce INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasCodebarres INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasImmatriculation INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasSelectionusager INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `usager_cartes` (
+                        `usagerId` INTEGER NOT NULL, 
+                        `carteId` INTEGER NOT NULL, 
+                        `dateDebut` INTEGER, 
+                        `dateFin` INTEGER, 
+                        PRIMARY KEY(`usagerId`, `carteId`), 
+                        FOREIGN KEY(`usagerId`) REFERENCES `usagers`(`id`) ON DELETE CASCADE, 
+                        FOREIGN KEY(`carteId`) REFERENCES `carte_contrat`(`id`) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_usagerId` ON `usager_cartes` (`usagerId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_carteId` ON `usager_cartes` (`carteId`)")
+            }
+        }
+
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE usagers ADD COLUMN raisonSociale TEXT")
+                db.execSQL("ALTER TABLE usagers ADD COLUMN typeApporteurLibelle TEXT")
+                db.execSQL("ALTER TABLE usagers ADD COLUMN couriel TEXT")
+            }
+        }
+
         private class DatabaseCallback : Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
@@ -295,8 +335,6 @@ abstract class AppDatabase : RoomDatabase() {
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
                 ensureDefaultUserExists(db)
-                // Ici, vous pouvez vérifier/ajouter les mocks si webEnable == false
-                // mais le plus simple est de le faire au niveau de l'AppInitialization ou du repository
             }
 
             private fun insertDefaultUser(db: SupportSQLiteDatabase) {

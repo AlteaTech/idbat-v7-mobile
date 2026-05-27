@@ -23,5 +23,8 @@ data class UsagerEntity(
     val nom: String,
     val prenom: String,
     val contratId: Long,
-    val refClientIdBat: Long? = null
+    val refClientIdBat: Long? = null,
+    val raisonSociale: String? = null,
+    val typeApporteurLibelle: String? = null,
+    val couriel: String? = null
 )

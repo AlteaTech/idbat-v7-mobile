@@ -20,7 +20,26 @@ interface UsagerDao {
 
     @Query("SELECT * FROM usagers WHERE contratId = :contratId")
     fun getUsagersByContratFlow(contratId: Long): Flow<List<UsagerEntity>>
+
+    @Query("""
+        SELECT DISTINCT u.* FROM usagers u
+        INNER JOIN usager_cartes uc ON uc.usagerId = u.id
+        INNER JOIN carte_contrat cc ON cc.id = uc.carteId
+        WHERE u.contratId = :contratId
+          AND cc.type IN ('I', 'C')
+          AND (uc.dateDebut IS NULL OR uc.dateDebut <= :now)
+          AND (uc.dateFin IS NULL OR uc.dateFin >= :now)
+    """)
+    fun getUsagersWithActiveCarteICFlow(contratId: Long, now: Long): Flow<List<UsagerEntity>>
     
+    @Query("""
+        SELECT u.* FROM usagers u
+        INNER JOIN usager_cartes uc ON uc.usagerId = u.id
+        WHERE uc.carteId = :carteId
+        LIMIT 1
+    """)
+    suspend fun getUsagerByCarte(carteId: Long): UsagerEntity?
+
     @Query("DELETE FROM usagers")
     suspend fun purge()
 }

@@ -18,6 +18,39 @@ interface CarteContratDao {
     @Query("SELECT * FROM carte_contrat WHERE contratId = :contratId")
     fun getCartesByContratFlow(contratId: Long): Flow<List<CarteContratEntity>>
 
+    @Query("""
+        SELECT cc.* FROM carte_contrat cc
+        INNER JOIN usager_cartes uc ON uc.carteId = cc.id
+        WHERE uc.usagerId = :usagerId
+          AND cc.type IN ('I', 'C')
+          AND (uc.dateDebut IS NULL OR uc.dateDebut <= :now)
+          AND (uc.dateFin IS NULL OR uc.dateFin >= :now)
+        LIMIT 1
+    """)
+    suspend fun getFirstActiveCarteICForUsager(usagerId: Long, now: Long): CarteContratEntity?
+
+    @Query("""
+        SELECT cc.* FROM carte_contrat cc
+        INNER JOIN usager_cartes uc ON uc.carteId = cc.id
+        WHERE cc.type = 'I'
+          AND cc.valeur = :immatriculation
+          AND (uc.dateDebut IS NULL OR uc.dateDebut <= :now)
+          AND (uc.dateFin IS NULL OR uc.dateFin >= :now)
+        LIMIT 1
+    """)
+    suspend fun getActiveCarteIByImmatriculation(immatriculation: String, now: Long): CarteContratEntity?
+
+    @Query("""
+        SELECT cc.* FROM carte_contrat cc
+        INNER JOIN usager_cartes uc ON uc.carteId = cc.id
+        WHERE cc.type = 'C'
+          AND cc.valeur = :codebarres
+          AND (uc.dateDebut IS NULL OR uc.dateDebut <= :now)
+          AND (uc.dateFin IS NULL OR uc.dateFin >= :now)
+        LIMIT 1
+    """)
+    suspend fun getActiveCarteCByCodebarres(codebarres: String, now: Long): CarteContratEntity?
+
     @Query("DELETE FROM carte_contrat")
     suspend fun clearCartes()
 }

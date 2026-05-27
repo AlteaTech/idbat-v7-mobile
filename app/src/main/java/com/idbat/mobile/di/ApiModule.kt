@@ -5,7 +5,9 @@ import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
 import com.idbat.mobile.singleton.ConfigSingleton
 import com.idbat.mobile.singleton.TokenStore
+import com.squareup.moshi.FromJson
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.ToJson
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
 import dagger.Provides
@@ -16,7 +18,13 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.time.LocalDate
 import javax.inject.Singleton
+
+private class LocalDateAdapter {
+    @FromJson fun fromJson(value: String): LocalDate = LocalDate.parse(value)
+    @ToJson fun toJson(value: LocalDate): String = value.toString()
+}
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -25,6 +33,7 @@ object ApiModule {
     @Provides
     @Singleton
     fun provideMoshi(): Moshi = Moshi.Builder()
+        .add(LocalDateAdapter())
         .addLast(KotlinJsonAdapterFactory())
         .build()
 

@@ -8,5 +8,9 @@ data class ContratEntity(
     @PrimaryKey
     val id: Long,
     val trigramme: String,
-    val nom: String
+    val nom: String,
+    val hasPuce: Boolean = false,
+    val hasCodebarres: Boolean = false,
+    val hasImmatriculation: Boolean = false,
+    val hasSelectionusager: Boolean = false
 )
