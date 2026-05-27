@@ -65,12 +65,29 @@ class AutresCartesViewModel @Inject constructor(
         viewModelScope.launch {
             val info = when {
                 usager != null -> buildInfoFromUsager(usager)
-                codebarres.isNotBlank() -> InfoCartePassage(numeroCarte = codebarres)
+                codebarres.isNotBlank() -> buildInfoFromCodebarres(codebarres)
                 immatriculation.isNotBlank() -> buildInfoFromImmatriculation(immatriculation)
-                else -> return@launch
+                else -> null
             }
             if (info != null) _passageInfo.value = info
         }
+    }
+
+    private suspend fun buildInfoFromCodebarres(codebarres: String): InfoCartePassage? {
+        val now = System.currentTimeMillis()
+        val carte = database.carteContratDao().getActiveCarteCByCodebarres(codebarres, now)
+        if (carte == null) {
+            _carteInconnue.value = true
+            return null
+        }
+        val usager = database.usagerDao().getUsagerByCarte(carte.id)
+        return InfoCartePassage(
+            societe = usager?.raisonSociale?.takeIf { it.isNotBlank() },
+            nomTitulaire = usager?.let { "${it.nom} ${it.prenom}" },
+            numeroCarte = carte.valeur,
+            typeApporteur = usager?.typeApporteurLibelle,
+            contact = usager?.couriel
+        )
     }
 
     private suspend fun buildInfoFromImmatriculation(immatriculation: String): InfoCartePassage? {

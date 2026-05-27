@@ -40,6 +40,17 @@ interface CarteContratDao {
     """)
     suspend fun getActiveCarteIByImmatriculation(immatriculation: String, now: Long): CarteContratEntity?
 
+    @Query("""
+        SELECT cc.* FROM carte_contrat cc
+        INNER JOIN usager_cartes uc ON uc.carteId = cc.id
+        WHERE cc.type = 'C'
+          AND cc.valeur = :codebarres
+          AND (uc.dateDebut IS NULL OR uc.dateDebut <= :now)
+          AND (uc.dateFin IS NULL OR uc.dateFin >= :now)
+        LIMIT 1
+    """)
+    suspend fun getActiveCarteCByCodebarres(codebarres: String, now: Long): CarteContratEntity?
+
     @Query("DELETE FROM carte_contrat")
     suspend fun clearCartes()
 }
