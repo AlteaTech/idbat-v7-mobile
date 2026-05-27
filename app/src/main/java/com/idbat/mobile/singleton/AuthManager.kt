@@ -373,15 +373,15 @@ class AuthManager @Inject constructor(
             // Usager 1 : VIDAL jérémie (id=1)
             CarteContratEntity(id = 1L,  libelle = "Carte Puce VIDAL",  type = "P", valeur = null,    uidRfid = "A1B2C3D4", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
             CarteContratEntity(id = 2L,  libelle = "Carte CB VIDAL",    type = "C", valeur = "123456", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
-            CarteContratEntity(id = 3L,  libelle = "Carte Immat VIDAL", type = "I", valeur = null,     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "AB123CD", carteGriseF3 = null, contratId = 1L, carteId = 1L),
+            CarteContratEntity(id = 3L,  libelle = "Carte Immat VIDAL", type = "I", valeur = "GT977GW",     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "AB123CD", carteGriseF3 = null, contratId = 1L, carteId = 1L),
             // Usager 2 : lan alicia (id=2)
             CarteContratEntity(id = 4L,  libelle = "Carte Puce LAN",    type = "P", valeur = null,    uidRfid = "E5F6A7B8", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
             CarteContratEntity(id = 5L,  libelle = "Carte CB LAN",      type = "C", valeur = "123457", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
-            CarteContratEntity(id = 6L,  libelle = "Carte Immat LAN",   type = "I", valeur = null,     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "EF456GH", carteGriseF3 = null, contratId = 1L, carteId = 2L),
+            CarteContratEntity(id = 6L,  libelle = "Carte Immat LAN",   type = "I", valeur = "GT978GW",     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "EF456GH", carteGriseF3 = null, contratId = 1L, carteId = 2L),
             // Usager 3 : rosier ronald (id=3)
             CarteContratEntity(id = 7L,  libelle = "Carte Puce ROSIER",  type = "P", valeur = null,   uidRfid = "C9D0E1F2", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
             CarteContratEntity(id = 8L,  libelle = "Carte CB ROSIER",    type = "C", valeur = "13",   uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
-            CarteContratEntity(id = 9L,  libelle = "Carte Immat ROSIER", type = "I", valeur = null,    uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "IJ789KL", carteGriseF3 = null, contratId = 1L, carteId = 3L),
+            CarteContratEntity(id = 9L,  libelle = "Carte Immat ROSIER", type = "I", valeur = "GT979GW",    uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "IJ789KL", carteGriseF3 = null, contratId = 1L, carteId = 3L),
         )
 
         dao.insertCartes(cartes)
