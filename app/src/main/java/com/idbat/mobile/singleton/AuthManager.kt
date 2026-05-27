@@ -8,8 +8,8 @@ import android.location.LocationManager
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
@@ -21,7 +21,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.util.Date
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,6 +42,7 @@ class AuthManager @Inject constructor(
         val isInitialized: Boolean = false,
         val loginError: String? = null,
         val loggedInSite: SiteEntity? = null,
+        val loggedInContrat: ContratEntity? = null,
         val availableSites: List<SiteEntity> = emptyList(),
         val isLoadingContracts: Boolean = false,
         val showValidationError: Boolean = false, // Nouveau champ
@@ -191,6 +192,8 @@ class AuthManager @Inject constructor(
                 siteDao.purge()
                 if (!ConfigSingleton.webEnable) {
                     mockSites()
+                    mockUsagers()
+                    mockCartes()
                     insertMockEvenements()
                 }
             }
@@ -287,7 +290,11 @@ class AuthManager @Inject constructor(
         val contrat = ContratEntity(
             id = 1L,
             trigramme = "VEO",
-            nom = "Veolia Recyclage"
+            nom = "Veolia Recyclage",
+            hasCodebarres = true,
+            hasPuce = true,
+            hasImmatriculation = true,
+            hasSelectionusager = true
         )
         contratDao.insertContrat(contrat)
 
@@ -325,7 +332,81 @@ class AuthManager @Inject constructor(
         )
         Log.d("AUTH_MANAGER", "2 sites mock insérés")
     }
+    private suspend fun mockUsagers() {
+        val usagerDao = database.usagerDao()
+        usagerDao.purge()
+        usagerDao.insertUsager(
+            UsagerEntity(
+                id = 1L,
+                nom = "VIDAL",
+                prenom = "jérémie",
+                contratId = 1L,
+                refClientIdBat = 123456
+            )
+        )
+        usagerDao.insertUsager(
+            UsagerEntity(
+                id = 2L,
+                nom = "lan",
+                prenom = "alicia",
+                contratId = 1L,
+                refClientIdBat = 123457
+            )
+        )
+        usagerDao.insertUsager(
+            UsagerEntity(
+                id = 3L,
+                nom = "rosier",
+                prenom = "ronald",
+                contratId = 1L,
+                refClientIdBat = 13
+            )
+        )
+        Log.d("AUTH_MANAGER", "3 Usagers mock insérés")
+    }
 
+    private suspend fun mockCartes() {
+        val dao = database.carteContratDao()
+        dao.clearCartes()
+
+        val cartes = listOf(
+            // Usager 1 : VIDAL jérémie (id=1)
+            CarteContratEntity(id = 1L,  libelle = "Carte Puce VIDAL",  type = "P", valeur = null,    uidRfid = "A1B2C3D4", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
+            CarteContratEntity(id = 2L,  libelle = "Carte CB VIDAL",    type = "C", valeur = "123456", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
+            CarteContratEntity(id = 3L,  libelle = "Carte Immat VIDAL", type = "I", valeur = "GT977GW",     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "AB123CD", carteGriseF3 = null, contratId = 1L, carteId = 1L),
+            // Usager 2 : lan alicia (id=2)
+            CarteContratEntity(id = 4L,  libelle = "Carte Puce LAN",    type = "P", valeur = null,    uidRfid = "E5F6A7B8", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
+            CarteContratEntity(id = 5L,  libelle = "Carte CB LAN",      type = "C", valeur = "123457", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
+            CarteContratEntity(id = 6L,  libelle = "Carte Immat LAN",   type = "I", valeur = "GT978GW",     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "EF456GH", carteGriseF3 = null, contratId = 1L, carteId = 2L),
+            // Usager 3 : rosier ronald (id=3)
+            CarteContratEntity(id = 7L,  libelle = "Carte Puce ROSIER",  type = "P", valeur = null,   uidRfid = "C9D0E1F2", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
+            CarteContratEntity(id = 8L,  libelle = "Carte CB ROSIER",    type = "C", valeur = "13",   uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
+            CarteContratEntity(id = 9L,  libelle = "Carte Immat ROSIER", type = "I", valeur = "GT979GW",    uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "IJ789KL", carteGriseF3 = null, contratId = 1L, carteId = 3L),
+        )
+
+        dao.insertCartes(cartes)
+        Log.d("AUTH_MANAGER", "9 cartes mock insérées (3 par usager : P, C, I)")
+
+        val usagerCarteDao = database.usagerCarteDao()
+        usagerCarteDao.clearUsagerCartes()
+        val dateDebut = GregorianCalendar(2000, Calendar.JANUARY, 1).time
+        val dateFin = GregorianCalendar(3000, Calendar.DECEMBER, 31).time
+        val liens = listOf(
+            UsagerCarteEntity(usagerId = 1L, carteId = 1L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 1L, carteId = 2L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 1L, carteId = 3L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 2L, carteId = 4L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 2L, carteId = 5L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 2L, carteId = 6L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 3L, carteId = 7L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 3L, carteId = 8L, dateDebut = dateDebut, dateFin = dateFin),
+            UsagerCarteEntity(usagerId = 3L, carteId = 9L, dateDebut = dateDebut, dateFin = dateFin),
+        )
+        usagerCarteDao.insertUsagerCartes(liens)
+        Log.d("AUTH_MANAGER", "9 liens usager_cartes mock insérés")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun saveContractToDatabase(contratDmo: com.idbat.mobile.generated.client.model.ContratDmo) {
         try {
             val contratDao = database.contratDao()
@@ -342,7 +423,11 @@ class AuthManager @Inject constructor(
             val contratEntity = ContratEntity(
                 id = contratDmo.id ?: 0,
                 trigramme = contratDmo.trigramme ?: "",
-                nom = contratDmo.nom ?: ""
+                nom = contratDmo.nom ?: "",
+                hasPuce = contratDmo.hasPuce,
+                hasCodebarres = contratDmo.hasCodebarres,
+                hasImmatriculation = contratDmo.hasImmatriculation,
+                hasSelectionusager = contratDmo.hasSelectionusager,
             )
 
             contratDao.insertContrat(contratEntity)
@@ -430,45 +515,77 @@ class AuthManager @Inject constructor(
                         )
                     }
                 }
-                val usagersJob = async{
+                val usagersJob = async {
                     val usagersDao = database.usagerDao()
                     usagersDao.purge()
+                    val carteContratDao = database.carteContratDao()
+                    carteContratDao.clearCartes() // cascade-delete usager_cartes
+                    val usagerCarteDao = database.usagerCarteDao()
 
                     contratDmo.contratUsagers?.let { contratUsagers ->
-                        val usagers = contratUsagers.map { contratUsager ->
+                        val usagerEntities = contratUsagers.map { contratUsager ->
                             UsagerEntity(
                                 id = contratUsager.id ?: 0,
                                 nom = contratUsager.nom,
                                 prenom = contratUsager.prenom,
                                 refClientIdBat = contratUsager.refClientIdBat,
-                                contratId =  contratUsager.contratId
+                                contratId = contratUsager.contratId,
+                                raisonSociale = contratUsager.raisonSociale,
+                                typeApporteurLibelle = contratUsager.typeApporteurLibelle,
+                                couriel = contratUsager.couriel
                             )
                         }
 
-
-                        // On utilise coroutineScope pour lancer et attendre toutes les coroutines enfants
                         coroutineScope {
-                            // 1. Découpage de la liste globale en sous-listes (lots) de 500 éléments maximum
-                            val lots = usagers.chunked(2000)
-
-                            // 2. Pour chaque lot, on crée une tâche asynchrone (async)
-                            val jobs = lots.map { lotDe500 ->
-                                async {
-                                    // Cette insertion se fait en parallèle des autres
-                                    usagersDao.insertUsagers(lotDe500)
-                                }
+                            val jobs = usagerEntities.chunked(2000).map { lot ->
+                                async { usagersDao.insertUsagers(lot) }
                             }
-
-                            // 3. On attend que TOUS les lots (toutes les tâches async) soient insérés en BDD
                             jobs.awaitAll()
                         }
+
+                        val allCartes = contratUsagers.flatMap { contratUsager ->
+                            contratUsager.cartes.map { carteDmo ->
+                                CarteContratEntity(
+                                    id = carteDmo.id,
+                                    libelle = "",
+                                    type = carteDmo.type,
+                                    valeur = carteDmo.valeur.ifBlank { null },
+                                    uidRfid = carteDmo.uidRfid,
+                                    isCreationByQRCode = carteDmo.isCreationByQRCode,
+                                    carteGriseJ1 = carteDmo.carteGriseJ1,
+                                    carteGriseF3 = carteDmo.carteGriseF3,
+                                    contratId = contratEntity.id,
+                                    carteId = carteDmo.id
+                                )
+                            }
+                        }
+                        carteContratDao.insertCartes(allCartes)
+
+                        val allUsagerCartes = contratUsagers.flatMap { contratUsager ->
+                            contratUsager.cartes.map { carteDmo ->
+                                UsagerCarteEntity(
+                                    usagerId = contratUsager.id ?: 0,
+                                    carteId = carteDmo.id,
+                                    dateDebut = java.util.Date.from(
+                                        carteDmo.dateDebutAffectation
+                                            .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                    ),
+                                    dateFin = carteDmo.dateFinAffectation?.let {
+                                        java.util.Date.from(
+                                            it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                        usagerCarteDao.insertUsagerCartes(allUsagerCartes)
+
                         Log.d(
                             "AUTH_MANAGER",
-                            "Sauvegarde de ${usagers.size} UsagerEntity pour le contrat ${contratEntity.nom}"
+                            "Sauvegarde de ${usagerEntities.size} usagers + ${allCartes.size} cartes pour le contrat ${contratEntity.nom}"
                         )
-
                     } ?: run {
-                        Log.w("AUTH_MANAGER", "Aucun usagers associé trouvé pour le contrat ${contratEntity.nom}")
+                        Log.w("AUTH_MANAGER", "Aucun usager associé trouvé pour le contrat ${contratEntity.nom}")
                     }
                 }
                 val evenementsJob = async {
@@ -537,9 +654,11 @@ class AuthManager @Inject constructor(
 
             if (utilisateur != null && utilisateur.pin == password && siteId != null) {
                 val selectedSite = _authState.value.availableSites.find { it.id == siteId }
+                val contrat = selectedSite?.let { database.contratDao().getContratById(it.contratId) }
                 _authState.value = _authState.value.copy(
                     isLoggedIn = true,
                     loggedInSite = selectedSite,
+                    loggedInContrat = contrat,
                 )
                 Log.d("AUTH_MANAGER", "Connexion réussie pour ${selectedSite?.nom}")
             } else {

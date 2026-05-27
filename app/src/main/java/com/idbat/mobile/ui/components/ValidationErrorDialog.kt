@@ -16,7 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.theme.VeoliaAlertOrange
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
 import kotlin.system.exitProcess
 
 @Composable

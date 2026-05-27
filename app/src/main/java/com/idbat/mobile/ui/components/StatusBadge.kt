@@ -15,7 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.theme.VeoliaErrorDark
+import com.idbat.mobile.ui.theme.VeoliaSuccessDark
 
 @Composable
 fun StatusBadge(text: String, isSuccess: Boolean) {

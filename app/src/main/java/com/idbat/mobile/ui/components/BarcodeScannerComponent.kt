@@ -38,10 +38,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.idbat.mobile.data.model.toFormatName
-import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.theme.VeoliaCoral
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.VeoliaSuccess
 import java.util.concurrent.Executors
 
 @Composable
