@@ -43,10 +43,22 @@ fun SaisieMatiereScreen(
     val matieres by viewModel.matieres.collectAsStateWithLifecycle()
     val lignes by viewModel.lignes.collectAsStateWithLifecycle()
 
+    var showValidation by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     // RG4 : index de la ligne en attente de confirmation de suppression
     var deletingIndex by remember { mutableStateOf<Int?>(null) }
+
+    if (showValidation) {
+        ValidationPassageScreen(
+            siteName = siteName,
+            siteId = siteId,
+            info = info,
+            lignes = lignes,
+            onBack = { showValidation = false }
+        )
+        return
+    }
 
     val bgColor = MaterialTheme.colorScheme.background
 
@@ -226,7 +238,7 @@ fun SaisieMatiereScreen(
 
             // RG1 : Continuer désactivé si aucune matière
             Button(
-                onClick = { },
+                onClick = { showValidation = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 16.dp)
