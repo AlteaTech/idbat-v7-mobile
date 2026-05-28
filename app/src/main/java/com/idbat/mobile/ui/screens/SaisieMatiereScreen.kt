@@ -45,12 +45,42 @@ fun SaisieMatiereScreen(
 
     var showDialog by remember { mutableStateOf(false) }
     var editingIndex by remember { mutableStateOf<Int?>(null) }
+    // RG4 : index de la ligne en attente de confirmation de suppression
+    var deletingIndex by remember { mutableStateOf<Int?>(null) }
 
     val bgColor = MaterialTheme.colorScheme.background
+
+    // RG4 : dialog de confirmation de suppression
+    if (deletingIndex != null) {
+        val ligne = lignes.getOrNull(deletingIndex!!)
+        AlertDialog(
+            onDismissRequest = { deletingIndex = null },
+            title = { Text("Supprimer la matière") },
+            text = {
+                Text("Voulez-vous supprimer « ${ligne?.matiere?.libelle} » ?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.supprimerLigne(deletingIndex!!)
+                        deletingIndex = null
+                    }
+                ) {
+                    Text("Supprimer", color = VeoliaErrorDark)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingIndex = null }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
 
     if (showDialog) {
         AjouterMatiereDialog(
             matieres = matieres,
+            existingLignes = lignes,
             initialLigne = editingIndex?.let { lignes.getOrNull(it) },
             isEditing = editingIndex != null,
             onValidate = { ligne ->
@@ -158,7 +188,8 @@ fun SaisieMatiereScreen(
                                     editingIndex = index
                                     showDialog = true
                                 },
-                                onDelete = { viewModel.supprimerLigne(index) }
+                                // RG4 : on demande une confirmation, pas de suppression directe
+                                onDelete = { deletingIndex = index }
                             )
                             if (index < lignes.lastIndex) {
                                 HorizontalDivider(color = VeoliaSubtle)
@@ -169,11 +200,13 @@ fun SaisieMatiereScreen(
                     HorizontalDivider(color = VeoliaSubtle)
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // RG3 : désactivé quand toutes les matières disponibles sont déjà ajoutées
                     Button(
                         onClick = { showDialog = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal)
+                        colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal),
+                        enabled = lignes.size < matieres.size
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -191,6 +224,7 @@ fun SaisieMatiereScreen(
                 }
             }
 
+            // RG1 : Continuer désactivé si aucune matière
             Button(
                 onClick = { },
                 modifier = Modifier
@@ -276,6 +310,7 @@ private fun MatiereLigneRow(
 @Composable
 private fun AjouterMatiereDialog(
     matieres: List<MatiereSiteEntity>,
+    existingLignes: List<SaisieMatiereLigne>,
     initialLigne: SaisieMatiereLigne?,
     isEditing: Boolean,
     onValidate: (SaisieMatiereLigne) -> Unit,
@@ -284,16 +319,26 @@ private fun AjouterMatiereDialog(
     numeroCarte: String?,
     siteNom: String
 ) {
+    // RG3 : exclure les matières déjà ajoutées, sauf celle en cours d'édition
+    val availableMatieres = remember(matieres, existingLignes, initialLigne) {
+        matieres.filter { matiere ->
+            existingLignes.none { it.matiere.matiereId == matiere.matiereId }
+                || initialLigne?.matiere?.matiereId == matiere.matiereId
+        }
+    }
+
     var selectedMatiere by remember(initialLigne) {
-        mutableStateOf(initialLigne?.matiere ?: matieres.firstOrNull())
+        mutableStateOf(initialLigne?.matiere ?: availableMatieres.firstOrNull())
     }
     var quantite by remember(initialLigne) {
         mutableStateOf(initialLigne?.quantite ?: "")
     }
+    // RG2 : erreur si quantité vide au moment de valider
+    var quantiteError by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(matieres) {
-        if (selectedMatiere == null) selectedMatiere = matieres.firstOrNull()
+    LaunchedEffect(availableMatieres) {
+        if (selectedMatiere == null) selectedMatiere = availableMatieres.firstOrNull()
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -360,7 +405,7 @@ private fun AjouterMatiereDialog(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
-                        matieres.forEach { matiere ->
+                        availableMatieres.forEach { matiere ->
                             DropdownMenuItem(
                                 text = { Text(matiere.libelle) },
                                 onClick = {
@@ -377,40 +422,54 @@ private fun AjouterMatiereDialog(
                 Text(
                     text = "Quantité",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (quantiteError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedTextField(
                         value = quantite,
-                        onValueChange = { quantite = it },
+                        onValueChange = {
+                            quantite = it
+                            if (it.isNotBlank()) quantiteError = false
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
+                        isError = quantiteError,
+                        supportingText = if (quantiteError) {
+                            { Text("Obligatoire") }
+                        } else null,
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = VeoliaSubtle,
-                            focusedBorderColor = VeoliaPrincipal
+                            focusedBorderColor = VeoliaPrincipal,
+                            errorBorderColor = MaterialTheme.colorScheme.error
                         )
                     )
                     Text(
                         text = selectedMatiere?.unitesDesApportLibelle ?: "",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 16.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = {
                         val matiere = selectedMatiere ?: return@Button
-                        if (quantite.isBlank()) return@Button
+                        // RG2 : quantité obligatoire (0 est autorisé, blanc ne l'est pas)
+                        if (quantite.isBlank()) {
+                            quantiteError = true
+                            return@Button
+                        }
                         onValidate(
                             SaisieMatiereLigne(
                                 matiere = matiere,
