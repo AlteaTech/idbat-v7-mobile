@@ -37,7 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.idbat.mobile.data.model.toFormatName
 import com.idbat.mobile.ui.theme.VeoliaCoral
@@ -79,7 +81,7 @@ fun BarcodeScannerComponent(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.QrCodeScanner, null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Code Barre", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Code-barres / QR Code", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
 
             Spacer(Modifier.height(12.dp))
@@ -136,7 +138,7 @@ fun BarcodeScannerComponent(
 
                     if (isActive) {
                         Text(
-                            text = "Pointez vers un code barre",
+                            text = "Pointez vers un code-barres ou QR code",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
@@ -211,6 +213,23 @@ private fun PermissionRequest(onRequest: () -> Unit) {
     }
 }
 
+private val barcodeScanner by lazy {
+    BarcodeScanning.getClient(
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_QR_CODE,
+                Barcode.FORMAT_CODE_128,
+                Barcode.FORMAT_CODE_39,
+                Barcode.FORMAT_CODE_93,
+                Barcode.FORMAT_EAN_13,
+                Barcode.FORMAT_EAN_8,
+                Barcode.FORMAT_DATA_MATRIX,
+                Barcode.FORMAT_PDF417
+            )
+            .build()
+    )
+}
+
 @OptIn(ExperimentalGetImage::class)
 private fun analyzeFrame(
     proxy: androidx.camera.core.ImageProxy,
@@ -218,7 +237,7 @@ private fun analyzeFrame(
 ) {
     val mediaImage = proxy.image ?: run { proxy.close(); return }
     val image = InputImage.fromMediaImage(mediaImage, proxy.imageInfo.rotationDegrees)
-    BarcodeScanning.getClient().process(image)
+    barcodeScanner.process(image)
         .addOnSuccessListener { barcodes ->
             barcodes.firstOrNull()?.rawValue?.let { value ->
                 onDetected(value, barcodes.first().format.toFormatName())
