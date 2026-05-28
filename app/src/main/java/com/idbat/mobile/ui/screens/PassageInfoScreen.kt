@@ -25,8 +25,10 @@ import com.idbat.mobile.ui.theme.White
 @Composable
 fun PassageInfoScreen(
     siteName: String,
+    siteId: Long,
     info: InfoCartePassage,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onSaisirMatieres: () -> Unit = {}
 ) {
     val bgColor = MaterialTheme.colorScheme.background
 
@@ -147,7 +149,7 @@ fun PassageInfoScreen(
                 }
 
                 Button(
-                    onClick = { },
+                    onClick = onSaisirMatieres,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

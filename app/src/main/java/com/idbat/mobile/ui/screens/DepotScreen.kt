@@ -27,6 +27,7 @@ import com.idbat.mobile.ui.theme.White
 @Composable
 fun DepotScreen(
     siteName: String,
+    siteId: Long,
     contrat: ContratEntity?,
     onBack: () -> Unit
 ) {
@@ -35,6 +36,7 @@ fun DepotScreen(
     if (showAutresScreen) {
         AutresCartesScreen(
             siteName = siteName,
+            siteId = siteId,
             contrat = contrat,
             onBack = { showAutresScreen = false }
         )

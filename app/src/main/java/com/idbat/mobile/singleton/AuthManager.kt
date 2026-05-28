@@ -330,7 +330,16 @@ class AuthManager @Inject constructor(
                 )
             )
         )
-        Log.d("AUTH_MANAGER", "2 sites mock insérés")
+        val matiereSiteDao = database.matiereSiteDao()
+        matiereSiteDao.insertMatieres(
+            listOf(
+                MatiereSiteEntity(matiereId = 1L, siteId = 1L, libelle = "Ferrailles",      unitesDesApportId = 1L, unitesDesApportLibelle = "Kg"),
+                MatiereSiteEntity(matiereId = 2L, siteId = 1L, libelle = "Gravats 170107",  unitesDesApportId = 2L, unitesDesApportLibelle = "m3"),
+                MatiereSiteEntity(matiereId = 3L, siteId = 2L, libelle = "Cartons",         unitesDesApportId = 1L, unitesDesApportLibelle = "Kg"),
+                MatiereSiteEntity(matiereId = 4L, siteId = 2L, libelle = "Plastiques",      unitesDesApportId = 2L, unitesDesApportLibelle = "m3")
+            )
+        )
+        Log.d("AUTH_MANAGER", "2 sites mock insérés avec 2 matières chacun")
     }
     private suspend fun mockUsagers() {
         val usagerDao = database.usagerDao()
