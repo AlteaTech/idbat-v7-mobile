@@ -31,6 +31,7 @@ import com.idbat.mobile.ui.viewmodel.AutresCartesViewModel
 @Composable
 fun AutresCartesScreen(
     siteName: String,
+    siteId: Long,
     contrat: ContratEntity?,
     onBack: () -> Unit,
     viewModel: AutresCartesViewModel = hiltViewModel()
@@ -59,11 +60,25 @@ fun AutresCartesScreen(
         if (carteInconnue) showCarteInconnueDialog = true
     }
 
+    var showSaisieMatiere by remember { mutableStateOf(false) }
+
+    if (passageInfo != null && showSaisieMatiere) {
+        SaisieMatiereScreen(
+            siteName = siteName,
+            siteId = siteId,
+            info = passageInfo!!,
+            onBack = { showSaisieMatiere = false }
+        )
+        return
+    }
+
     if (passageInfo != null) {
         PassageInfoScreen(
             siteName = siteName,
+            siteId = siteId,
             info = passageInfo!!,
-            onBack = { viewModel.clearPassageInfo() }
+            onBack = { viewModel.clearPassageInfo() },
+            onSaisirMatieres = { showSaisieMatiere = true }
         )
         return
     }

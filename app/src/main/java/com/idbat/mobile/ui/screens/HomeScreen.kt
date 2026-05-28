@@ -44,6 +44,7 @@ fun HomeScreen(
     if (showDepotScreen) {
         DepotScreen(
             siteName = selectedSite?.nom ?: "",
+            siteId = selectedSite?.id ?: 0L,
             contrat = contrat,
             onBack = { showDepotScreen = false }
         )
