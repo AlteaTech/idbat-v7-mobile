@@ -34,6 +34,7 @@ fun AutresCartesScreen(
     siteId: Long,
     contrat: ContratEntity?,
     onBack: () -> Unit,
+    onNavigateToHome: () -> Unit = {},
     viewModel: AutresCartesViewModel = hiltViewModel()
 ) {
     val bgColor = MaterialTheme.colorScheme.background
@@ -76,8 +77,14 @@ fun AutresCartesScreen(
         PassageInfoScreen(
             siteName = siteName,
             siteId = siteId,
+            contratId = contrat?.id ?: 0L,
             info = passageInfo!!,
             onBack = { viewModel.clearPassageInfo() },
+            onNavigateToHome = {
+                viewModel.clearPassageInfo()
+                viewModel.clearCarteInconnue()
+                onNavigateToHome()
+            },
             onSaisirMatieres = { showSaisieMatiere = true }
         )
         return

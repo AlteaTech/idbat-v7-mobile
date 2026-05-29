@@ -45,8 +45,9 @@ class AuthManager @Inject constructor(
         val loggedInContrat: ContratEntity? = null,
         val availableSites: List<SiteEntity> = emptyList(),
         val isLoadingContracts: Boolean = false,
-        val showValidationError: Boolean = false, // Nouveau champ
-        val availableUtilisateursTps: List<UtilisateurTPEntity> = emptyList()
+        val showValidationError: Boolean = false,
+        val availableUtilisateursTps: List<UtilisateurTPEntity> = emptyList(),
+        val loggedInUtilisateurTp: UtilisateurTPEntity? = null
     )
 
     private suspend fun getCurrentLocation(): Pair<Double?, Double?> = withContext(Dispatchers.IO) {
@@ -668,6 +669,7 @@ class AuthManager @Inject constructor(
                     isLoggedIn = true,
                     loggedInSite = selectedSite,
                     loggedInContrat = contrat,
+                    loggedInUtilisateurTp = utilisateur
                 )
                 Log.d("AUTH_MANAGER", "Connexion réussie pour ${selectedSite?.nom}")
             } else {

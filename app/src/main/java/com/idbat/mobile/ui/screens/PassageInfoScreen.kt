@@ -9,7 +9,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -17,19 +17,36 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
 import com.idbat.mobile.ui.theme.VeoliaLightGray
 import com.idbat.mobile.ui.theme.White
+import com.idbat.mobile.ui.viewmodel.PassageSaveState
+import com.idbat.mobile.ui.viewmodel.PassageViewModel
 
 @Composable
 fun PassageInfoScreen(
     siteName: String,
     siteId: Long,
+    contratId: Long,
     info: InfoCartePassage,
     onBack: () -> Unit,
-    onSaisirMatieres: () -> Unit = {}
+    onNavigateToHome: () -> Unit = {},
+    onSaisirMatieres: () -> Unit = {},
+    viewModel: PassageViewModel = hiltViewModel()
 ) {
+    val saveState by viewModel.saveState.collectAsStateWithLifecycle()
+    val isSaving = saveState == PassageSaveState.Saving
+
+    LaunchedEffect(saveState) {
+        if (saveState == PassageSaveState.Success) {
+            viewModel.resetState()
+            onNavigateToHome()
+        }
+    }
+
     val bgColor = MaterialTheme.colorScheme.background
 
     Box(
@@ -125,24 +142,35 @@ fun PassageInfoScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
-                    onClick = { },
+                    onClick = {
+                        if (!isSaving) viewModel.enregistrerPassage(contratId, siteId, info.carteId)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(50.dp),
+                    enabled = !isSaving,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = VeoliaLightGray,
                         contentColor = Color.Black
                     )
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    if (isSaving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.Black
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Enregistrer le passage",
+                        text = if (isSaving) "Enregistrement…" else "Enregistrer le passage",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
                     )

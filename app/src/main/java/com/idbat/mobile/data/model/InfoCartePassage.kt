@@ -5,5 +5,6 @@ data class InfoCartePassage(
     val nomTitulaire: String? = null,
     val numeroCarte: String? = null,
     val typeApporteur: String? = null,
-    val contact: String? = null
+    val contact: String? = null,
+    val carteId: Long? = null
 )
