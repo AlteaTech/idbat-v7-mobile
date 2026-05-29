@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.MatiereSiteEntity
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.SaisieMatiereLigne
@@ -34,8 +35,11 @@ import com.idbat.mobile.ui.viewmodel.SaisieMatiereViewModel
 fun SaisieMatiereScreen(
     siteName: String,
     siteId: Long,
+    contratId: Long,
+    contrat: ContratEntity?,
     info: InfoCartePassage,
     onBack: () -> Unit,
+    onNavigateToHome: () -> Unit = {},
     viewModel: SaisieMatiereViewModel = hiltViewModel()
 ) {
     LaunchedEffect(siteId) { viewModel.setSiteId(siteId) }
@@ -50,12 +54,15 @@ fun SaisieMatiereScreen(
     var deletingIndex by remember { mutableStateOf<Int?>(null) }
 
     if (showValidation) {
-        ValidationPassageScreen(
+        ConfirmationPassageScreen(
             siteName = siteName,
             siteId = siteId,
+            contratId = contratId,
+            contrat = contrat,
             info = info,
             lignes = lignes,
-            onBack = { showValidation = false }
+            onBack = { showValidation = false },
+            onNavigateToHome = onNavigateToHome
         )
         return
     }

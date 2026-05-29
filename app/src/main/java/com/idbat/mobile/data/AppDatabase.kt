@@ -23,9 +23,10 @@ import com.idbat.mobile.data.entities.*
         UsagerEntity::class,
         ContratEvenementEntity::class,
         UsagerCarteEntity::class,
-        PassageEntity::class
+        PassageEntity::class,
+        PassageMatiereEntity::class
     ],
-    version = 19,
+    version = 21,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -42,6 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contratEvenementDao(): ContratEvenementDao
     abstract fun usagerCarteDao(): UsagerCarteDao
     abstract fun passageDao(): PassageDao
+    abstract fun passageMatiereDao(): PassageMatiereDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -71,7 +73,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, 
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-            MIGRATION_17_18, MIGRATION_18_19
+            MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -317,6 +319,35 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_usagerId` ON `usager_cartes` (`usagerId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_carteId` ON `usager_cartes` (`carteId`)")
+            }
+        }
+
+        private val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN commentaire TEXT")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `passage_matiere` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `passageId` INTEGER NOT NULL,
+                        `matiereId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `libelle` TEXT NOT NULL,
+                        `quantite` TEXT NOT NULL,
+                        `tarif` REAL NOT NULL,
+                        `unitesLibelle` TEXT NOT NULL,
+                        FOREIGN KEY(`passageId`) REFERENCES `passage`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_matiere_passageId` ON `passage_matiere` (`passageId`)")
+            }
+        }
+
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE matieres_site ADD COLUMN tarif REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE usagers ADD COLUMN typeApporteurIsPro INTEGER")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasSignatureParticuliers INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasSignatureProfessionnels INTEGER NOT NULL DEFAULT 0")
             }
         }
 

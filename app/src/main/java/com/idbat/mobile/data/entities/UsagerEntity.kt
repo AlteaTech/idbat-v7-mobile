@@ -26,5 +26,6 @@ data class UsagerEntity(
     val refClientIdBat: Long? = null,
     val raisonSociale: String? = null,
     val typeApporteurLibelle: String? = null,
-    val couriel: String? = null
+    val couriel: String? = null,
+    val typeApporteurIsPro: Boolean? = null
 )

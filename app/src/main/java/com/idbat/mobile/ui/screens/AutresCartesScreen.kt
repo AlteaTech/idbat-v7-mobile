@@ -67,8 +67,16 @@ fun AutresCartesScreen(
         SaisieMatiereScreen(
             siteName = siteName,
             siteId = siteId,
+            contratId = contrat?.id ?: 0L,
+            contrat = contrat,
             info = passageInfo!!,
-            onBack = { showSaisieMatiere = false }
+            onBack = { showSaisieMatiere = false },
+            onNavigateToHome = {
+                viewModel.clearPassageInfo()
+                viewModel.clearCarteInconnue()
+                showSaisieMatiere = false
+                onNavigateToHome()
+            }
         )
         return
     }
