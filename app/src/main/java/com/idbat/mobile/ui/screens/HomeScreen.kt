@@ -46,7 +46,8 @@ fun HomeScreen(
             siteName = selectedSite?.nom ?: "",
             siteId = selectedSite?.id ?: 0L,
             contrat = contrat,
-            onBack = { showDepotScreen = false }
+            onBack = { showDepotScreen = false },
+            onNavigateToHome = { showDepotScreen = false }
         )
         return
     }

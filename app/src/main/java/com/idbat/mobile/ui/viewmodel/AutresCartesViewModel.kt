@@ -86,7 +86,8 @@ class AutresCartesViewModel @Inject constructor(
             nomTitulaire = usager?.let { "${it.nom} ${it.prenom}" },
             numeroCarte = carte.valeur,
             typeApporteur = usager?.typeApporteurLibelle,
-            contact = usager?.couriel
+            contact = usager?.couriel,
+            carteId = carte.id
         )
     }
 
@@ -103,7 +104,8 @@ class AutresCartesViewModel @Inject constructor(
             nomTitulaire = usager?.let { "${it.nom} ${it.prenom}" },
             numeroCarte = carte.valeur,
             typeApporteur = usager?.typeApporteurLibelle,
-            contact = usager?.couriel
+            contact = usager?.couriel,
+            carteId = carte.id
         )
     }
 
@@ -115,7 +117,8 @@ class AutresCartesViewModel @Inject constructor(
             nomTitulaire = "${usager.nom} ${usager.prenom}",
             numeroCarte = carte?.valeur,
             typeApporteur = usager.typeApporteurLibelle,
-            contact = usager.couriel
+            contact = usager.couriel,
+            carteId = carte?.id
         )
     }
 }

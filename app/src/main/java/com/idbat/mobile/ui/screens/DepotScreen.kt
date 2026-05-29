@@ -29,7 +29,8 @@ fun DepotScreen(
     siteName: String,
     siteId: Long,
     contrat: ContratEntity?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToHome: () -> Unit = {}
 ) {
     var showAutresScreen by remember { mutableStateOf(false) }
 
@@ -38,7 +39,8 @@ fun DepotScreen(
             siteName = siteName,
             siteId = siteId,
             contrat = contrat,
-            onBack = { showAutresScreen = false }
+            onBack = { showAutresScreen = false },
+            onNavigateToHome = onNavigateToHome
         )
         return
     }

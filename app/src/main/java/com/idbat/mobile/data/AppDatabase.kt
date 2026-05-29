@@ -22,9 +22,10 @@ import com.idbat.mobile.data.entities.*
         LastSynchroHistoryEntity::class,
         UsagerEntity::class,
         ContratEvenementEntity::class,
-        UsagerCarteEntity::class
+        UsagerCarteEntity::class,
+        PassageEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -40,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun usagerDao(): UsagerDao
     abstract fun contratEvenementDao(): ContratEvenementDao
     abstract fun usagerCarteDao(): UsagerCarteDao
+    abstract fun passageDao(): PassageDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -69,7 +71,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, 
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-            MIGRATION_17_18
+            MIGRATION_17_18, MIGRATION_18_19
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -315,6 +317,28 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_usagerId` ON `usager_cartes` (`usagerId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_carteId` ON `usager_cartes` (`carteId`)")
+            }
+        }
+
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `passage` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `dateHeure` INTEGER NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `carteId` INTEGER,
+                        `userTpId` INTEGER NOT NULL,
+                        `numeroBonPassage` TEXT NOT NULL,
+                        FOREIGN KEY(`contratId`) REFERENCES `contrats`(`id`) ON DELETE CASCADE,
+                        FOREIGN KEY(`siteId`) REFERENCES `sites`(`id`) ON DELETE CASCADE,
+                        FOREIGN KEY(`userTpId`) REFERENCES `utilisateurs_tp`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_contratId` ON `passage` (`contratId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_siteId` ON `passage` (`siteId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_userTpId` ON `passage` (`userTpId`)")
             }
         }
 
