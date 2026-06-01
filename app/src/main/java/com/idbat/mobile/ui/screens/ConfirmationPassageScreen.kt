@@ -71,6 +71,8 @@ fun ConfirmationPassageScreen(
             info = info,
             lignes = lignes,
             commentaire = commentaire,
+            photos = photos,
+            signatureImage = signatureImage,
             onBack = { showTerminer = false },
             onNavigateToHome = onNavigateToHome
         )

@@ -1,6 +1,8 @@
 package com.idbat.mobile.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,6 +35,8 @@ fun TerminerPassageScreen(
     info: InfoCartePassage,
     lignes: List<SaisieMatiereLigne>,
     commentaire: String,
+    photos: List<Uri> = emptyList(),
+    signatureImage: ImageBitmap? = null,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit,
     viewModel: TerminerPassageViewModel = hiltViewModel()
@@ -179,8 +183,6 @@ fun TerminerPassageScreen(
             Button(
                 onClick = {
                     if (!isSaving) {
-                        // RG5.4 : email saisi/modifié → update local (sync BO à prévoir)
-                        val emailToSave = email.trim().takeIf { it.isNotBlank() && it != info.contact }
                         viewModel.terminer(
                             contratId = contratId,
                             siteId = siteId,
@@ -188,7 +190,9 @@ fun TerminerPassageScreen(
                             commentaire = commentaire,
                             lignes = lignes,
                             emailSaisi = email.trim().takeIf { it.isNotBlank() },
-                            usagerId = info.usagerId
+                            usagerId = info.usagerId,
+                            photos = photos,
+                            signatureImage = signatureImage
                         )
                     }
                 },

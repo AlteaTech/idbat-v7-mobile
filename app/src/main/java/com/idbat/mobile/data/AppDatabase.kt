@@ -24,9 +24,10 @@ import com.idbat.mobile.data.entities.*
         ContratEvenementEntity::class,
         UsagerCarteEntity::class,
         PassageEntity::class,
-        PassageMatiereEntity::class
+        PassageMatiereEntity::class,
+        PassageDocumentEntity::class
     ],
-    version = 21,
+    version = 22,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -44,6 +45,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun usagerCarteDao(): UsagerCarteDao
     abstract fun passageDao(): PassageDao
     abstract fun passageMatiereDao(): PassageMatiereDao
+    abstract fun passageDocumentDao(): PassageDocumentDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -73,7 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10,
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, 
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-            MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21
+            MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -319,6 +321,24 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_usagerId` ON `usager_cartes` (`usagerId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_usager_cartes_carteId` ON `usager_cartes` (`carteId`)")
+            }
+        }
+
+        private val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN emailUsager TEXT")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `passage_document` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `passageId` INTEGER NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `base64` TEXT NOT NULL,
+                        `mimeType` TEXT NOT NULL,
+                        `nomFichier` TEXT NOT NULL,
+                        FOREIGN KEY(`passageId`) REFERENCES `passage`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_document_passageId` ON `passage_document` (`passageId`)")
             }
         }
 

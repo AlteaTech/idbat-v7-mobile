@@ -38,5 +38,6 @@ data class PassageEntity(
     val carteId: Long?,
     val userTpId: Long,
     val numeroBonPassage: String,
-    val commentaire: String? = null
+    val commentaire: String? = null,
+    val emailUsager: String? = null
 )
