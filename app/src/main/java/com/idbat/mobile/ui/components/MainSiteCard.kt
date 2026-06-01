@@ -20,7 +20,8 @@ fun MainSiteCard(
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
     onTransferClick: () -> Unit,
-    onSuiviClick: () -> Unit
+    onSuiviClick: () -> Unit,
+    isTransferring: Boolean = false
 ) {
     Card(
         shape = RoundedCornerShape(32.dp),
@@ -67,11 +68,20 @@ fun MainSiteCard(
                 }
                 Button(
                     onClick = onTransferClick,
+                    enabled = !isTransferring,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                     shape = RoundedCornerShape(20.dp)
                 ) {
-                    Text("Transférer", color = Color.White, fontWeight = FontWeight.Bold)
+                    if (isTransferring) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Transférer", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

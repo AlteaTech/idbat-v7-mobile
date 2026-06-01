@@ -34,6 +34,7 @@ fun HomeScreen(
     lastSynchroDateEnvoi: Date?,
     onTransferClick: () -> Unit,
     onNavigateToPoc: () -> Unit,
+    isTransferring: Boolean = false,
     getSuiviContent: suspend (Long) -> CharSequence = { "" }
 ) {
     val toastState = rememberToastState()
@@ -111,6 +112,7 @@ fun HomeScreen(
                 lastSynchroDateReception = lastSynchroDateReception,
                 lastSynchroDateEnvoi = lastSynchroDateEnvoi,
                 onTransferClick = onTransferClick,
+                isTransferring = isTransferring,
                 onSuiviClick = {
                     val siteId = selectedSite?.id ?: 0L
                     coroutineScope.launch {
