@@ -119,7 +119,12 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value.authState.loggedInSite?.let { site ->
                 syncManager.executeTransfer(site)
+                authManager.refreshLoggedInContrat()
             }
         }
+    }
+
+    fun clearSyncError() {
+        syncManager.clearSyncError()
     }
 }

@@ -718,6 +718,12 @@ class AuthManager @Inject constructor(
         }
     }
 
+    suspend fun refreshLoggedInContrat() {
+        val site = _authState.value.loggedInSite ?: return
+        val contrat = database.contratDao().getContratById(site.contratId)
+        _authState.value = _authState.value.copy(loggedInContrat = contrat)
+    }
+
     fun dismissValidationError() {
         _authState.value = _authState.value.copy()
     }

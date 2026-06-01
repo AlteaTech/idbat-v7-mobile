@@ -29,4 +29,10 @@ interface UtilisateurTPDao {
 
     @Query("DELETE FROM utilisateurs_tp")
     suspend fun clearUtilisateurs()
+
+    @Query("DELETE FROM utilisateurs_tp WHERE login != 'admin' AND id NOT IN (:ids)")
+    suspend fun deleteUtilisateursNotIn(ids: List<Long>)
+
+    @Query("DELETE FROM utilisateurs_tp WHERE login != 'admin'")
+    suspend fun clearUtilisateursExcludingAdmin()
 }

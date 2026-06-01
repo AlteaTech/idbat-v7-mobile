@@ -27,16 +27,16 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param login 
- * @param motDePasse 
- * @param contratId 
- * @param id 
+ *
+ * @param login
+ * @param motDePasse
+ * @param contratId
+ * @param id
  */
 
 
-data class ContratUtilisateursTpsDmo (
+data class ContratUtilisateursTpsDmo(
 
     @Json(name = "login")
     val login: kotlin.String,

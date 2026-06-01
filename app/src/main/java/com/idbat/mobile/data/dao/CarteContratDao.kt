@@ -53,4 +53,7 @@ interface CarteContratDao {
 
     @Query("DELETE FROM carte_contrat")
     suspend fun clearCartes()
+
+    @Query("DELETE FROM carte_contrat WHERE id NOT IN (:ids)")
+    suspend fun deleteCartesNotIn(ids: List<Long>)
 }

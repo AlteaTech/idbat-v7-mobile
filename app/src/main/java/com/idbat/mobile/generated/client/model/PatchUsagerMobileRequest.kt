@@ -29,18 +29,18 @@ import com.squareup.moshi.Json
 /**
  *
  *
- * @param matieresSiteId
- * @param quantite
+ * @param id
+ * @param courriel
  */
 
 
-data class PassageMatiereRequest(
+data class PatchUsagerMobileRequest(
 
-    @Json(name = "matieresSiteId")
-    val matieresSiteId: kotlin.Long,
+    @Json(name = "id")
+    val id: kotlin.Long,
 
-    @Json(name = "quantite")
-    val quantite: java.math.BigDecimal
+    @Json(name = "courriel")
+    val courriel: kotlin.String? = null
 
 ) {
 

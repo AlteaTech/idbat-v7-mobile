@@ -26,28 +26,56 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param siteId 
- * @param usagerId 
- * @param datePassage 
- * @param matieres 
+ *
+ * @param contratId
+ * @param siteId
+ * @param userTpId
+ * @param datePassage
+ * @param numeroBonPassage
+ * @param matieres
+ * @param documents
+ * @param usagerId
+ * @param carteId
+ * @param commentaire
+ * @param emailUsager
  */
 
 
-data class CreerPassageRequest (
+data class CreerPassageRequest(
+
+    @Json(name = "contratId")
+    val contratId: kotlin.Long,
 
     @Json(name = "siteId")
     val siteId: kotlin.Long,
 
-    @Json(name = "usagerId")
-    val usagerId: kotlin.Long,
+    @Json(name = "userTpId")
+    val userTpId: kotlin.Long,
 
     @Json(name = "datePassage")
     val datePassage: java.time.OffsetDateTime,
 
+    @Json(name = "numeroBonPassage")
+    val numeroBonPassage: kotlin.String,
+
     @Json(name = "matieres")
-    val matieres: kotlin.collections.List<PassageMatiereRequest>
+    val matieres: kotlin.collections.List<PassageMatiereRequest>,
+
+    @Json(name = "documents")
+    val documents: kotlin.collections.List<PassageDocumentRequest>,
+
+    @Json(name = "usagerId")
+    val usagerId: kotlin.Long? = null,
+
+    @Json(name = "carteId")
+    val carteId: kotlin.Long? = null,
+
+    @Json(name = "commentaire")
+    val commentaire: kotlin.String? = null,
+
+    @Json(name = "emailUsager")
+    val emailUsager: kotlin.String? = null
 
 ) {
 

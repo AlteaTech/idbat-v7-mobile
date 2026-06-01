@@ -16,4 +16,7 @@ interface PassageDao {
 
     @Query("SELECT * FROM passage WHERE siteId = :siteId ORDER BY dateHeure DESC")
     fun getPassagesBySiteFlow(siteId: Long): Flow<List<PassageEntity>>
+
+    @Query("SELECT COUNT(*) FROM passage")
+    suspend fun count(): Long
 }

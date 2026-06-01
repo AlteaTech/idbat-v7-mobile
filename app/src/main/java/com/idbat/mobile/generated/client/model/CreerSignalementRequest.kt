@@ -26,18 +26,18 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param siteId 
- * @param evenementContratId 
- * @param agentId 
- * @param dateSignalement 
- * @param commentaire 
- * @param photos 
+ *
+ * @param siteId
+ * @param evenementContratId
+ * @param agentId
+ * @param dateSignalement
+ * @param commentaire
+ * @param photos
  */
 
 
-data class CreerSignalementRequest (
+data class CreerSignalementRequest(
 
     @Json(name = "siteId")
     val siteId: kotlin.Long,

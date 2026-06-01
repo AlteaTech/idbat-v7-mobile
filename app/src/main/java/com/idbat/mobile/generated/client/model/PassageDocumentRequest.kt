@@ -29,18 +29,26 @@ import com.squareup.moshi.Json
 /**
  *
  *
- * @param matieresSiteId
- * @param quantite
+ * @param type
+ * @param nomFichier
+ * @param mimeType
+ * @param base64
  */
 
 
-data class PassageMatiereRequest(
+data class PassageDocumentRequest(
 
-    @Json(name = "matieresSiteId")
-    val matieresSiteId: kotlin.Long,
+    @Json(name = "type")
+    val type: kotlin.String,
 
-    @Json(name = "quantite")
-    val quantite: java.math.BigDecimal
+    @Json(name = "nomFichier")
+    val nomFichier: kotlin.String,
+
+    @Json(name = "mimeType")
+    val mimeType: kotlin.String,
+
+    @Json(name = "base64")
+    val base64: kotlin.ByteArray
 
 ) {
 

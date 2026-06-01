@@ -27,15 +27,15 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param fileName 
- * @param mimeType 
- * @param base64 
+ *
+ * @param fileName
+ * @param mimeType
+ * @param base64
  */
 
 
-data class FileData (
+data class FileData(
 
     @Json(name = "fileName")
     val fileName: kotlin.String,

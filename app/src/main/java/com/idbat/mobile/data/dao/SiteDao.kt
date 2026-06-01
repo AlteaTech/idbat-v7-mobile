@@ -29,4 +29,7 @@ interface SiteDao {
 
     @Query("SELECT count(1) FROM sites")
     suspend fun count(): Long
+
+    @Query("DELETE FROM sites WHERE id NOT IN (:ids)")
+    suspend fun deleteSitesNotIn(ids: List<Long>)
 }
