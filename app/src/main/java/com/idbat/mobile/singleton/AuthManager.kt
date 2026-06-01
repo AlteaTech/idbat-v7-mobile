@@ -295,7 +295,9 @@ class AuthManager @Inject constructor(
             hasCodebarres = true,
             hasPuce = true,
             hasImmatriculation = true,
-            hasSelectionusager = true
+            hasSelectionusager = true,
+            hasSignatureParticuliers = true,
+            hasSignatureProfessionnels = false
         )
         contratDao.insertContrat(contrat)
 
@@ -334,10 +336,10 @@ class AuthManager @Inject constructor(
         val matiereSiteDao = database.matiereSiteDao()
         matiereSiteDao.insertMatieres(
             listOf(
-                MatiereSiteEntity(matiereId = 1L, siteId = 1L, libelle = "Ferrailles",      unitesDesApportId = 1L, unitesDesApportLibelle = "Kg"),
-                MatiereSiteEntity(matiereId = 2L, siteId = 1L, libelle = "Gravats 170107",  unitesDesApportId = 2L, unitesDesApportLibelle = "m3"),
-                MatiereSiteEntity(matiereId = 3L, siteId = 2L, libelle = "Cartons",         unitesDesApportId = 1L, unitesDesApportLibelle = "Kg"),
-                MatiereSiteEntity(matiereId = 4L, siteId = 2L, libelle = "Plastiques",      unitesDesApportId = 2L, unitesDesApportLibelle = "m3")
+                MatiereSiteEntity(matiereId = 1L, siteId = 1L, libelle = "Ferrailles",      unitesDesApportId = 1L, unitesDesApportLibelle = "Kg",  tarif = 0.50),
+                MatiereSiteEntity(matiereId = 2L, siteId = 1L, libelle = "Gravats 170107",  unitesDesApportId = 2L, unitesDesApportLibelle = "m3",  tarif = 0.10),
+                MatiereSiteEntity(matiereId = 3L, siteId = 2L, libelle = "Cartons",         unitesDesApportId = 1L, unitesDesApportLibelle = "Kg",  tarif = 0.30),
+                MatiereSiteEntity(matiereId = 4L, siteId = 2L, libelle = "Plastiques",      unitesDesApportId = 2L, unitesDesApportLibelle = "m3",  tarif = 0.25)
             )
         )
         Log.d("AUTH_MANAGER", "2 sites mock insérés avec 2 matières chacun")
@@ -351,7 +353,9 @@ class AuthManager @Inject constructor(
                 nom = "VIDAL",
                 prenom = "jérémie",
                 contratId = 1L,
-                refClientIdBat = 123456
+                refClientIdBat = 123456,
+                typeApporteurIsPro = false,
+                couriel = "jeremie.vidal@example.com"
             )
         )
         usagerDao.insertUsager(
@@ -360,7 +364,8 @@ class AuthManager @Inject constructor(
                 nom = "lan",
                 prenom = "alicia",
                 contratId = 1L,
-                refClientIdBat = 123457
+                refClientIdBat = 123457,
+                typeApporteurIsPro = false
             )
         )
         usagerDao.insertUsager(
@@ -369,7 +374,8 @@ class AuthManager @Inject constructor(
                 nom = "rosier",
                 prenom = "ronald",
                 contratId = 1L,
-                refClientIdBat = 13
+                refClientIdBat = 13,
+                typeApporteurIsPro = true
             )
         )
         Log.d("AUTH_MANAGER", "3 Usagers mock insérés")
@@ -438,6 +444,8 @@ class AuthManager @Inject constructor(
                 hasCodebarres = contratDmo.hasCodebarres,
                 hasImmatriculation = contratDmo.hasImmatriculation,
                 hasSelectionusager = contratDmo.hasSelectionusager,
+                hasSignatureParticuliers = contratDmo.hasSignatureparticuliers,
+                hasSignatureProfessionnels = contratDmo.hasSignatureprofessionels
             )
 
             contratDao.insertContrat(contratEntity)
@@ -486,7 +494,8 @@ class AuthManager @Inject constructor(
                                     matiereId = matiereDmo.id ?: 0,
                                     libelle = matiereDmo.libelle ?: "",
                                     unitesDesApportId = matiereDmo.unitesDesApportId,
-                                    unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle
+                                    unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle,
+                                    tarif = matiereDmo.tarif.toDouble()
                                 )
                             }?.let { allMatieres.addAll(it) }
                         }
@@ -542,7 +551,8 @@ class AuthManager @Inject constructor(
                                 contratId = contratUsager.contratId,
                                 raisonSociale = contratUsager.raisonSociale,
                                 typeApporteurLibelle = contratUsager.typeApporteurLibelle,
-                                couriel = contratUsager.couriel
+                                couriel = contratUsager.couriel,
+                                typeApporteurIsPro = contratUsager.typeApporteurIsPro,
                             )
                         }
 

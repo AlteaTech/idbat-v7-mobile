@@ -87,7 +87,9 @@ class AutresCartesViewModel @Inject constructor(
             numeroCarte = carte.valeur,
             typeApporteur = usager?.typeApporteurLibelle,
             contact = usager?.couriel,
-            carteId = carte.id
+            carteId = carte.id,
+            typeApporteurIsPro = usager?.typeApporteurIsPro,
+            usagerId = usager?.id
         )
     }
 
@@ -105,7 +107,9 @@ class AutresCartesViewModel @Inject constructor(
             numeroCarte = carte.valeur,
             typeApporteur = usager?.typeApporteurLibelle,
             contact = usager?.couriel,
-            carteId = carte.id
+            carteId = carte.id,
+            typeApporteurIsPro = usager?.typeApporteurIsPro,
+            usagerId = usager?.id
         )
     }
 
@@ -118,7 +122,9 @@ class AutresCartesViewModel @Inject constructor(
             numeroCarte = carte?.valeur,
             typeApporteur = usager.typeApporteurLibelle,
             contact = usager.couriel,
-            carteId = carte?.id
+            carteId = carte?.id,
+            typeApporteurIsPro = usager.typeApporteurIsPro,
+            usagerId = usager.id
         )
     }
 }

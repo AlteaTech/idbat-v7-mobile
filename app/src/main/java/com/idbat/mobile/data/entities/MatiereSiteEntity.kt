@@ -31,5 +31,6 @@ data class MatiereSiteEntity(
     // Le libellé de la matière, stocké ici pour un accès facile
     val libelle: String,
     val unitesDesApportId: Long,
-    val unitesDesApportLibelle: String
+    val unitesDesApportLibelle: String,
+    val tarif: Double = 0.0
 )

@@ -27,6 +27,7 @@ import com.idbat.mobile.ui.theme.*
 @Composable
 fun SignatureComponent(
     onValidate: ((ImageBitmap) -> Unit)? = null,
+    onCancel: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var completedStrokes by remember { mutableStateOf<List<List<Offset>>>(emptyList()) }
@@ -71,8 +72,12 @@ fun SignatureComponent(
                     .onSizeChanged { boxSize = it }
                     .pointerInput(Unit) {
                         detectDragGestures(
-                            onDragStart = { offset -> currentStroke = listOf(offset) },
-                            onDrag = { change, _ -> currentStroke = currentStroke + change.position },
+                            onDragStart = { offset ->
+                                currentStroke = listOf(offset.clampTo(boxSize))
+                            },
+                            onDrag = { change, _ ->
+                                currentStroke = currentStroke + change.position.clampTo(boxSize)
+                            },
                             onDragEnd = {
                                 if (currentStroke.isNotEmpty()) {
                                     completedStrokes = completedStrokes + listOf(currentStroke)
@@ -130,25 +135,37 @@ fun SignatureComponent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Dessinez votre signature dans le cadre",
-                    fontSize = 11.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.weight(1f)
-                )
-                if (onValidate != null) {
-                    Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                "Dessinez votre signature dans le cadre",
+                fontSize = 11.sp,
+                color = Color.Gray
+            )
+
+            if (onValidate != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (onCancel != null) Arrangement.spacedBy(8.dp)
+                                            else Arrangement.End
+                ) {
+                    if (onCancel != null) {
+                        OutlinedButton(
+                            onClick = onCancel,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = VeoliaPrincipal
+                            )
+                        ) {
+                            Text("Annuler")
+                        }
+                    }
                     Button(
                         onClick = {
                             val bmp = buildSignatureBitmap(completedStrokes, boxSize, density.density)
                             onValidate(bmp.asImageBitmap())
                         },
                         enabled = !isEmpty,
+                        modifier = if (onCancel != null) Modifier.weight(1f) else Modifier,
                         colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal)
                     ) {
                         Text("Valider")
@@ -158,6 +175,11 @@ fun SignatureComponent(
         }
     }
 }
+
+private fun Offset.clampTo(size: IntSize) = Offset(
+    x.coerceIn(0f, size.width.toFloat()),
+    y.coerceIn(0f, size.height.toFloat())
+)
 
 private fun buildSignatureBitmap(
     strokes: List<List<Offset>>,

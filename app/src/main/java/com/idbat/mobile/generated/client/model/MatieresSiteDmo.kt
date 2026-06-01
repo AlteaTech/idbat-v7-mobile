@@ -34,6 +34,7 @@ import com.squareup.moshi.Json
  * @param libelle 
  * @param unitesDesApportId 
  * @param unitesDesApportLibelle 
+ * @param tarif 
  */
 
 
@@ -52,7 +53,10 @@ data class MatieresSiteDmo (
     val unitesDesApportId: kotlin.Long,
 
     @Json(name = "unitesDesApportLibelle")
-    val unitesDesApportLibelle: kotlin.String
+    val unitesDesApportLibelle: kotlin.String,
+
+    @Json(name = "tarif")
+    val tarif: kotlin.Float
 
 ) {
 

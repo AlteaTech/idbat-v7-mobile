@@ -40,6 +40,9 @@ interface UsagerDao {
     """)
     suspend fun getUsagerByCarte(carteId: Long): UsagerEntity?
 
+    @Query("UPDATE usagers SET couriel = :couriel WHERE id = :id")
+    suspend fun updateCouriel(id: Long, couriel: String)
+
     @Query("DELETE FROM usagers")
     suspend fun purge()
 }

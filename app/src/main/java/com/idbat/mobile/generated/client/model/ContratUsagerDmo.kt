@@ -33,6 +33,7 @@ import com.squareup.moshi.Json
  * @param prenom 
  * @param contratId 
  * @param cartes 
+ * @param typeApporteurIsPro 
  * @param refClientIdBat 
  * @param raisonSociale 
  * @param typeApporteurLibelle 
@@ -56,6 +57,9 @@ data class ContratUsagerDmo (
 
     @Json(name = "cartes")
     val cartes: kotlin.collections.List<CarteDmo>,
+
+    @Json(name = "typeApporteurIsPro")
+    val typeApporteurIsPro: kotlin.Boolean,
 
     @Json(name = "refClientIdBat")
     val refClientIdBat: kotlin.Long? = null,
