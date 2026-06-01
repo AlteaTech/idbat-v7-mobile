@@ -43,6 +43,7 @@ fun SaisieMatiereScreen(
     viewModel: SaisieMatiereViewModel = hiltViewModel()
 ) {
     LaunchedEffect(siteId) { viewModel.setSiteId(siteId) }
+    LaunchedEffect(Unit) { viewModel.resetLignes() }
 
     val matieres by viewModel.matieres.collectAsStateWithLifecycle()
     val lignes by viewModel.lignes.collectAsStateWithLifecycle()

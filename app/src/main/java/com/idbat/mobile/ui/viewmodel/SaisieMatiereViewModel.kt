@@ -27,6 +27,10 @@ class SaisieMatiereViewModel @Inject constructor(
         _siteId.value = id
     }
 
+    fun resetLignes() {
+        _lignes.value = emptyList()
+    }
+
     fun ajouterLigne(ligne: SaisieMatiereLigne) {
         _lignes.value = _lignes.value + ligne
     }

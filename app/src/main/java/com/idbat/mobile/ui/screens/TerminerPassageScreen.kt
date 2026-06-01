@@ -38,7 +38,7 @@ fun TerminerPassageScreen(
     viewModel: TerminerPassageViewModel = hiltViewModel()
 ) {
     // RG5.3 : pré-rempli si email connu, vide sinon (RG5.1)
-    var email by remember { mutableStateOf(info.contact ?: "") }
+    var email by remember(info.contact) { mutableStateOf(info.contact ?: "") }
 
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     val isSaving = saveState == TerminerSaveState.Saving

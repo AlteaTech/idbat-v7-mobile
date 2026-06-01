@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.SaisieMatiereLigne
+import androidx.compose.ui.window.Dialog
 import com.idbat.mobile.ui.components.PhotoPickerComponent
 import com.idbat.mobile.ui.components.SignatureComponent
 import com.idbat.mobile.ui.theme.*
@@ -43,7 +44,7 @@ fun ConfirmationPassageScreen(
     var commentaire by remember { mutableStateOf("") }
     var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var signatureImage by remember { mutableStateOf<ImageBitmap?>(null) }
-    var showSignatureCanvas by remember { mutableStateOf(false) }
+    var showSignatureDialog by remember { mutableStateOf(false) }
     var showTerminer by remember { mutableStateOf(false) }
 
     // RG4 : visibilité du bloc signature
@@ -74,6 +75,18 @@ fun ConfirmationPassageScreen(
             onNavigateToHome = onNavigateToHome
         )
         return
+    }
+
+    if (showSignatureDialog) {
+        Dialog(onDismissRequest = { showSignatureDialog = false }) {
+            SignatureComponent(
+                onValidate = { bitmap ->
+                    signatureImage = bitmap
+                    showSignatureDialog = false
+                },
+                onCancel = { showSignatureDialog = false }
+            )
+        }
     }
 
     val bgColor = MaterialTheme.colorScheme.background
@@ -282,55 +295,34 @@ fun ConfirmationPassageScreen(
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                when {
-                                    signatureImage != null -> {
-                                        androidx.compose.foundation.Image(
-                                            bitmap = signatureImage!!,
-                                            contentDescription = "Signature",
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(120.dp)
-                                                .border(1.dp, VeoliaSubtle, RoundedCornerShape(8.dp))
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        TextButton(
-                                            onClick = {
-                                                signatureImage = null
-                                                showSignatureCanvas = false
-                                            }
-                                        ) {
-                                            Text("Recommencer", color = VeoliaPrincipal)
-                                        }
+                                if (signatureImage != null) {
+                                    androidx.compose.foundation.Image(
+                                        bitmap = signatureImage!!,
+                                        contentDescription = "Signature",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(120.dp)
+                                            .border(1.dp, VeoliaSubtle, RoundedCornerShape(8.dp))
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    TextButton(onClick = { signatureImage = null }) {
+                                        Text("Recommencer", color = VeoliaPrincipal)
                                     }
-                                    showSignatureCanvas -> {
-                                        SignatureComponent(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(200.dp),
-                                            onValidate = {
-                                                signatureImage = it
-                                                showSignatureCanvas = false
-                                            }
+                                } else {
+                                    Button(
+                                        onClick = { showSignatureDialog = true },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(50.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = VeoliaPrincipal)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Draw,
+                                            contentDescription = null,
+                                            tint = White,
+                                            modifier = Modifier.size(18.dp)
                                         )
-                                    }
-                                    else -> {
-                                        Button(
-                                            onClick = { showSignatureCanvas = true },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = RoundedCornerShape(50.dp),
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = VeoliaPrincipal
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Draw,
-                                                contentDescription = null,
-                                                tint = White,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Signer", color = White, fontWeight = FontWeight.SemiBold)
-                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Signer", color = White, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                             }
