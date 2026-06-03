@@ -4,7 +4,11 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Bundle
+import android.os.Looper
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
@@ -51,50 +55,67 @@ class AuthManager @Inject constructor(
 
     private suspend fun getCurrentLocation(): Pair<Double?, Double?> = withContext(Dispatchers.IO) {
         try {
-            // Vérifier les permissions
-            val hasCoarseLocation = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
             val hasFineLocation = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val hasCoarseLocation = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
 
-            if (!hasCoarseLocation && !hasFineLocation) {
+            if (!hasFineLocation && !hasCoarseLocation) {
                 Log.w("AUTH_MANAGER", "Permissions de localisation non accordées")
                 return@withContext Pair(null, null)
             }
 
             val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-            // Vérifier si le GPS ou le réseau est disponible
-            val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-            val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            val availableProviders = listOf(
+                LocationManager.NETWORK_PROVIDER,
+                LocationManager.GPS_PROVIDER,
+                LocationManager.PASSIVE_PROVIDER
+            ).filter { locationManager.isProviderEnabled(it) }
 
-            if (!isGpsEnabled && !isNetworkEnabled) {
+            if (availableProviders.isEmpty()) {
                 Log.w("AUTH_MANAGER", "Aucun provider de localisation activé")
                 return@withContext Pair(null, null)
             }
 
-            // Essayer d'obtenir la dernière localisation connue
-            val provider = when {
-                isGpsEnabled -> LocationManager.GPS_PROVIDER
-                isNetworkEnabled -> LocationManager.NETWORK_PROVIDER
-                else -> return@withContext Pair(null, null)
+            // Demander une position fraîche sur le provider le plus rapide (NETWORK en priorité)
+            // Timeout 5 s pour ne pas bloquer le démarrage
+            val freshLocation = withTimeoutOrNull(5_000L) {
+                suspendCancellableCoroutine { continuation ->
+                    val listener = object : LocationListener {
+                        override fun onLocationChanged(location: Location) {
+                            if (continuation.isActive) continuation.resume(location) {}
+                        }
+                        @Suppress("OVERRIDE_DEPRECATION")
+                        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+                        override fun onProviderEnabled(provider: String) {}
+                        override fun onProviderDisabled(provider: String) {}
+                    }
+                    locationManager.requestSingleUpdate(availableProviders.first(), listener, Looper.getMainLooper())
+                    continuation.invokeOnCancellation { locationManager.removeUpdates(listener) }
+                }
             }
 
+            if (freshLocation != null) {
+                Log.d("AUTH_MANAGER", "Position fraîche (${freshLocation.provider}): lat=${freshLocation.latitude}, lng=${freshLocation.longitude}")
+                return@withContext Pair(freshLocation.latitude, freshLocation.longitude)
+            }
+
+            // Fallback : dernière position en cache sur tous les providers
             @SuppressLint("MissingPermission")
-            val location = locationManager.getLastKnownLocation(provider)
+            val cachedLocation = availableProviders
+                .mapNotNull { locationManager.getLastKnownLocation(it) }
+                .maxByOrNull { it.time }
 
-            if (location != null) {
-                Log.d("AUTH_MANAGER", "Localisation obtenue: lat=${location.latitude}, lng=${location.longitude}")
-                return@withContext Pair(location.latitude, location.longitude)
-            } else {
-                Log.w("AUTH_MANAGER", "Aucune localisation connue disponible")
-                return@withContext Pair(null, null)
+            if (cachedLocation != null) {
+                Log.d("AUTH_MANAGER", "Position en cache (${cachedLocation.provider}): lat=${cachedLocation.latitude}, lng=${cachedLocation.longitude}")
+                return@withContext Pair(cachedLocation.latitude, cachedLocation.longitude)
             }
+
+            Log.w("AUTH_MANAGER", "Aucune position disponible")
+            return@withContext Pair(null, null)
 
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur lors de la récupération de la localisation", e)
