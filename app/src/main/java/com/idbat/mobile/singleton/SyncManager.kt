@@ -1,21 +1,37 @@
 package com.idbat.mobile.singleton
 
+import android.database.AbstractWindowedCursor
+import android.database.CursorWindow
+import android.os.Build
+import android.util.Base64
 import android.util.Log
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.annotation.RequiresApi
 import com.idbat.mobile.data.AppDatabase
-import com.idbat.mobile.data.entities.LastSynchroHistoryEntity
-import com.idbat.mobile.data.entities.SiteEntity
-import com.idbat.mobile.data.entities.TypeSynchro
+import com.idbat.mobile.data.entities.*
+import com.idbat.mobile.generated.client.api.ContratsControllerApi
+import com.idbat.mobile.generated.client.api.PassagesControllerApi
+import com.idbat.mobile.generated.client.model.ContratDmo
+import com.idbat.mobile.generated.client.model.CreerPassageRequest
+import com.idbat.mobile.generated.client.model.PassageDocumentRequest
+import com.idbat.mobile.generated.client.model.PassageMatiereRequest
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.random.Random
 
 @Singleton
 class SyncManager @Inject constructor(
     private val database: AppDatabase,
-    private val tokenStore: TokenStore
+    private val tokenStore: TokenStore,
+    private val contratsApi: ContratsControllerApi,
+    private val passagesApi: PassagesControllerApi
 ) {
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState
@@ -23,7 +39,9 @@ class SyncManager @Inject constructor(
     data class SyncState(
         val lastSynchroDateEnvoi: Date? = null,
         val lastSynchroDateReception: Date? = null,
-        val isTransferring: Boolean = false
+        val isTransferring: Boolean = false,
+        val syncError: String? = null,
+        val lastEnvoiSuccess: Boolean? = null  // null=jamais, true=tout OK, false=erreurs
     )
 
     suspend fun loadSyncDatesForSite(site: SiteEntity) {
@@ -31,73 +49,368 @@ class SyncManager @Inject constructor(
             val dao = database.lastSynchroHistoryDao()
             val lastEnvoi = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.ENVOI)
             val lastReception = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.RECEPTION)
-
             _syncState.value = _syncState.value.copy(
                 lastSynchroDateEnvoi = lastEnvoi?.date,
-                lastSynchroDateReception = lastReception?.date
+                lastSynchroDateReception = lastReception?.date,
+                lastEnvoiSuccess = lastEnvoi?.let { it.operationsReussies == it.operationsTentees }
             )
         } catch (e: Exception) {
             Log.e("SYNC_MANAGER", "Erreur lors du chargement des dates", e)
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun executeTransfer(site: SiteEntity) {
         _syncState.value = _syncState.value.copy(isTransferring = true)
-
-        val tente = Random.nextLong(1, 200)
-        val reussie = Random.nextLong(1, tente)
         try {
-            Log.d("SYNC_MANAGER", "Mon token est : ${tokenStore.token}")
-
-            val dateExec = Date()
-            val dao = database.lastSynchroHistoryDao()
-
-            // Mise à jour ou création des enregistrements de synchro
-            val lastEnvoi = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.ENVOI)
-            val lastReception = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.RECEPTION)
-
-            if (lastEnvoi != null) {
-                lastEnvoi.date = dateExec
-                dao.updateSynchro(lastEnvoi)
-            } else {
-                dao.insertSynchro(
-                    LastSynchroHistoryEntity(
-                        siteId = site.id,
-                        date = dateExec,
-                        type = TypeSynchro.ENVOI,
-                        operationsTentees = tente,
-                        operationsReussies = reussie
-                    )
-                )
-            }
-
-            if (lastReception != null) {
-                lastReception.date = dateExec
-                dao.updateSynchro(lastReception)
-            } else {
-                dao.insertSynchro(
-                    LastSynchroHistoryEntity(
-                        siteId = site.id,
-                        date = dateExec,
-                        type = TypeSynchro.RECEPTION,
-                        operationsTentees = 1,
-                        operationsReussies = 1
-                    )
-                )
-            }
-
-            _syncState.value = _syncState.value.copy(
-                lastSynchroDateEnvoi = dateExec,
-                lastSynchroDateReception = dateExec,
-                isTransferring = false
-            )
-
-            Log.d("SYNC_MANAGER", "Synchronisation terminée avec succès")
-
+            if (ConfigSingleton.IsSyncAscEnable) synchroMontante(site)
+            if (ConfigSingleton.IsSyncDescEnable) synchroDescendante(site)
         } catch (e: Exception) {
-            Log.e("SYNC_MANAGER", "Erreur lors du transfert", e)
+            Log.e("SYNC_MANAGER", "Erreur critique lors du transfert", e)
+            _syncState.value = _syncState.value.copy(syncError = "Erreur inattendue : ${e.message}")
+        } finally {
             _syncState.value = _syncState.value.copy(isTransferring = false)
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun synchroMontante(site: SiteEntity) {
+        if (!ConfigSingleton.webEnable) return
+
+        val passageDao      = database.passageDao()
+        val matiereDao      = database.passageMatiereDao()
+        val documentDao     = database.passageDocumentDao()
+        val usagerDao       = database.usagerDao()
+        val histoDao        = database.lastSynchroHistoryDao()
+
+        val allPassages = passageDao.getAllPassages()
+        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) à envoyer")
+
+        // 0 passages = rien à envoyer, on ne touche pas à l'historique (état précédent conservé)
+        if (allPassages.isEmpty()) return
+
+        // Stats par siteId : Pair(tentées, réussies)
+        val statsBySite = mutableMapOf<Long, Pair<Long, Long>>()
+
+        for (passage in allPassages) {
+            val matieres  = matiereDao.getMatieresByPassage(passage.id)
+            val documents = getDocumentsForSync(passage.id)
+            val usagerId  = passage.carteId?.let { usagerDao.getUsagerByCarte(it)?.id }
+
+            val request = CreerPassageRequest(
+                contratId        = passage.contratId,
+                siteId           = passage.siteId,
+                userTpId         = passage.userTpId,
+                datePassage      = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(passage.dateHeure), ZoneId.systemDefault()
+                ),
+                numeroBonPassage = passage.numeroBonPassage,
+                matieres         = matieres.map { m ->
+                    PassageMatiereRequest(
+                        matieresSiteId = m.matiereId,
+                        quantite       = BigDecimal(m.quantite)
+                    )
+                },
+                documents        = documents.map { d ->
+                    PassageDocumentRequest(
+                        type      = d.type,
+                        nomFichier = d.nomFichier,
+                        mimeType  = d.mimeType,
+                        base64    = Base64.decode(d.base64, Base64.DEFAULT)
+                    )
+                },
+                usagerId    = usagerId,
+                carteId     = passage.carteId,
+                commentaire = passage.commentaire,
+                emailUsager = passage.emailUsager
+            )
+
+            val prev = statsBySite.getOrDefault(passage.siteId, 0L to 0L)
+
+            try {
+                val response = passagesApi.creer(request)
+                if (response.isSuccessful) {
+                    passageDao.deleteById(passage.id)
+                    statsBySite[passage.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Passage ${passage.id} envoyé (site ${passage.siteId})")
+                } else {
+                    statsBySite[passage.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Passage ${passage.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[passage.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi passage ${passage.id}", e)
+            }
+        }
+
+        // Historique ENVOI par site
+        val dateExec = Date()
+        for ((siteId, stats) in statsBySite) {
+            histoDao.deleteTypeForSite(siteId, TypeSynchro.ENVOI)
+            histoDao.insertSynchro(
+                LastSynchroHistoryEntity(
+                    siteId             = siteId,
+                    date               = dateExec,
+                    type               = TypeSynchro.ENVOI,
+                    operationsTentees  = stats.first,
+                    operationsReussies = stats.second
+                )
+            )
+        }
+
+        // Rafraîchir le state pour le site courant
+        statsBySite[site.id]?.let { stats ->
+            _syncState.value = _syncState.value.copy(
+                lastSynchroDateEnvoi = dateExec,
+                lastEnvoiSuccess = stats.second == stats.first  // réussies == tentées
+            )
+        }
+
+        Log.d("SYNC_MANAGER", "Synchro montante terminée — stats: $statsBySite")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun synchroDescendante(site: SiteEntity) {
+        if (!ConfigSingleton.webEnable) return
+
+        // Bloquer si des passages non transférés existent après la montante
+        val passageCount = database.passageDao().count()
+        if (passageCount > 0) {
+            _syncState.value = _syncState.value.copy(
+                syncError = "Impossible de synchroniser : $passageCount passage(s) en attente de transfert.\nVeuillez d'abord envoyer les passages."
+            )
+            return
+        }
+
+        val response = contratsApi.getByDevice()
+        if (!response.isSuccessful) {
+            _syncState.value = _syncState.value.copy(
+                syncError = "Erreur serveur lors de la synchronisation (code ${response.code()})"
+            )
+            return
+        }
+        val dmo = response.body() ?: run {
+            _syncState.value = _syncState.value.copy(syncError = "Le serveur n'a renvoyé aucune donnée.")
+            return
+        }
+
+        withContext(Dispatchers.IO) { applyDiff(dmo) }
+
+        val totalRows = countDmoRows(dmo)
+        val dateExec  = Date()
+        val histoDao  = database.lastSynchroHistoryDao()
+
+        // Les données descendantes sont communes à tous les sites — on met à jour l'historique pour chacun
+        dmo.contratSite.forEach { siteDmo ->
+            histoDao.deleteTypeForSite(siteDmo.id, TypeSynchro.RECEPTION)
+            histoDao.insertSynchro(
+                LastSynchroHistoryEntity(
+                    siteId             = siteDmo.id,
+                    date               = dateExec,
+                    type               = TypeSynchro.RECEPTION,
+                    operationsTentees  = totalRows,
+                    operationsReussies = totalRows
+                )
+            )
+        }
+
+        _syncState.value = _syncState.value.copy(lastSynchroDateReception = dateExec)
+        Log.d("SYNC_MANAGER", "Synchro descendante terminée — $totalRows lignes récupérées (${dmo.contratSite.size} sites mis à jour)")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun applyDiff(dmo: ContratDmo) {
+        val contratDao          = database.contratDao()
+        val siteDao             = database.siteDao()
+        val matiereSiteDao      = database.matiereSiteDao()
+        val utilisateurTPDao    = database.utilisateurTPDao()
+        val usagerDao           = database.usagerDao()
+        val carteContratDao     = database.carteContratDao()
+        val usagerCarteDao      = database.usagerCarteDao()
+        val contratEvenementDao = database.contratEvenementDao()
+
+        // ── UPSERT ──────────────────────────────────────────────────────────────
+
+        val contratEntity = ContratEntity(
+            id = dmo.id,
+            trigramme = dmo.trigramme,
+            nom = dmo.nom,
+            hasPuce = dmo.hasPuce,
+            hasCodebarres = dmo.hasCodebarres,
+            hasImmatriculation = dmo.hasImmatriculation,
+            hasSelectionusager = dmo.hasSelectionusager,
+            hasSignatureParticuliers = dmo.hasSignatureparticuliers,
+            hasSignatureProfessionnels = dmo.hasSignatureprofessionels
+        )
+        contratDao.insertContrat(contratEntity)
+
+        val siteEntities = dmo.contratSite.map { siteDmo ->
+            SiteEntity(
+                id = siteDmo.id,
+                trigramme = siteDmo.trigramme,
+                nom = siteDmo.nom,
+                adresse1 = siteDmo.adresse1,
+                adresse2 = siteDmo.adresse2,
+                codePostal = siteDmo.codePostal,
+                ville = siteDmo.ville,
+                typeImprimante = siteDmo.typeImprimante,
+                macImprimante = siteDmo.macImprimante,
+                horairesOuverture = siteDmo.horairesOuverture,
+                destinatairesMailTransfertTP = siteDmo.destinatairesMailTransfertTP,
+                contratId = contratEntity.id
+            )
+        }
+        if (siteEntities.isNotEmpty()) siteDao.insertSites(siteEntities)
+
+        val utilisateurEntities = dmo.contratUtilisateursTps.map { utpDmo ->
+            UtilisateurTPEntity(id = utpDmo.id ?: 0, login = utpDmo.login, pin = utpDmo.motDePasse)
+        }
+        if (utilisateurEntities.isNotEmpty()) utilisateurTPDao.insertUtilisateurs(utilisateurEntities)
+
+        val usagerEntities = dmo.contratUsagers.map { usagerDmo ->
+            UsagerEntity(
+                id = usagerDmo.id,
+                nom = usagerDmo.nom,
+                prenom = usagerDmo.prenom,
+                refClientIdBat = usagerDmo.refClientIdBat,
+                contratId = usagerDmo.contratId,
+                raisonSociale = usagerDmo.raisonSociale,
+                typeApporteurLibelle = usagerDmo.typeApporteurLibelle,
+                couriel = usagerDmo.couriel,
+                typeApporteurIsPro = usagerDmo.typeApporteurIsPro,
+            )
+        }
+        coroutineScope {
+            usagerEntities.chunked(2000).map { lot -> async { usagerDao.insertUsagers(lot) } }.awaitAll()
+        }
+
+        val allCartes = dmo.contratUsagers.flatMap { usagerDmo ->
+            usagerDmo.cartes.map { carteDmo ->
+                CarteContratEntity(
+                    id = carteDmo.id,
+                    libelle = "",
+                    type = carteDmo.type,
+                    valeur = carteDmo.valeur.ifBlank { null },
+                    uidRfid = carteDmo.uidRfid,
+                    isCreationByQRCode = carteDmo.isCreationByQRCode,
+                    carteGriseJ1 = carteDmo.carteGriseJ1,
+                    carteGriseF3 = carteDmo.carteGriseF3,
+                    contratId = contratEntity.id,
+                    carteId = carteDmo.id
+                )
+            }
+        }
+        if (allCartes.isNotEmpty()) carteContratDao.insertCartes(allCartes)
+
+        // ── TABLES DE LIAISON : clear + reinsert ────────────────────────────────
+
+        matiereSiteDao.purge()
+        val allMatieres = dmo.contratSite.flatMap { siteDmo ->
+            siteDmo.matieres.map { m ->
+                MatiereSiteEntity(
+                    siteId = siteDmo.id,
+                    matiereId = m.id,
+                    libelle = m.libelle,
+                    unitesDesApportId = m.unitesDesApportId,
+                    unitesDesApportLibelle = m.unitesDesApportLibelle,
+                    tarif = m.tarif.toDouble()
+                )
+            }
+        }
+        if (allMatieres.isNotEmpty()) matiereSiteDao.insertMatieres(allMatieres)
+
+        usagerCarteDao.clearUsagerCartes()
+        val allUsagerCartes = dmo.contratUsagers.flatMap { usagerDmo ->
+            usagerDmo.cartes.map { carteDmo ->
+                UsagerCarteEntity(
+                    usagerId = usagerDmo.id,
+                    carteId = carteDmo.id,
+                    dateDebut = Date.from(
+                        carteDmo.dateDebutAffectation.atStartOfDay(ZoneId.systemDefault()).toInstant()
+                    ),
+                    dateFin = carteDmo.dateFinAffectation?.let {
+                        Date.from(it.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                    }
+                )
+            }
+        }
+        if (allUsagerCartes.isNotEmpty()) usagerCarteDao.insertUsagerCartes(allUsagerCartes)
+
+        contratEvenementDao.clearEvenements()
+        val allEvenements = dmo.evenementsContrat.map { evDmo ->
+            ContratEvenementEntity(
+                evenementId = evDmo.evenementId,
+                libelle = evDmo.libelle,
+                jointureId = evDmo.jointureId,
+                contratId = contratEntity.id
+            )
+        }
+        coroutineScope {
+            allEvenements.chunked(500).map { lot -> async { contratEvenementDao.insertEvenements(lot) } }.awaitAll()
+        }
+
+        // ── SUPPRESSION DES LIGNES OBSOLÈTES ────────────────────────────────────
+
+        val newCarteIds = allCartes.map { it.id }
+        if (newCarteIds.isNotEmpty()) carteContratDao.deleteCartesNotIn(newCarteIds) else carteContratDao.clearCartes()
+
+        val newUsagerIds = usagerEntities.map { it.id }
+        if (newUsagerIds.isNotEmpty()) usagerDao.deleteUsagersNotIn(newUsagerIds) else usagerDao.purge()
+
+        val newSiteIds = siteEntities.map { it.id }
+        if (newSiteIds.isNotEmpty()) siteDao.deleteSitesNotIn(newSiteIds) else siteDao.purge()
+
+        val newUtpIds = utilisateurEntities.mapNotNull { if (it.id != 0L) it.id else null }
+        if (newUtpIds.isNotEmpty()) utilisateurTPDao.deleteUtilisateursNotIn(newUtpIds)
+        else utilisateurTPDao.clearUtilisateursExcludingAdmin()
+
+        Log.d("SYNC_MANAGER", "Diff appliqué : ${siteEntities.size} sites, ${usagerEntities.size} usagers, ${allCartes.size} cartes")
+    }
+
+    private fun countDmoRows(dmo: ContratDmo): Long {
+        val sites        = dmo.contratSite.size.toLong()
+        val utilisateurs = dmo.contratUtilisateursTps.size.toLong()
+        val usagers      = dmo.contratUsagers.size.toLong()
+        val cartes       = dmo.contratUsagers.sumOf { it.cartes.size }.toLong()
+        val matieres     = dmo.contratSite.sumOf { it.matieres.size }.toLong()
+        val usagerCartes = cartes
+        val evenements   = dmo.evenementsContrat.size.toLong()
+        return 1L + sites + utilisateurs + usagers + cartes + matieres + usagerCartes + evenements
+    }
+
+    private suspend fun getDocumentsForSync(passageId: Long): List<PassageDocumentEntity> =
+        withContext(Dispatchers.IO) {
+            val cursor = database.openHelper.readableDatabase.query(
+                SimpleSQLiteQuery(
+                    "SELECT id, passageId, type, base64, mimeType, nomFichier FROM passage_document WHERE passageId = ?",
+                    arrayOf(passageId)
+                )
+            )
+            // CursorWindow par défaut = 2MB — insuffisant pour des photos base64.
+            // On le remplace par un de 10MB avant la première lecture.
+            if (cursor is AbstractWindowedCursor) {
+                cursor.window = CursorWindow("sync_docs", 10L * 1024 * 1024)
+            }
+            val docs = mutableListOf<PassageDocumentEntity>()
+            cursor.use { c ->
+                while (c.moveToNext()) {
+                    docs.add(
+                        PassageDocumentEntity(
+                            id        = c.getLong(0),
+                            passageId = c.getLong(1),
+                            type      = c.getString(2),
+                            base64    = c.getString(3),
+                            mimeType  = c.getString(4),
+                            nomFichier = c.getString(5)
+                        )
+                    )
+                }
+            }
+            docs
+        }
+
+    fun clearSyncError() {
+        _syncState.value = _syncState.value.copy(syncError = null)
     }
 
     fun clearSyncData() {

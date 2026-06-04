@@ -2,6 +2,7 @@ package com.idbat.mobile.ui.viewmodel
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import androidx.compose.ui.graphics.ImageBitmap
@@ -111,8 +112,9 @@ class TerminerPassageViewModel @Inject constructor(
                         val ext = mimeType.substringAfterLast("/", "jpg")
                         val inputStream = context.contentResolver.openInputStream(uri)
                         if (inputStream != null) {
-                            val bytes = inputStream.readBytes()
+                            val raw = inputStream.readBytes()
                             inputStream.close()
+                            val bytes = resizeToMax1080(raw, mimeType)
                             documents.add(
                                 PassageDocumentEntity(
                                     passageId = passageId,
@@ -160,5 +162,27 @@ class TerminerPassageViewModel @Inject constructor(
 
     fun resetState() {
         _saveState.value = TerminerSaveState.Idle
+    }
+
+    private fun resizeToMax1080(bytes: ByteArray, mimeType: String): ByteArray {
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return bytes
+        val maxSide = maxOf(bitmap.width, bitmap.height)
+        if (maxSide <= 1080) {
+            bitmap.recycle()
+            return bytes
+        }
+        val scale = 1080f / maxSide
+        val resized = Bitmap.createScaledBitmap(
+            bitmap,
+            (bitmap.width * scale).toInt(),
+            (bitmap.height * scale).toInt(),
+            true
+        )
+        bitmap.recycle()
+        val out = ByteArrayOutputStream()
+        val format = if (mimeType.contains("png")) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+        resized.compress(format, 85, out)
+        resized.recycle()
+        return out.toByteArray()
     }
 }

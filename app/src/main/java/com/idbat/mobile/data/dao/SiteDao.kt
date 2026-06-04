@@ -1,18 +1,17 @@
 package com.idbat.mobile.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.idbat.mobile.data.entities.SiteEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SiteDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertSites(sites: List<SiteEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertSite(site: SiteEntity)
 
     @Query("SELECT * FROM sites")
@@ -29,4 +28,7 @@ interface SiteDao {
 
     @Query("SELECT count(1) FROM sites")
     suspend fun count(): Long
+
+    @Query("DELETE FROM sites WHERE id NOT IN (:ids)")
+    suspend fun deleteSitesNotIn(ids: List<Long>)
 }

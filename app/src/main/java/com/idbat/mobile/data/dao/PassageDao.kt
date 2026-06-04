@@ -16,4 +16,13 @@ interface PassageDao {
 
     @Query("SELECT * FROM passage WHERE siteId = :siteId ORDER BY dateHeure DESC")
     fun getPassagesBySiteFlow(siteId: Long): Flow<List<PassageEntity>>
+
+    @Query("SELECT COUNT(*) FROM passage")
+    suspend fun count(): Long
+
+    @Query("SELECT * FROM passage ORDER BY dateHeure ASC")
+    suspend fun getAllPassages(): List<PassageEntity>
+
+    @Query("DELETE FROM passage WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

@@ -45,4 +45,7 @@ interface UsagerDao {
 
     @Query("DELETE FROM usagers")
     suspend fun purge()
+
+    @Query("DELETE FROM usagers WHERE id NOT IN (:ids)")
+    suspend fun deleteUsagersNotIn(ids: List<Long>)
 }

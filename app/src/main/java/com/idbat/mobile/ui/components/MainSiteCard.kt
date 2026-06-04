@@ -19,8 +19,10 @@ fun MainSiteCard(
     lastTransfer: String,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
+    lastEnvoiSuccess: Boolean?,
     onTransferClick: () -> Unit,
-    onSuiviClick: () -> Unit
+    onSuiviClick: () -> Unit,
+    isTransferring: Boolean = false
 ) {
     Card(
         shape = RoundedCornerShape(32.dp),
@@ -47,7 +49,7 @@ fun MainSiteCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusBadge(text = "Envoi", isSuccess = lastSynchroDateEnvoi != null)
+                StatusBadge(text = "Envoi", isSuccess = lastEnvoiSuccess == true)
                 StatusBadge(text = "Réception", isSuccess = lastSynchroDateReception != null)
             }
 
@@ -67,11 +69,20 @@ fun MainSiteCard(
                 }
                 Button(
                     onClick = onTransferClick,
+                    enabled = !isTransferring,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                     shape = RoundedCornerShape(20.dp)
                 ) {
-                    Text("Transférer", color = Color.White, fontWeight = FontWeight.Bold)
+                    if (isTransferring) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Transférer", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

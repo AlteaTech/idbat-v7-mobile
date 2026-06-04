@@ -6,7 +6,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +73,20 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
         }
     }
 
+    val syncError = uiState.syncState.syncError
+    if (syncError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearSyncError() },
+            title = { Text("Synchronisation impossible") },
+            text = { Text(syncError) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearSyncError() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
         composable(AppDestination.Login.route) {
             LoginScreen()
@@ -80,7 +97,9 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
                 contrat = uiState.authState.loggedInContrat,
                 lastSynchroDateEnvoi = uiState.syncState.lastSynchroDateEnvoi,
                 lastSynchroDateReception = uiState.syncState.lastSynchroDateReception,
+                lastEnvoiSuccess = uiState.syncState.lastEnvoiSuccess,
                 onTransferClick = { viewModel.executeTransfer() },
+                isTransferring = uiState.syncState.isTransferring,
                 getSuiviContent = { siteId -> viewModel.getSuiviContentAsync(siteId) },
                 onNavigateToPoc = { navController.navigate(AppDestination.Poc.route) }
             )

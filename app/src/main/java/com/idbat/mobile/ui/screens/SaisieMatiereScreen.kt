@@ -483,13 +483,9 @@ private fun AjouterMatiereDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
+                    enabled = quantite.isNotBlank() && quantite.toDoubleOrNull() != null,
                     onClick = {
                         val matiere = selectedMatiere ?: return@Button
-                        // RG2 : quantité obligatoire (0 est autorisé, blanc ne l'est pas)
-                        if (quantite.isBlank()) {
-                            quantiteError = true
-                            return@Button
-                        }
                         onValidate(
                             SaisieMatiereLigne(
                                 matiere = matiere,

@@ -1,18 +1,17 @@
 package com.idbat.mobile.data.dao
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.idbat.mobile.data.entities.ContratEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContratDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertContrats(contrats: List<ContratEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertContrat(contrat: ContratEntity)
 
     @Query("SELECT * FROM contrats")
