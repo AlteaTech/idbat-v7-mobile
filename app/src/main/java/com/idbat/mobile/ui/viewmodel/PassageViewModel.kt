@@ -55,7 +55,8 @@ class PassageViewModel @Inject constructor(
                         siteId = siteId,
                         carteId = carteId,
                         userTpId = userTp.id,
-                        numeroBonPassage = numeroBonPassage
+                        numeroBonPassage = numeroBonPassage,
+                        transactionId = java.util.UUID.randomUUID().toString()
                     )
                 )
                 _saveState.value = PassageSaveState.Success

@@ -32,6 +32,7 @@ import com.squareup.moshi.Json
  * @param siteId 
  * @param userTpId 
  * @param datePassage 
+ * @param transactionId 
  * @param numeroBonPassage 
  * @param matieres 
  * @param documents 
@@ -55,6 +56,9 @@ data class CreerPassageRequest (
 
     @Json(name = "datePassage")
     val datePassage: java.time.OffsetDateTime,
+
+    @Json(name = "transactionId")
+    val transactionId: kotlin.String,
 
     @Json(name = "numeroBonPassage")
     val numeroBonPassage: kotlin.String,

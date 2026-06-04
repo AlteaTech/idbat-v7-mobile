@@ -39,5 +39,6 @@ data class PassageEntity(
     val userTpId: Long,
     val numeroBonPassage: String,
     val commentaire: String? = null,
-    val emailUsager: String? = null
+    val emailUsager: String? = null,
+    val transactionId: String = java.util.UUID.randomUUID().toString()
 )

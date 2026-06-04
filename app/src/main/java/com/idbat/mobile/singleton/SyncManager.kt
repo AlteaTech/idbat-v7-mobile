@@ -101,6 +101,7 @@ class SyncManager @Inject constructor(
                 contratId        = passage.contratId,
                 siteId           = passage.siteId,
                 userTpId         = passage.userTpId,
+                transactionId    = passage.transactionId,
                 datePassage      = OffsetDateTime.ofInstant(
                     Instant.ofEpochMilli(passage.dateHeure), ZoneId.systemDefault()
                 ),

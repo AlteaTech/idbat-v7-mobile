@@ -85,7 +85,8 @@ class TerminerPassageViewModel @Inject constructor(
                             userTpId = userTp.id,
                             numeroBonPassage = numeroBonPassage,
                             commentaire = commentaire.takeIf { it.isNotBlank() },
-                            emailUsager = emailSnapshot
+                            emailUsager = emailSnapshot,
+                            transactionId = java.util.UUID.randomUUID().toString()
                         )
                     )
 
