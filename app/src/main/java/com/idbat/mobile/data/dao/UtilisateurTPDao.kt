@@ -35,4 +35,7 @@ interface UtilisateurTPDao {
 
     @Query("DELETE FROM utilisateurs_tp WHERE login != 'admin'")
     suspend fun clearUtilisateursExcludingAdmin()
+
+    @Query("SELECT * FROM utilisateurs_tp")
+    suspend fun getAllUtilisateurs(): List<UtilisateurTPEntity>
 }

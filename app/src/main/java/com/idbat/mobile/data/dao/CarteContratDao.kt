@@ -51,6 +51,9 @@ interface CarteContratDao {
     """)
     suspend fun getActiveCarteCByCodebarres(codebarres: String, now: Long): CarteContratEntity?
 
+    @Query("SELECT * FROM carte_contrat WHERE contratId = :contratId")
+    suspend fun getCartesByContrat(contratId: Long): List<CarteContratEntity>
+
     @Query("DELETE FROM carte_contrat")
     suspend fun clearCartes()
 

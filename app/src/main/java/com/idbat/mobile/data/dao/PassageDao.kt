@@ -11,6 +11,9 @@ interface PassageDao {
     @Insert
     suspend fun insertPassage(passage: PassageEntity): Long
 
+    @Insert
+    suspend fun insertPassages(passages: List<PassageEntity>): List<Long>
+
     @Query("SELECT * FROM passage ORDER BY dateHeure DESC")
     fun getAllPassagesFlow(): Flow<List<PassageEntity>>
 

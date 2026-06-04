@@ -3,11 +3,13 @@ package com.idbat.mobile.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.idbat.mobile.ui.viewmodel.TestVolumeViewModel
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -36,12 +38,54 @@ fun HomeScreen(
     onTransferClick: () -> Unit,
     onNavigateToPoc: () -> Unit,
     isTransferring: Boolean = false,
-    getSuiviContent: suspend (Long) -> CharSequence = { "" }
+    getSuiviContent: suspend (Long) -> CharSequence = { "" },
+    testVolumeViewModel: TestVolumeViewModel = hiltViewModel()
 ) {
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
     var showCarteSheet by remember { mutableStateOf(false) }
     var showDepotScreen by remember { mutableStateOf(false) }
+
+    val testVolumeState by testVolumeViewModel.state.collectAsStateWithLifecycle()
+
+    when (val s = testVolumeState) {
+        is TestVolumeViewModel.State.Running -> AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Test Volume Passage") },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(s.message, style = MaterialTheme.typography.bodyMedium)
+                }
+            },
+            confirmButton = {}
+        )
+        is TestVolumeViewModel.State.Done -> AlertDialog(
+            onDismissRequest = { testVolumeViewModel.reset() },
+            title = { Text("Terminé") },
+            text = {
+                Text(
+                    "${s.totalPassages} passages créés\n" +
+                    "(${s.totalSites} site(s) × ${s.totalUsers} utilisateur(s) × 1000)"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { testVolumeViewModel.reset() }) { Text("OK") }
+            }
+        )
+        is TestVolumeViewModel.State.Error -> AlertDialog(
+            onDismissRequest = { testVolumeViewModel.reset() },
+            title = { Text("Erreur") },
+            text = { Text(s.message) },
+            confirmButton = {
+                TextButton(onClick = { testVolumeViewModel.reset() }) { Text("OK") }
+            }
+        )
+        else -> Unit
+    }
 
     if (showDepotScreen) {
         DepotScreen(
@@ -165,7 +209,8 @@ fun HomeScreen(
                 onPocClick = {
                     showCarteSheet = false
                     onNavigateToPoc()
-                }
+                },
+                onTestVolumeClick = { testVolumeViewModel.generer() }
             )
         }
     }
