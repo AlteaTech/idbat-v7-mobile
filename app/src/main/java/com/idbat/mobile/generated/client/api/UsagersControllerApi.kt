@@ -8,15 +8,15 @@ import retrofit2.http.PUT
 interface UsagersControllerApi {
     /**
      * PUT api/usagers
-     *
-     *
+     * 
+     * 
      * Responses:
      *  - 200: OK
      *
-     * @param patchUsagerMobileRequest
+     * @param patchUsagerMobileRequest 
      * @return [Unit]
      */
     @PUT("api/usagers")
-    suspend fun patchCourrielsBulk(@Body patchUsagerMobileRequest: List<PatchUsagerMobileRequest>): Response<Unit>
+    suspend fun patchCourrielsBulk(@Body patchUsagerMobileRequest: kotlin.collections.List<PatchUsagerMobileRequest>): Response<Unit>
 
 }

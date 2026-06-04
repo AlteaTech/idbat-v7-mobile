@@ -47,6 +47,18 @@ class SyncManager @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun executeTransfer(site: SiteEntity) {
+        if(ConfigSingleton.IsSyncAscEnable) {
+            synchroMontante(site)
+        }
+        if(ConfigSingleton.IsSyncDescEnable) {
+            synchroDescendante(site)
+        }
+    }
+
+    suspend fun synchroMontante(site: SiteEntity) {
+    }
+
+    suspend fun synchroDescendante(site: SiteEntity) {
         _syncState.value = _syncState.value.copy(isTransferring = true)
         try {
             Log.d("SYNC_MANAGER", "Début du transfert pour le site ${site.nom} — token: ${tokenStore.token}")
@@ -116,8 +128,7 @@ class SyncManager @Inject constructor(
                 isTransferring = false,
                 syncError = "Erreur inattendue : ${e.message}"
             )
-        }
-    }
+        }    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun applyDiff(dmo: ContratDmo) {

@@ -8,15 +8,15 @@ import retrofit2.http.POST
 interface PassagesControllerApi {
     /**
      * POST api/passages
-     *
-     *
+     * 
+     * 
      * Responses:
      *  - 200: OK
      *
-     * @param creerPassageRequest
+     * @param creerPassageRequest 
      * @return [kotlin.Long]
      */
     @POST("api/passages")
-    suspend fun creer(@Body creerPassageRequest: CreerPassageRequest): Response<Long>
+    suspend fun creer(@Body creerPassageRequest: CreerPassageRequest): Response<kotlin.Long>
 
 }
