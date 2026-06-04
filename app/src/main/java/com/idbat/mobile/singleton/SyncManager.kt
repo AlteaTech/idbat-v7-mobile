@@ -1,15 +1,27 @@
 package com.idbat.mobile.singleton
 
+import android.database.AbstractWindowedCursor
+import android.database.CursorWindow
 import android.os.Build
+import android.util.Base64
 import android.util.Log
+import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.annotation.RequiresApi
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
+import com.idbat.mobile.generated.client.api.PassagesControllerApi
 import com.idbat.mobile.generated.client.model.ContratDmo
+import com.idbat.mobile.generated.client.model.CreerPassageRequest
+import com.idbat.mobile.generated.client.model.PassageDocumentRequest
+import com.idbat.mobile.generated.client.model.PassageMatiereRequest
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,7 +30,8 @@ import javax.inject.Singleton
 class SyncManager @Inject constructor(
     private val database: AppDatabase,
     private val tokenStore: TokenStore,
-    private val contratsApi: ContratsControllerApi
+    private val contratsApi: ContratsControllerApi,
+    private val passagesApi: PassagesControllerApi
 ) {
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState
@@ -27,7 +40,8 @@ class SyncManager @Inject constructor(
         val lastSynchroDateEnvoi: Date? = null,
         val lastSynchroDateReception: Date? = null,
         val isTransferring: Boolean = false,
-        val syncError: String? = null
+        val syncError: String? = null,
+        val lastEnvoiSuccess: Boolean? = null  // null=jamais, true=tout OK, false=erreurs
     )
 
     suspend fun loadSyncDatesForSite(site: SiteEntity) {
@@ -35,10 +49,10 @@ class SyncManager @Inject constructor(
             val dao = database.lastSynchroHistoryDao()
             val lastEnvoi = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.ENVOI)
             val lastReception = dao.getLastSynchroForSiteAndType(site.id, TypeSynchro.RECEPTION)
-
             _syncState.value = _syncState.value.copy(
                 lastSynchroDateEnvoi = lastEnvoi?.date,
-                lastSynchroDateReception = lastReception?.date
+                lastSynchroDateReception = lastReception?.date,
+                lastEnvoiSuccess = lastEnvoi?.let { it.operationsReussies == it.operationsTentees }
             )
         } catch (e: Exception) {
             Log.e("SYNC_MANAGER", "Erreur lors du chargement des dates", e)
@@ -47,88 +61,159 @@ class SyncManager @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun executeTransfer(site: SiteEntity) {
-        if(ConfigSingleton.IsSyncAscEnable) {
-            synchroMontante(site)
-        }
-        if(ConfigSingleton.IsSyncDescEnable) {
-            synchroDescendante(site)
-        }
-    }
-
-    suspend fun synchroMontante(site: SiteEntity) {
-    }
-
-    suspend fun synchroDescendante(site: SiteEntity) {
         _syncState.value = _syncState.value.copy(isTransferring = true)
         try {
-            Log.d("SYNC_MANAGER", "Début du transfert pour le site ${site.nom} — token: ${tokenStore.token}")
+            if (ConfigSingleton.IsSyncAscEnable) synchroMontante(site)
+            if (ConfigSingleton.IsSyncDescEnable) synchroDescendante(site)
+        } catch (e: Exception) {
+            Log.e("SYNC_MANAGER", "Erreur critique lors du transfert", e)
+            _syncState.value = _syncState.value.copy(syncError = "Erreur inattendue : ${e.message}")
+        } finally {
+            _syncState.value = _syncState.value.copy(isTransferring = false)
+        }
+    }
 
-            if (!ConfigSingleton.webEnable) {
-                Log.d("SYNC_MANAGER", "Mode hors ligne — synchronisation ignorée")
-                _syncState.value = _syncState.value.copy(isTransferring = false)
-                return
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun synchroMontante(site: SiteEntity) {
+        if (!ConfigSingleton.webEnable) return
+
+        val passageDao      = database.passageDao()
+        val matiereDao      = database.passageMatiereDao()
+        val documentDao     = database.passageDocumentDao()
+        val usagerDao       = database.usagerDao()
+        val histoDao        = database.lastSynchroHistoryDao()
+
+        val allPassages = passageDao.getAllPassages()
+        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) à envoyer")
+
+        // 0 passages = rien à envoyer, on ne touche pas à l'historique (état précédent conservé)
+        if (allPassages.isEmpty()) return
+
+        // Stats par siteId : Pair(tentées, réussies)
+        val statsBySite = mutableMapOf<Long, Pair<Long, Long>>()
+
+        for (passage in allPassages) {
+            val matieres  = matiereDao.getMatieresByPassage(passage.id)
+            val documents = getDocumentsForSync(passage.id)
+            val usagerId  = passage.carteId?.let { usagerDao.getUsagerByCarte(it)?.id }
+
+            val request = CreerPassageRequest(
+                contratId        = passage.contratId,
+                siteId           = passage.siteId,
+                userTpId         = passage.userTpId,
+                datePassage      = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(passage.dateHeure), ZoneId.systemDefault()
+                ),
+                numeroBonPassage = passage.numeroBonPassage,
+                matieres         = matieres.map { m ->
+                    PassageMatiereRequest(
+                        matieresSiteId = m.matiereId,
+                        quantite       = BigDecimal(m.quantite)
+                    )
+                },
+                documents        = documents.map { d ->
+                    PassageDocumentRequest(
+                        type      = d.type,
+                        nomFichier = d.nomFichier,
+                        mimeType  = d.mimeType,
+                        base64    = Base64.decode(d.base64, Base64.DEFAULT)
+                    )
+                },
+                usagerId    = usagerId,
+                carteId     = passage.carteId,
+                commentaire = passage.commentaire,
+                emailUsager = passage.emailUsager
+            )
+
+            val prev = statsBySite.getOrDefault(passage.siteId, 0L to 0L)
+
+            try {
+                val response = passagesApi.creer(request)
+                if (response.isSuccessful) {
+                    passageDao.deleteById(passage.id)
+                    statsBySite[passage.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Passage ${passage.id} envoyé (site ${passage.siteId})")
+                } else {
+                    statsBySite[passage.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Passage ${passage.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[passage.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi passage ${passage.id}", e)
             }
+        }
 
-            // 1. Bloquer si des passages non transférés existent
-            val passageCount = database.passageDao().count()
-            if (passageCount > 0) {
-                _syncState.value = _syncState.value.copy(
-                    isTransferring = false,
-                    syncError = "Impossible de synchroniser : $passageCount passage(s) en attente de transfert.\nVeuillez d'abord envoyer les passages."
-                )
-                return
-            }
-
-            // 2. Récupération depuis l'API
-            val response = contratsApi.getByDevice()
-            if (!response.isSuccessful) {
-                _syncState.value = _syncState.value.copy(
-                    isTransferring = false,
-                    syncError = "Erreur serveur lors de la synchronisation (code ${response.code()})"
-                )
-                return
-            }
-            val dmo = response.body() ?: run {
-                _syncState.value = _syncState.value.copy(
-                    isTransferring = false,
-                    syncError = "Le serveur n'a renvoyé aucune donnée."
-                )
-                return
-            }
-
-            // 3. Diff en base de données
-            withContext(Dispatchers.IO) { applyDiff(dmo) }
-
-            // 4. Comptage total des lignes récupérées (toutes tables confondues)
-            val totalRows = countDmoRows(dmo)
-
-            // 5. Mise à jour de l'historique de synchro pour le site courant
-            val dateExec = Date()
-            val histoDao = database.lastSynchroHistoryDao()
-            histoDao.deleteTypeForSite(site.id, TypeSynchro.RECEPTION)
+        // Historique ENVOI par site
+        val dateExec = Date()
+        for ((siteId, stats) in statsBySite) {
+            histoDao.deleteTypeForSite(siteId, TypeSynchro.ENVOI)
             histoDao.insertSynchro(
                 LastSynchroHistoryEntity(
-                    siteId = site.id,
-                    date = dateExec,
-                    type = TypeSynchro.RECEPTION,
-                    operationsTentees = totalRows,
-                    operationsReussies = totalRows
+                    siteId             = siteId,
+                    date               = dateExec,
+                    type               = TypeSynchro.ENVOI,
+                    operationsTentees  = stats.first,
+                    operationsReussies = stats.second
                 )
             )
+        }
 
+        // Rafraîchir le state pour le site courant
+        statsBySite[site.id]?.let { stats ->
             _syncState.value = _syncState.value.copy(
-                lastSynchroDateReception = dateExec,
-                isTransferring = false
+                lastSynchroDateEnvoi = dateExec,
+                lastEnvoiSuccess = stats.second == stats.first  // réussies == tentées
             )
-            Log.d("SYNC_MANAGER", "Synchronisation terminée — $totalRows lignes récupérées")
+        }
 
-        } catch (e: Exception) {
-            Log.e("SYNC_MANAGER", "Erreur lors du transfert", e)
+        Log.d("SYNC_MANAGER", "Synchro montante terminée — stats: $statsBySite")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun synchroDescendante(site: SiteEntity) {
+        if (!ConfigSingleton.webEnable) return
+
+        // Bloquer si des passages non transférés existent après la montante
+        val passageCount = database.passageDao().count()
+        if (passageCount > 0) {
             _syncState.value = _syncState.value.copy(
-                isTransferring = false,
-                syncError = "Erreur inattendue : ${e.message}"
+                syncError = "Impossible de synchroniser : $passageCount passage(s) en attente de transfert.\nVeuillez d'abord envoyer les passages."
             )
-        }    }
+            return
+        }
+
+        val response = contratsApi.getByDevice()
+        if (!response.isSuccessful) {
+            _syncState.value = _syncState.value.copy(
+                syncError = "Erreur serveur lors de la synchronisation (code ${response.code()})"
+            )
+            return
+        }
+        val dmo = response.body() ?: run {
+            _syncState.value = _syncState.value.copy(syncError = "Le serveur n'a renvoyé aucune donnée.")
+            return
+        }
+
+        withContext(Dispatchers.IO) { applyDiff(dmo) }
+
+        val totalRows = countDmoRows(dmo)
+        val dateExec  = Date()
+        val histoDao  = database.lastSynchroHistoryDao()
+        histoDao.deleteTypeForSite(site.id, TypeSynchro.RECEPTION)
+        histoDao.insertSynchro(
+            LastSynchroHistoryEntity(
+                siteId             = site.id,
+                date               = dateExec,
+                type               = TypeSynchro.RECEPTION,
+                operationsTentees  = totalRows,
+                operationsReussies = totalRows
+            )
+        )
+
+
+        _syncState.value = _syncState.value.copy(lastSynchroDateReception = dateExec)
+        Log.d("SYNC_MANAGER", "Synchro descendante terminée — $totalRows lignes récupérées")
+    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun applyDiff(dmo: ContratDmo) {
@@ -141,7 +226,7 @@ class SyncManager @Inject constructor(
         val usagerCarteDao      = database.usagerCarteDao()
         val contratEvenementDao = database.contratEvenementDao()
 
-        // ── UPSERT (insert or replace) ───────────────────────────────────────────
+        // ── UPSERT ──────────────────────────────────────────────────────────────
 
         val contratEntity = ContratEntity(
             id = dmo.id,
@@ -175,11 +260,7 @@ class SyncManager @Inject constructor(
         if (siteEntities.isNotEmpty()) siteDao.insertSites(siteEntities)
 
         val utilisateurEntities = dmo.contratUtilisateursTps.map { utpDmo ->
-            UtilisateurTPEntity(
-                id = utpDmo.id ?: 0,
-                login = utpDmo.login,
-                pin = utpDmo.motDePasse
-            )
+            UtilisateurTPEntity(id = utpDmo.id ?: 0, login = utpDmo.login, pin = utpDmo.motDePasse)
         }
         if (utilisateurEntities.isNotEmpty()) utilisateurTPDao.insertUtilisateurs(utilisateurEntities)
 
@@ -222,14 +303,14 @@ class SyncManager @Inject constructor(
 
         matiereSiteDao.purge()
         val allMatieres = dmo.contratSite.flatMap { siteDmo ->
-            siteDmo.matieres.map { matiereDmo ->
+            siteDmo.matieres.map { m ->
                 MatiereSiteEntity(
                     siteId = siteDmo.id,
-                    matiereId = matiereDmo.id,
-                    libelle = matiereDmo.libelle,
-                    unitesDesApportId = matiereDmo.unitesDesApportId,
-                    unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle,
-                    tarif = matiereDmo.tarif.toDouble()
+                    matiereId = m.id,
+                    libelle = m.libelle,
+                    unitesDesApportId = m.unitesDesApportId,
+                    unitesDesApportLibelle = m.unitesDesApportLibelle,
+                    tarif = m.tarif.toDouble()
                 )
             }
         }
@@ -241,14 +322,11 @@ class SyncManager @Inject constructor(
                 UsagerCarteEntity(
                     usagerId = usagerDmo.id,
                     carteId = carteDmo.id,
-                    dateDebut = java.util.Date.from(
-                        carteDmo.dateDebutAffectation
-                            .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                    dateDebut = Date.from(
+                        carteDmo.dateDebutAffectation.atStartOfDay(ZoneId.systemDefault()).toInstant()
                     ),
                     dateFin = carteDmo.dateFinAffectation?.let {
-                        java.util.Date.from(
-                            it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
-                        )
+                        Date.from(it.atStartOfDay(ZoneId.systemDefault()).toInstant())
                     }
                 )
             }
@@ -271,16 +349,13 @@ class SyncManager @Inject constructor(
         // ── SUPPRESSION DES LIGNES OBSOLÈTES ────────────────────────────────────
 
         val newCarteIds = allCartes.map { it.id }
-        if (newCarteIds.isNotEmpty()) carteContratDao.deleteCartesNotIn(newCarteIds)
-        else carteContratDao.clearCartes()
+        if (newCarteIds.isNotEmpty()) carteContratDao.deleteCartesNotIn(newCarteIds) else carteContratDao.clearCartes()
 
         val newUsagerIds = usagerEntities.map { it.id }
-        if (newUsagerIds.isNotEmpty()) usagerDao.deleteUsagersNotIn(newUsagerIds)
-        else usagerDao.purge()
+        if (newUsagerIds.isNotEmpty()) usagerDao.deleteUsagersNotIn(newUsagerIds) else usagerDao.purge()
 
         val newSiteIds = siteEntities.map { it.id }
-        if (newSiteIds.isNotEmpty()) siteDao.deleteSitesNotIn(newSiteIds)
-        else siteDao.purge()
+        if (newSiteIds.isNotEmpty()) siteDao.deleteSitesNotIn(newSiteIds) else siteDao.purge()
 
         val newUtpIds = utilisateurEntities.mapNotNull { if (it.id != 0L) it.id else null }
         if (newUtpIds.isNotEmpty()) utilisateurTPDao.deleteUtilisateursNotIn(newUtpIds)
@@ -299,6 +374,37 @@ class SyncManager @Inject constructor(
         val evenements   = dmo.evenementsContrat.size.toLong()
         return 1L + sites + utilisateurs + usagers + cartes + matieres + usagerCartes + evenements
     }
+
+    private suspend fun getDocumentsForSync(passageId: Long): List<PassageDocumentEntity> =
+        withContext(Dispatchers.IO) {
+            val cursor = database.openHelper.readableDatabase.query(
+                SimpleSQLiteQuery(
+                    "SELECT id, passageId, type, base64, mimeType, nomFichier FROM passage_document WHERE passageId = ?",
+                    arrayOf(passageId)
+                )
+            )
+            // CursorWindow par défaut = 2MB — insuffisant pour des photos base64.
+            // On le remplace par un de 10MB avant la première lecture.
+            if (cursor is AbstractWindowedCursor) {
+                cursor.window = CursorWindow("sync_docs", 10L * 1024 * 1024)
+            }
+            val docs = mutableListOf<PassageDocumentEntity>()
+            cursor.use { c ->
+                while (c.moveToNext()) {
+                    docs.add(
+                        PassageDocumentEntity(
+                            id        = c.getLong(0),
+                            passageId = c.getLong(1),
+                            type      = c.getString(2),
+                            base64    = c.getString(3),
+                            mimeType  = c.getString(4),
+                            nomFichier = c.getString(5)
+                        )
+                    )
+                }
+            }
+            docs
+        }
 
     fun clearSyncError() {
         _syncState.value = _syncState.value.copy(syncError = null)

@@ -19,6 +19,7 @@ fun MainSiteCard(
     lastTransfer: String,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
+    lastEnvoiSuccess: Boolean?,
     onTransferClick: () -> Unit,
     onSuiviClick: () -> Unit,
     isTransferring: Boolean = false
@@ -48,7 +49,7 @@ fun MainSiteCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusBadge(text = "Envoi", isSuccess = lastSynchroDateEnvoi != null)
+                StatusBadge(text = "Envoi", isSuccess = lastEnvoiSuccess == true)
                 StatusBadge(text = "Réception", isSuccess = lastSynchroDateReception != null)
             }
 

@@ -2,6 +2,7 @@ package com.idbat.mobile.di
 
 import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
+import com.idbat.mobile.generated.client.api.PassagesControllerApi
 import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
 import com.idbat.mobile.singleton.ConfigSingleton
 import com.idbat.mobile.singleton.TokenStore
@@ -18,12 +19,26 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import javax.inject.Singleton
 
 private class LocalDateAdapter {
     @FromJson fun fromJson(value: String): LocalDate = LocalDate.parse(value)
     @ToJson fun toJson(value: LocalDate): String = value.toString()
+}
+
+private class OffsetDateTimeAdapter {
+    @FromJson fun fromJson(value: String): OffsetDateTime =
+        try { OffsetDateTime.parse(value) }
+        catch (_: Exception) { java.time.LocalDateTime.parse(value).atOffset(java.time.ZoneOffset.UTC) }
+    @ToJson fun toJson(value: OffsetDateTime): String = value.toLocalDateTime().toString()
+}
+
+private class BigDecimalAdapter {
+    @FromJson fun fromJson(value: String): BigDecimal = BigDecimal(value)
+    @ToJson fun toJson(value: BigDecimal): String = value.toPlainString()
 }
 
 @Module
@@ -34,6 +49,8 @@ object ApiModule {
     @Singleton
     fun provideMoshi(): Moshi = Moshi.Builder()
         .add(LocalDateAdapter())
+        .add(OffsetDateTimeAdapter())
+        .add(BigDecimalAdapter())
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
@@ -83,4 +100,9 @@ object ApiModule {
     @Singleton
     fun provideSmartphonesApi(retrofit: Retrofit): SmartphonesMobileControllerApi =
         retrofit.create(SmartphonesMobileControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providePassagesApi(retrofit: Retrofit): PassagesControllerApi =
+        retrofit.create(PassagesControllerApi::class.java)
 }
