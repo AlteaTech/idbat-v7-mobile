@@ -199,20 +199,23 @@ class SyncManager @Inject constructor(
         val totalRows = countDmoRows(dmo)
         val dateExec  = Date()
         val histoDao  = database.lastSynchroHistoryDao()
-        histoDao.deleteTypeForSite(site.id, TypeSynchro.RECEPTION)
-        histoDao.insertSynchro(
-            LastSynchroHistoryEntity(
-                siteId             = site.id,
-                date               = dateExec,
-                type               = TypeSynchro.RECEPTION,
-                operationsTentees  = totalRows,
-                operationsReussies = totalRows
-            )
-        )
 
+        // Les données descendantes sont communes à tous les sites — on met à jour l'historique pour chacun
+        dmo.contratSite.forEach { siteDmo ->
+            histoDao.deleteTypeForSite(siteDmo.id, TypeSynchro.RECEPTION)
+            histoDao.insertSynchro(
+                LastSynchroHistoryEntity(
+                    siteId             = siteDmo.id,
+                    date               = dateExec,
+                    type               = TypeSynchro.RECEPTION,
+                    operationsTentees  = totalRows,
+                    operationsReussies = totalRows
+                )
+            )
+        }
 
         _syncState.value = _syncState.value.copy(lastSynchroDateReception = dateExec)
-        Log.d("SYNC_MANAGER", "Synchro descendante terminée — $totalRows lignes récupérées")
+        Log.d("SYNC_MANAGER", "Synchro descendante terminée — $totalRows lignes récupérées (${dmo.contratSite.size} sites mis à jour)")
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
