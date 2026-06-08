@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.idbat.mobile.ui.theme.VeoliaCoral
@@ -40,6 +42,7 @@ fun PhotoPickerComponent(
 ) {
     val context = LocalContext.current
     var showSourceDialog by remember { mutableStateOf(false) }
+    var fullscreenUri by remember { mutableStateOf<Uri?>(null) }
     val pendingCameraUri = remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -103,6 +106,7 @@ fun PhotoPickerComponent(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(8.dp))
+                                    .clickable { fullscreenUri = uri }
                             )
                             Box(
                                 modifier = Modifier
@@ -166,6 +170,48 @@ fun PhotoPickerComponent(
                 }
             }
         )
+    }
+
+    fullscreenUri?.let { uri ->
+        Dialog(
+            onDismissRequest = { fullscreenUri = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f))
+                    .clickable { fullscreenUri = null },
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = uri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(16.dp)
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(VeoliaInk.copy(alpha = 0.6f))
+                        .clickable { fullscreenUri = null },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Fermer",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
