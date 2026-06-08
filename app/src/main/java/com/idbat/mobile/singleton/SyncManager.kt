@@ -220,9 +220,16 @@ class SyncManager @Inject constructor(
 
         // Bloquer si des passages non transférés existent après la montante
         val passageCount = database.passageDao().count()
+        val signalementCount = database.signalementDao().count()
         if (passageCount > 0) {
             _syncState.value = _syncState.value.copy(
                 syncError = "Impossible de synchroniser : $passageCount passage(s) en attente de transfert.\nVeuillez d'abord envoyer les passages."
+            )
+            return
+        }
+        if (signalementCount > 0) {
+            _syncState.value = _syncState.value.copy(
+                syncError = "Impossible de synchroniser : $signalementCount signalement(s) en attente de transfert.\nVeuillez d'abord envoyer les signalements."
             )
             return
         }
