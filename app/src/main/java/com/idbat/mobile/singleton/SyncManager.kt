@@ -7,7 +7,11 @@ import android.util.Base64
 import android.util.Log
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.annotation.RequiresApi
+import android.content.Context
+import android.net.wifi.WifiManager
+import android.os.PowerManager
 import androidx.room.withTransaction
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
@@ -32,6 +36,7 @@ import javax.inject.Singleton
 
 @Singleton
 class SyncManager @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val database: AppDatabase,
     private val tokenStore: TokenStore,
     private val contratsApi: ContratsControllerApi,
@@ -67,13 +72,26 @@ class SyncManager @Inject constructor(
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun executeTransfer(site: SiteEntity) {
         _syncState.value = _syncState.value.copy(isTransferring = true)
+
+        // Maintenir CPU + WiFi actifs pendant tout le transfert : sans ça, écran éteint =
+        // light doze → réseau coupé → tous les appels échouent.
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "idbat:sync")
+        val wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "idbat:sync")
+
         try {
+            wakeLock.acquire(2 *60 * 60 * 1000L /* timeout sécurité 2h */)
+            wifiLock.acquire()
+
             if (ConfigSingleton.IsSyncAscEnable) synchroMontante(site)
             if (ConfigSingleton.IsSyncDescEnable) synchroDescendante(site)
         } catch (e: Exception) {
             Log.e("SYNC_MANAGER", "Erreur critique lors du transfert", e)
             _syncState.value = _syncState.value.copy(syncError = "Erreur inattendue : ${e.message}")
         } finally {
+            if (wakeLock.isHeld) wakeLock.release()
+            if (wifiLock.isHeld) wifiLock.release()
             _syncState.value = _syncState.value.copy(isTransferring = false)
         }
     }

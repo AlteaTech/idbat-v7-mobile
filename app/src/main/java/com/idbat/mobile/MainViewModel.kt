@@ -1,13 +1,16 @@
 package com.idbat.mobile.ui.viewmodel
 
+import android.content.Context
 import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
+import com.idbat.mobile.service.SyncService
 import com.idbat.mobile.singleton.AuthManager
 import com.idbat.mobile.singleton.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -18,6 +21,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val authManager: AuthManager,
     private val syncManager: SyncManager,
     private val database: AppDatabase // Injectez la base de données
@@ -116,11 +120,10 @@ class MainViewModel @Inject constructor(
     }
 
     fun executeTransfer() {
-        viewModelScope.launch {
-            _uiState.value.authState.loggedInSite?.let { site ->
-                syncManager.executeTransfer(site)
-                authManager.refreshLoggedInContrat()
-            }
+        // Le transfert tourne dans un foreground service : il survit à l'écran éteint / au doze.
+        // L'UI continue d'observer syncManager.syncState (singleton partagé) pour le loader et les dates.
+        _uiState.value.authState.loggedInSite?.let { site ->
+            SyncService.start(context, site.id)
         }
     }
 
