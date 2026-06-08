@@ -28,13 +28,13 @@ import com.squareup.moshi.Json
 /**
  * 
  *
- * @param siteId
- * @param evenementContratId
- * @param agentId
- * @param dateSignalement
- * @param transactionId
- * @param commentaire
- * @param photos
+ * @param siteId 
+ * @param evenementContratId 
+ * @param agentId 
+ * @param dateSignalement 
+ * @param commentaire 
+ * @param transactionId 
+ * @param photos 
  */
 
 
@@ -52,11 +52,11 @@ data class CreerSignalementRequest (
     @Json(name = "dateSignalement")
     val dateSignalement: java.time.OffsetDateTime,
 
-    @Json(name = "transactionId")
-    val transactionId: kotlin.String,
-
     @Json(name = "commentaire")
     val commentaire: kotlin.String? = null,
+
+    @Json(name = "transactionId")
+    val transactionId: kotlin.String? = null,
 
     @Json(name = "photos")
     val photos: kotlin.collections.List<FileData>? = null

@@ -83,7 +83,7 @@ class SaisieSignalementViewModel @Inject constructor(
                     val raw = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: byteArrayOf()
                     SignalementDocumentEntity(
                         signalementId = signalementId,
-                        base64        = Base64.encodeToString(resizeToMax1080(raw, mimeType), Base64.NO_WRAP),
+                        base64        = Base64.encodeToString(resizeToMax(raw, mimeType), Base64.NO_WRAP),
                         mimeType      = mimeType,
                         nomFichier    = "photo_${i + 1}.$ext"
                     )
@@ -110,11 +110,11 @@ class SaisieSignalementViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(submitError = null)
     }
 
-    private fun resizeToMax1080(bytes: ByteArray, mimeType: String): ByteArray {
+    private fun resizeToMax(bytes: ByteArray, mimeType: String): ByteArray {
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return bytes
         val maxSide = maxOf(bitmap.width, bitmap.height)
-        if (maxSide <= 1080) { bitmap.recycle(); return bytes }
-        val scale = 1080f / maxSide
+        if (maxSide <= 4000) { bitmap.recycle(); return bytes }
+        val scale = 4000f / maxSide
         val resized = Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
         bitmap.recycle()
         val out = ByteArrayOutputStream()
