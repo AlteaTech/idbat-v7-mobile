@@ -7,6 +7,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.annotation.RequiresApi
+import androidx.room.withTransaction
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
@@ -246,7 +247,8 @@ class SyncManager @Inject constructor(
             return
         }
 
-        withContext(Dispatchers.IO) { applyDiff(dmo) }
+        // Transaction : tout le diff est atomique (rien n'est écrit si une étape échoue)
+        database.withTransaction { applyDiff(dmo) }
 
         val totalRows = countDmoRows(dmo)
         val dateExec  = Date()
@@ -280,6 +282,7 @@ class SyncManager @Inject constructor(
         val carteContratDao     = database.carteContratDao()
         val usagerCarteDao      = database.usagerCarteDao()
         val contratEvenementDao = database.contratEvenementDao()
+        val seuilEtatDao        = database.seuilEtatDao()
 
         // ── UPSERT ──────────────────────────────────────────────────────────────
 
@@ -332,9 +335,8 @@ class SyncManager @Inject constructor(
                 typeApporteurIsPro = usagerDmo.typeApporteurIsPro,
             )
         }
-        coroutineScope {
-            usagerEntities.chunked(2000).map { lot -> async { usagerDao.insertUsagers(lot) } }.awaitAll()
-        }
+        // Séquentiel : on est dans une transaction Room (mono-thread), pas de parallélisme DB
+        usagerEntities.chunked(2000).forEach { lot -> usagerDao.insertUsagers(lot) }
 
         val allCartes = dmo.contratUsagers.flatMap { usagerDmo ->
             usagerDmo.cartes.map { carteDmo ->
@@ -388,6 +390,21 @@ class SyncManager @Inject constructor(
         }
         if (allUsagerCartes.isNotEmpty()) usagerCarteDao.insertUsagerCartes(allUsagerCartes)
 
+        seuilEtatDao.clearSeuils()
+        val allSeuils = dmo.contratUsagers.flatMap { usagerDmo ->
+            usagerDmo.seuils.map { seuilDmo ->
+                SeuilEtatEntity(
+                    usagerId = usagerDmo.id,
+                    seuilId = seuilDmo.seuilId,
+                    nom = seuilDmo.nom,
+                    nbPassagesAutorises = seuilDmo.nbPassagesAutorises,
+                    nbPassagesEffectues = seuilDmo.nbPassagesEffectues,
+                    isAlerte = seuilDmo.isAlerte
+                )
+            }
+        }
+        if (allSeuils.isNotEmpty()) seuilEtatDao.insertSeuils(allSeuils)
+
         contratEvenementDao.clearEvenements()
         val allEvenements = dmo.evenementsContrat.map { evDmo ->
             ContratEvenementEntity(
@@ -397,9 +414,7 @@ class SyncManager @Inject constructor(
                 contratId = contratEntity.id
             )
         }
-        coroutineScope {
-            allEvenements.chunked(500).map { lot -> async { contratEvenementDao.insertEvenements(lot) } }.awaitAll()
-        }
+        allEvenements.chunked(500).forEach { lot -> contratEvenementDao.insertEvenements(lot) }
 
         // ── SUPPRESSION DES LIGNES OBSOLÈTES ────────────────────────────────────
 
@@ -427,7 +442,8 @@ class SyncManager @Inject constructor(
         val matieres     = dmo.contratSite.sumOf { it.matieres.size }.toLong()
         val usagerCartes = cartes
         val evenements   = dmo.evenementsContrat.size.toLong()
-        return 1L + sites + utilisateurs + usagers + cartes + matieres + usagerCartes + evenements
+        val seuils       = dmo.contratUsagers.sumOf { it.seuils.size }.toLong()
+        return 1L + sites + utilisateurs + usagers + cartes + matieres + usagerCartes + evenements + seuils
     }
 
     private suspend fun getDocumentsForSync(passageId: Long): List<PassageDocumentEntity> =

@@ -621,9 +621,25 @@ class AuthManager @Inject constructor(
                         }
                         usagerCarteDao.insertUsagerCartes(allUsagerCartes)
 
+                        val seuilEtatDao = database.seuilEtatDao()
+                        seuilEtatDao.clearSeuils()
+                        val allSeuils = contratUsagers.flatMap { contratUsager ->
+                            contratUsager.seuils.map { seuilDmo ->
+                                SeuilEtatEntity(
+                                    usagerId = contratUsager.id ?: 0,
+                                    seuilId = seuilDmo.seuilId,
+                                    nom = seuilDmo.nom,
+                                    nbPassagesAutorises = seuilDmo.nbPassagesAutorises,
+                                    nbPassagesEffectues = seuilDmo.nbPassagesEffectues,
+                                    isAlerte = seuilDmo.isAlerte
+                                )
+                            }
+                        }
+                        if (allSeuils.isNotEmpty()) seuilEtatDao.insertSeuils(allSeuils)
+
                         Log.d(
                             "AUTH_MANAGER",
-                            "Sauvegarde de ${usagerEntities.size} usagers + ${allCartes.size} cartes pour le contrat ${contratEntity.nom}"
+                            "Sauvegarde de ${usagerEntities.size} usagers + ${allCartes.size} cartes + ${allSeuils.size} seuils pour le contrat ${contratEntity.nom}"
                         )
                     } ?: run {
                         Log.w("AUTH_MANAGER", "Aucun usager associé trouvé pour le contrat ${contratEntity.nom}")

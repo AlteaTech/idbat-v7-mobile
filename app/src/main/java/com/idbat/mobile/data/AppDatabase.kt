@@ -27,9 +27,10 @@ import com.idbat.mobile.data.entities.*
         PassageMatiereEntity::class,
         PassageDocumentEntity::class,
         SignalementEntity::class,
-        SignalementDocumentEntity::class
+        SignalementDocumentEntity::class,
+        SeuilEtatEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -50,6 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun passageDocumentDao(): PassageDocumentDao
     abstract fun signalementDao(): SignalementDao
     abstract fun signalementDocumentDao(): SignalementDocumentDao
+    abstract fun seuilEtatDao(): SeuilEtatDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -80,7 +82,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-            MIGRATION_22_23, MIGRATION_23_24
+            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -332,6 +334,24 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_22_23 = object : Migration(22, 23) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE passage ADD COLUMN transactionId TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `seuil_etat` (
+                        `usagerId` INTEGER NOT NULL,
+                        `seuilId` INTEGER NOT NULL,
+                        `nom` TEXT NOT NULL,
+                        `nbPassagesAutorises` INTEGER NOT NULL,
+                        `nbPassagesEffectues` INTEGER NOT NULL,
+                        `isAlerte` INTEGER NOT NULL,
+                        PRIMARY KEY(`usagerId`, `seuilId`),
+                        FOREIGN KEY(`usagerId`) REFERENCES `usagers`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_seuil_etat_usagerId` ON `seuil_etat` (`usagerId`)")
             }
         }
 
