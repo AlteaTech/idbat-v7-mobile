@@ -2,6 +2,7 @@ package com.idbat.mobile.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
@@ -103,75 +105,84 @@ fun DepotScreen(
                 colors = CardDefaults.cardColors(containerColor = White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         text = "Type de carte",
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                        modifier = Modifier.padding(bottom = 16.dp),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    HorizontalDivider(color = VeoliaSubtle)
-
-                    if (showCarteAPuce) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { }
-                                .padding(vertical = 28.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.carte_a_puce),
-                                contentDescription = null,
-                                modifier = Modifier.size(width = 91.dp, height = 59.dp),
-                                colorFilter = iconTint
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = "Carte à puce",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Cliquez avant de présenter la carte",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (showCarteAPuce) {
+                            TypeCarteButton(
+                                label = "Carte à puce",
+                                sousTexte = "Cliquez avant de présenter la carte",
+                                iconResId = R.drawable.carte_a_puce,
+                                iconTint = iconTint,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { }
                             )
                         }
-                    }
-
-                    if (showCarteAPuce && showAutres) {
-                        HorizontalDivider(color = VeoliaSubtle)
-                    }
-
-                    if (showAutres) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showAutresScreen = true }
-                                .padding(vertical = 28.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.autres_cartes_2),
-                                contentDescription = null,
-                                modifier = Modifier.size(width = 91.dp, height = 59.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = "Autres",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                        if (showAutres) {
+                            TypeCarteButton(
+                                label = "Autres",
+                                sousTexte = null,
+                                iconResId = R.drawable.autres_cartes_2,
+                                iconTint = null,
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { showAutresScreen = true }
                             )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TypeCarteButton(
+    label: String,
+    sousTexte: String?,
+    iconResId: Int,
+    iconTint: ColorFilter?,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, VeoliaSubtle, RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(vertical = 28.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = iconResId),
+            contentDescription = null,
+            modifier = Modifier.size(width = 91.dp, height = 59.dp),
+            colorFilter = iconTint
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = label,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (sousTexte != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = sousTexte,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
