@@ -11,8 +11,11 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
+import com.idbat.mobile.generated.client.api.SignalementsControllerApi
 import com.idbat.mobile.generated.client.model.ContratDmo
 import com.idbat.mobile.generated.client.model.CreerPassageRequest
+import com.idbat.mobile.generated.client.model.CreerSignalementRequest
+import com.idbat.mobile.generated.client.model.FileData
 import com.idbat.mobile.generated.client.model.PassageDocumentRequest
 import com.idbat.mobile.generated.client.model.PassageMatiereRequest
 import kotlinx.coroutines.*
@@ -31,7 +34,8 @@ class SyncManager @Inject constructor(
     private val database: AppDatabase,
     private val tokenStore: TokenStore,
     private val contratsApi: ContratsControllerApi,
-    private val passagesApi: PassagesControllerApi
+    private val passagesApi: PassagesControllerApi,
+    private val signalementsApi: SignalementsControllerApi
 ) {
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState
@@ -79,15 +83,16 @@ class SyncManager @Inject constructor(
 
         val passageDao      = database.passageDao()
         val matiereDao      = database.passageMatiereDao()
-        val documentDao     = database.passageDocumentDao()
         val usagerDao       = database.usagerDao()
+        val signalementDao  = database.signalementDao()
         val histoDao        = database.lastSynchroHistoryDao()
 
-        val allPassages = passageDao.getAllPassages()
-        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) à envoyer")
+        val allPassages    = passageDao.getAllPassages()
+        val allSignalements = signalementDao.getAll()
+        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) à envoyer")
 
-        // 0 passages = rien à envoyer, on ne touche pas à l'historique (état précédent conservé)
-        if (allPassages.isEmpty()) return
+        // Rien à envoyer = on ne touche pas à l'historique (état précédent conservé)
+        if (allPassages.isEmpty() && allSignalements.isEmpty()) return
 
         // Stats par siteId : Pair(tentées, réussies)
         val statsBySite = mutableMapOf<Long, Pair<Long, Long>>()
@@ -141,6 +146,45 @@ class SyncManager @Inject constructor(
             } catch (e: Exception) {
                 statsBySite[passage.siteId] = (prev.first + 1) to prev.second
                 Log.e("SYNC_MANAGER", "Erreur envoi passage ${passage.id}", e)
+            }
+        }
+
+        // ── Signalements ────────────────────────────────────────────────────────
+        for (signalement in allSignalements) {
+            val documents = getSignalementDocumentsForSync(signalement.id)
+
+            val request = CreerSignalementRequest(
+                siteId             = signalement.siteId,
+                evenementContratId = signalement.evenementContratId,
+                agentId            = signalement.agentId,
+                dateSignalement    = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(signalement.dateSignalement), ZoneId.systemDefault()
+                ),
+                transactionId      = signalement.transactionId,
+                commentaire        = signalement.commentaire,
+                photos             = documents.map { d ->
+                    FileData(
+                        fileName = d.nomFichier,
+                        mimeType = d.mimeType,
+                        base64   = Base64.decode(d.base64, Base64.DEFAULT)
+                    )
+                }.ifEmpty { null }
+            )
+
+            val prev = statsBySite.getOrDefault(signalement.siteId, 0L to 0L)
+            try {
+                val response = signalementsApi.creerSignalement(request)
+                if (response.isSuccessful) {
+                    signalementDao.deleteById(signalement.id)
+                    statsBySite[signalement.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Signalement ${signalement.id} envoyé (site ${signalement.siteId})")
+                } else {
+                    statsBySite[signalement.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Signalement ${signalement.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[signalement.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi signalement ${signalement.id}", e)
             }
         }
 
@@ -403,6 +447,35 @@ class SyncManager @Inject constructor(
                             base64    = c.getString(3),
                             mimeType  = c.getString(4),
                             nomFichier = c.getString(5)
+                        )
+                    )
+                }
+            }
+            docs
+        }
+
+    private suspend fun getSignalementDocumentsForSync(signalementId: Long): List<SignalementDocumentEntity> =
+        withContext(Dispatchers.IO) {
+            val cursor = database.openHelper.readableDatabase.query(
+                SimpleSQLiteQuery(
+                    "SELECT id, signalementId, base64, mimeType, nomFichier FROM signalement_document WHERE signalementId = ?",
+                    arrayOf(signalementId)
+                )
+            )
+            // CursorWindow par défaut = 2MB — insuffisant pour des photos base64.
+            if (cursor is AbstractWindowedCursor) {
+                cursor.window = CursorWindow("sync_signalement_docs", 10L * 1024 * 1024)
+            }
+            val docs = mutableListOf<SignalementDocumentEntity>()
+            cursor.use { c ->
+                while (c.moveToNext()) {
+                    docs.add(
+                        SignalementDocumentEntity(
+                            id            = c.getLong(0),
+                            signalementId = c.getLong(1),
+                            base64        = c.getString(2),
+                            mimeType      = c.getString(3),
+                            nomFichier    = c.getString(4)
                         )
                     )
                 }
