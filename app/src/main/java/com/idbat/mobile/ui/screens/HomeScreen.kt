@@ -35,6 +35,7 @@ fun HomeScreen(
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
     lastEnvoiSuccess: Boolean?,
+    agentId: Long,
     onTransferClick: () -> Unit,
     onNavigateToPoc: () -> Unit,
     isTransferring: Boolean = false,
@@ -45,6 +46,7 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     var showCarteSheet by remember { mutableStateOf(false) }
     var showDepotScreen by remember { mutableStateOf(false) }
+    var showSignalementScreen by remember { mutableStateOf(false) }
 
     val testVolumeState by testVolumeViewModel.state.collectAsStateWithLifecycle()
 
@@ -94,6 +96,17 @@ fun HomeScreen(
             contrat = contrat,
             onBack = { showDepotScreen = false },
             onNavigateToHome = { showDepotScreen = false }
+        )
+        return
+    }
+
+    if (showSignalementScreen) {
+        SaisieSignalementScreen(
+            siteName = selectedSite?.nom ?: "",
+            siteId = selectedSite?.id ?: 0L,
+            contratId = contrat?.id ?: 0L,
+            agentId = agentId,
+            onBack = { showSignalementScreen = false }
         )
         return
     }
@@ -175,12 +188,7 @@ fun HomeScreen(
 
             ActionRowButton(
                 title = "Saisie des signalements",
-                onClick = {
-                    toastState.showToast(
-                        title = "Saisie des signalements",
-                        content = "Module de signalement des incidents et anomalies constatés sur le terrain. Permet la création, modification et envoi de rapports détaillés vers le système central."
-                    )
-                }
+                onClick = { showSignalementScreen = true }
             )
 
             Spacer(modifier = Modifier.height(12.dp))

@@ -33,6 +33,7 @@ import com.squareup.moshi.Json
  * @param agentId 
  * @param dateSignalement 
  * @param commentaire 
+ * @param transactionId 
  * @param photos 
  */
 
@@ -53,6 +54,9 @@ data class CreerSignalementRequest (
 
     @Json(name = "commentaire")
     val commentaire: kotlin.String? = null,
+
+    @Json(name = "transactionId")
+    val transactionId: kotlin.String? = null,
 
     @Json(name = "photos")
     val photos: kotlin.collections.List<FileData>? = null

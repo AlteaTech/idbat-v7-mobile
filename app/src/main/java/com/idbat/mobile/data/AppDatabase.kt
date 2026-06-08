@@ -25,9 +25,11 @@ import com.idbat.mobile.data.entities.*
         UsagerCarteEntity::class,
         PassageEntity::class,
         PassageMatiereEntity::class,
-        PassageDocumentEntity::class
+        PassageDocumentEntity::class,
+        SignalementEntity::class,
+        SignalementDocumentEntity::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -46,6 +48,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun passageDao(): PassageDao
     abstract fun passageMatiereDao(): PassageMatiereDao
     abstract fun passageDocumentDao(): PassageDocumentDao
+    abstract fun signalementDao(): SignalementDao
+    abstract fun signalementDocumentDao(): SignalementDocumentDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -76,7 +80,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-            MIGRATION_22_23
+            MIGRATION_22_23, MIGRATION_23_24
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -328,6 +332,34 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_22_23 = object : Migration(22, 23) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE passage ADD COLUMN transactionId TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `signalement` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `evenementContratId` INTEGER NOT NULL,
+                        `agentId` INTEGER NOT NULL,
+                        `dateSignalement` INTEGER NOT NULL,
+                        `commentaire` TEXT,
+                        `transactionId` TEXT NOT NULL DEFAULT ''
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `signalement_document` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `signalementId` INTEGER NOT NULL,
+                        `base64` TEXT NOT NULL,
+                        `mimeType` TEXT NOT NULL,
+                        `nomFichier` TEXT NOT NULL,
+                        FOREIGN KEY(`signalementId`) REFERENCES `signalement`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_signalement_document_signalementId` ON `signalement_document` (`signalementId`)")
             }
         }
 
