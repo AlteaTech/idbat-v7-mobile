@@ -417,7 +417,13 @@ class SyncManager @Inject constructor(
                     nom = seuilDmo.nom,
                     nbPassagesAutorises = seuilDmo.nbPassagesAutorises,
                     nbPassagesEffectues = seuilDmo.nbPassagesEffectues,
-                    isAlerte = seuilDmo.isAlerte
+                    isAlerte = seuilDmo.isAlerte,
+                    seuilDetailNom = seuilDmo.seuilDetailNom,
+                    seuilDetailType = seuilDmo.seuilDetailType,
+                    seuilDetailPeriode = seuilDmo.seuilDetailPeriode,
+                    seuilDetailNbPassage = seuilDmo.seuilDetailNbPassage,
+                    seuilDetailSeuilPrevention = seuilDmo.seuilDetailSeuilPrevention,
+                    seuilDetailContratId = seuilDmo.seuilDetailContratId
                 )
             }
         }

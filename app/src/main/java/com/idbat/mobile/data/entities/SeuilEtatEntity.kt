@@ -23,5 +23,11 @@ data class SeuilEtatEntity(
     val nom: String,
     val nbPassagesAutorises: Int,
     val nbPassagesEffectues: Int,
-    val isAlerte: Boolean
+    val isAlerte: Boolean,
+    val seuilDetailNom: String,
+    val seuilDetailType: String,
+    val seuilDetailPeriode: String,
+    val seuilDetailNbPassage: Int?,
+    val seuilDetailSeuilPrevention: Int,
+    val seuilDetailContratId: Long
 )
