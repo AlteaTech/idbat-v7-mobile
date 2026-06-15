@@ -10,7 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.idbat.mobile.data.model.CarteCreationQr
 import com.idbat.mobile.ui.components.BarcodeScannerComponent
+import com.idbat.mobile.ui.theme.VeoliaErrorDark
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
 
 @Composable
@@ -19,7 +21,23 @@ fun CreationCarteScreen(
     onBack: () -> Unit
 ) {
     var scannedValue by remember { mutableStateOf<String?>(null) }
+    var carteParsee by remember { mutableStateOf<CarteCreationQr?>(null) }
+    var formatError by remember { mutableStateOf(false) }
     val bgColor = MaterialTheme.colorScheme.background
+
+    // Une fois la carte parsée, on bascule sur l'écran d'informations
+    carteParsee?.let { carte ->
+        CarteCreationInfoScreen(
+            siteName = siteName,
+            carte = carte,
+            onBack = {
+                carteParsee = null
+                scannedValue = null
+            },
+            onValider = onBack
+        )
+        return
+    }
 
     Box(
         modifier = Modifier
@@ -71,10 +89,29 @@ fun CreationCarteScreen(
             BarcodeScannerComponent(
                 modifier = Modifier.padding(horizontal = 24.dp),
                 title = "QR code pour la création de la carte à puce",
-                subtitle = scannedValue ?: "Scannez le code",
+                subtitle = if (formatError) "QR code invalide, réessayez" else "Scannez le code",
                 scannedValue = scannedValue,
-                onBarcodeDetected = { value, _ -> scannedValue = value }
+                onBarcodeDetected = { value, _ ->
+                    scannedValue = value
+                    val carte = CarteCreationQr.parse(value)
+                    if (carte != null) {
+                        formatError = false
+                        carteParsee = carte
+                    } else {
+                        formatError = true
+                        scannedValue = null  // réarme le scanner
+                    }
+                }
             )
+
+            if (formatError) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Le QR code scanné ne respecte pas le format attendu (${CarteCreationQr.TRAME_LENGTH} caractères).",
+                    color = VeoliaErrorDark,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            }
         }
     }
 }
