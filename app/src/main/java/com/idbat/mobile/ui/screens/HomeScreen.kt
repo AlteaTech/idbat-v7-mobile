@@ -191,13 +191,15 @@ fun HomeScreen(
                 onClick = { showSignalementScreen = true }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (contrat?.hasPuce == true) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            ActionRowButton(
-                title = "Gestion des cartes",
-                iconResId = R.drawable.carte_a_puce,
-                onClick = { showCarteSheet = true }
-            )
+                ActionRowButton(
+                    title = "Gestion des cartes",
+                    iconResId = R.drawable.carte_a_puce,
+                    onClick = { showCarteSheet = true }
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
