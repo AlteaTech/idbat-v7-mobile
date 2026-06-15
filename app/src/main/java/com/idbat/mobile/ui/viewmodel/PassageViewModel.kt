@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageEntity
+import com.idbat.mobile.data.entities.SeuilEtatEntity
 import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,19 @@ class PassageViewModel @Inject constructor(
 
     private val _saveState = MutableStateFlow<PassageSaveState>(PassageSaveState.Idle)
     val saveState: StateFlow<PassageSaveState> = _saveState.asStateFlow()
+
+    private val _seuils = MutableStateFlow<List<SeuilEtatEntity>>(emptyList())
+    val seuils: StateFlow<List<SeuilEtatEntity>> = _seuils.asStateFlow()
+
+    fun loadSeuils(usagerId: Long?) {
+        if (usagerId == null) {
+            _seuils.value = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            _seuils.value = database.seuilEtatDao().getSeuilsByUsager(usagerId)
+        }
+    }
 
     fun enregistrerPassage(contratId: Long, siteId: Long, carteId: Long?) {
         if (_saveState.value == PassageSaveState.Saving) return
