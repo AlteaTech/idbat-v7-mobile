@@ -4,6 +4,7 @@ import android.os.Build
 
 object ConfigSingleton {
     val webEnable = true
+    
     val IsSyncDescEnable = true
     val IsSyncAscEnable = true
 
