@@ -23,10 +23,18 @@ fun CreationCarteScreen(
     var scannedValue by remember { mutableStateOf<String?>(null) }
     var carteParsee by remember { mutableStateOf<CarteCreationQr?>(null) }
     var formatError by remember { mutableStateOf(false) }
+    var showEcriture by remember { mutableStateOf(false) }
     val bgColor = MaterialTheme.colorScheme.background
 
     // Une fois la carte parsée, on bascule sur l'écran d'informations
     carteParsee?.let { carte ->
+        if (showEcriture) {
+            EcriturePuceScreen(
+                siteName = siteName,
+                onBack = { showEcriture = false }
+            )
+            return
+        }
         CarteCreationInfoScreen(
             siteName = siteName,
             carte = carte,
@@ -34,7 +42,7 @@ fun CreationCarteScreen(
                 carteParsee = null
                 scannedValue = null
             },
-            onValider = onBack
+            onValider = { showEcriture = true }
         )
         return
     }
