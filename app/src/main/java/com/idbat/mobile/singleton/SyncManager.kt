@@ -368,7 +368,16 @@ class SyncManager @Inject constructor(
                     carteGriseJ1 = carteDmo.carteGriseJ1,
                     carteGriseF3 = carteDmo.carteGriseF3,
                     contratId = contratEntity.id,
-                    carteId = carteDmo.id
+                    carteId = carteDmo.id,
+                    isEnListeNoire = carteDmo.isEnListeNoire,
+                    dtEntreeListeNoire = carteDmo.dtEntreeListeNoire?.let {
+                        Date.from(it.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                    },
+                    dtSortieListeNoire = carteDmo.dtSortieListeNoire?.let {
+                        Date.from(it.atStartOfDay(ZoneId.systemDefault()).toInstant())
+                    },
+                    motifListeNoireContratId = carteDmo.motifslistenoireContratId,
+                    motifListeNoireLibelle = carteDmo.motifslistenoireLibelle
                 )
             }
         }

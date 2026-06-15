@@ -596,7 +596,16 @@ class AuthManager @Inject constructor(
                                     carteGriseJ1 = carteDmo.carteGriseJ1,
                                     carteGriseF3 = carteDmo.carteGriseF3,
                                     contratId = contratEntity.id,
-                                    carteId = carteDmo.id
+                                    carteId = carteDmo.id,
+                                    isEnListeNoire = carteDmo.isEnListeNoire,
+                                    dtEntreeListeNoire = carteDmo.dtEntreeListeNoire?.let {
+                                        java.util.Date.from(it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+                                    },
+                                    dtSortieListeNoire = carteDmo.dtSortieListeNoire?.let {
+                                        java.util.Date.from(it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+                                    },
+                                    motifListeNoireContratId = carteDmo.motifslistenoireContratId,
+                                    motifListeNoireLibelle = carteDmo.motifslistenoireLibelle
                                 )
                             }
                         }
