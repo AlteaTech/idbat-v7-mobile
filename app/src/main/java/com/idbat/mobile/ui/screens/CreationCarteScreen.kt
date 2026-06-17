@@ -31,6 +31,7 @@ fun CreationCarteScreen(
         if (showEcriture) {
             EcriturePuceScreen(
                 siteName = siteName,
+                carte = carte,
                 onBack = { showEcriture = false }
             )
             return

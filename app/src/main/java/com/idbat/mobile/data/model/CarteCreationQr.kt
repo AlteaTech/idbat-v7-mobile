@@ -34,6 +34,29 @@ data class CarteCreationQr(
     val facturation: Boolean get() = modeValue and 0x4 != 0
     val gratuit: Boolean     get() = modeValue and 0x8 != 0
 
+    /**
+     * Construit la [CartePuce] à écrire sur la carte physique.
+     * [uid] et [numeroSerie] proviennent du tag NFC au moment du tap : le CRC est
+     * recalculé dans [CartePuce.serialize] à partir du numéro de série réel.
+     */
+    fun toCartePuce(uid: String, numeroSerie: String): CartePuce = CartePuce(
+        uid = uid,
+        numeroSerie = numeroSerie,
+        numeroIdentification = numeroIdentification,
+        motDePasse = motDePasse,
+        societe = societe,
+        interne = interne == "!",
+        prepaiement = prepaiement,
+        facturation = facturation,
+        gratuit = gratuit,
+        nomPrenom = nomPrenom,
+        identClient = identClient,
+        soldePoints = (soldePoints.trim().toLongOrNull() ?: 0L) / 100.0,
+        cumulPoints = (cumulPoints.trim().toLongOrNull() ?: 0L) / 100.0,
+        paiementComptant = "",
+        crc = ""
+    )
+
     companion object {
         const val TRAME_LENGTH = 192
 
