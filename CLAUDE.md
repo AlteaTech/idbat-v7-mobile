@@ -1,5 +1,8 @@
 # CLAUDE.md — Base de connaissance du projet idbat-v7-mobile
 
+> ⚠️ **RÈGLE DE TRAVAIL — à respecter systématiquement**
+> **Avant de commencer chaque nouveau sujet**, mettre à jour cette base de connaissance (`CLAUDE.md`) pour qu'elle reflète l'état réel du code (entités, version BDD, écrans, flux, conventions). On documente d'abord, on code ensuite. Toute fonctionnalité ajoutée doit être reportée ici.
+
 ## Vue d'ensemble
 
 Application Android native pour les techniciens de terrain Veolia. Elle permet de gérer les sites de collecte de déchets (contrats, matières, usagers), de saisir des signalements et de synchroniser les opérations avec le back-end.
@@ -41,50 +44,72 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Écrans et navigation
 
-La navigation est conditionnelle (pas de NavHost) : `MainScreen` route vers `LoginScreen` ou `HomeScreen` selon `authState.isLoggedIn`. Les navigations secondaires (ex. `PocScreen`) sont gérées par état local dans le composable parent (`var showPocScreen by remember { mutableStateOf(false) }` dans `HomeScreen`).
+`MainScreen` utilise un **NavHost** (routes `AppDestination` : Login / Home / Poc). Il demande d'abord les permissions de localisation, puis appelle `viewModel.initializeApp()`, et route vers `Login` ou `Home` selon `authState.isLoggedIn`. Les **navigations secondaires** (Dépôt, Saisie signalement, Création carte…) restent gérées par **état local** dans `HomeScreen` (`var showXxx by remember { mutableStateOf(false) }` + `if (showXxx) { XxxScreen(...) ; return }`).
 
 | Écran | Rôle |
 |---|---|
-| `MainScreen` | Hub d'initialisation, routing authentification |
+| `MainScreen` | Hub d'initialisation, permissions localisation, NavHost, AlertDialog erreur synchro |
 | `LoginScreen` | Sélection site + utilisateur TP + saisie PIN |
-| `HomeScreen` | Tableau de bord : infos site, dates synchro, actions |
-| `PocScreen` | Page POC accessible depuis `HomeScreen` → bottom sheet "Gestion des cartes" |
+| `HomeScreen` | Tableau de bord : infos site, badges synchro, actions |
+| `DepotScreen` | Choix du type de carte (2 gros boutons empilés : Carte à puce / Autres) — fond blanc pur, affiché selon flags contrat |
+| `AutresCartesScreen` | Code-barres / Immatriculation (uppercase alphanumérique only) / Sélection usager |
+| `PassageInfoScreen` | Infos carte + **seuils/alertes** ; bouton "Fermer" si usager bloqué (seuil atteint) |
+| `SaisieMatiereScreen` | Saisie des matières du passage (quantité obligatoire) |
+| `TerminerPassageScreen` | Photos + signature + email → enregistrement passage en BDD (resize photos ≤4000px) |
+| `SaisieSignalementScreen` | Événement + commentaire (max 50) + photos → signalement en BDD (offline-first) |
+| `CreationCarteScreen` | Scan QR (192 car.) pour créer une carte à puce |
+| `CarteCreationInfoScreen` | Affiche les infos parsées du QR + bouton Valider |
+| `EcriturePuceScreen` | Écriture NFC de la carte (reader mode + états Idle/Writing/Success/Error) |
+| `PocScreen` | Page POC (bac à sable NFC/CB/photo/signature) |
 
 **Actions du HomeScreen :**
-- Suivi des opérations
-- Transférer (synchronisation)
-- Saisie des signalements
-- Gestion des cartes → ouvre `CarteActionSheet` (bottom sheet Material3)
+- Suivi des opérations · Transférer (synchronisation, loader pendant `isTransferring`)
+- Saisie des signalements → `SaisieSignalementScreen`
+- **Gestion des cartes** → `CarteActionSheet` — **visible uniquement si `contrat.hasPuce == true`**
+- Passage en déchetterie → `DepotScreen`
 
-**`CarteActionSheet`** propose : Créer une carte · Recharger une carte · POC (navigue vers `PocScreen`)
+**`CarteActionSheet`** propose : Créer une carte (→ `CreationCarteScreen`) · Recharger une carte · POC · **Test Volume Passage** (génère des passages de test en masse via `TestVolumeViewModel`)
 
-**`PocScreen`** contient 5 onglets : PHOTO · CB · RFID Lecture · RFID Écriture · Signature  
-- Onglet **PHOTO** : `PhotoPickerComponent` (état hoisted) + bouton compteur  
-- Onglet **CB** : `BarcodeScannerComponent` + `OutlinedTextField` affichant la valeur scannée  
-- Onglet **RFID Lecture** : `MifareReaderComponent` — résultat hoisted dans `rfidCard`  
-- Onglet **RFID Écriture** : formulaire `OutlinedTextField` pré-rempli depuis `rfidCard` + `MifareWriterComponent`  
-- Onglet **Signature** : `SignatureComponent` — image validée hoisted dans `signatureImage`
+**`PocScreen`** : 5 onglets PHOTO · CB · RFID Lecture · RFID Écriture · Signature (état hoisted dans le parent).
+
+### Flux création de carte à puce
+`Gestion des cartes → Créer une carte → CreationCarteScreen (scan QR) → CarteCreationInfoScreen (Valider) → EcriturePuceScreen (tap NFC → écriture)`
+- Le QR contient une trame fixe **192 caractères** parsée par `CarteCreationQr.parse()` (`data/model`).
+- `CarteCreationQr.toCartePuce(uid, numeroSerie)` mappe vers `CartePuce` ; le **CRC est recalculé** dans `CartePuce.serialize()` à partir du `numeroSerie` réel (lu du tag au tap).
+- L'écriture passe par `EcriturePuceViewModel` → `NfcRepository.writeCartePuce()`.
 
 ---
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 15
+**Nom :** `idbat_bdd` — **Version actuelle :** 27
 
 | Entité | Description |
 |---|---|
 | `UtilisateurTPEntity` | Techniciens (login, PIN, token) |
-| `ContratEntity` | Contrats (trigramme, nom) |
-| `SiteEntity` | Sites de collecte (adresse, horaires, imprimante…) |
+| `ContratEntity` | Contrats (trigramme, nom, flags `hasPuce`/`hasCodebarres`/`hasImmatriculation`/`hasSelectionusager`/signatures) |
+| `SiteEntity` | Sites de collecte (adresse, horaires, imprimante…) — DAO en `@Upsert` (pas `REPLACE`, voir note cascade) |
 | `MatiereSiteEntity` | Matières collectées par site (clé composite matiereId+siteId) |
-| `CarteContratEntity` | Cartes/passes par contrat (RFID, QR code…) |
+| `CarteContratEntity` | Cartes/passes par contrat + **liste noire** (`isEnListeNoire`, `dtEntreeListeNoire`, `dtSortieListeNoire`, `motifListeNoireContratId`, `motifListeNoireLibelle`) |
 | `MotifListeNoireContratEntity` | Motifs de liste noire par contrat |
 | `UsagerEntity` | Usagers/clients (import en batch de 2000) |
 | `ContratEvenementEntity` | Événements liés aux contrats |
-| `LastSynchroHistoryEntity` | Historique de synchronisation (ENVOI / RECEPTION) |
+| `LastSynchroHistoryEntity` | Historique de synchronisation (ENVOI / RECEPTION), stats par site |
+| `UsagerCarteEntity` | Liaison usager↔carte (dates début/fin) |
+| `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*` |
+| `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID pour idempotence |
+| `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) |
+| `PassageDocumentEntity` | Photos/signature d'un passage en base64 (FK passage CASCADE) |
+| `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) + `transactionId` |
+| `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |
 
-**Migrations :** trajet complet v1→v15 documenté dans `AppDatabase.kt`.  
+**Migrations :** trajet complet v1→v27 documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT`.  
 **Init :** un utilisateur admin par défaut (login `admin`, PIN `1234`) est créé au premier accès.
+
+> **Piège cascade Room** : `ContratDao`/`SiteDao` utilisent `@Upsert` (et non `@Insert(REPLACE)`). `REPLACE` fait DELETE+INSERT → déclenche `ON DELETE CASCADE` et efface l'historique de synchro / sous-entités. `@Upsert` met à jour en place sans cascade.
+
+### Lecture de gros base64 (CursorWindow)
+Les colonnes `base64` (photos) dépassent le `CursorWindow` SQLite par défaut (2 Mo). Pour la synchro montante, `SyncManager` lit les documents via un curseur brut avec `CursorWindow` agrandi à 10 Mo (`getDocumentsForSync` / `getSignalementDocumentsForSync`).
 
 ---
 
@@ -92,20 +117,26 @@ La navigation est conditionnelle (pas de NavHost) : `MainScreen` route vers `Log
 
 **Protocole :** REST — client généré par OpenAPI Generator dans `generated/client/`
 
-**URLs :**
-- Dev (émulateur) : `http://10.0.2.2:8091/`
-- Staging (commenté) : `https://idbat-mobile-rec.recyclage.veolia.fr/`
+**URLs (`ConfigSingleton`)** — détection auto émulateur vs device physique :
+- Émulateur : `BASE_URL_DEV_EMULATOR` = `http://10.0.2.2:8091/`
+- Device physique : `BASE_URL_DEV_DEVICE` = `http://localhost:8091/` (nécessite `adb reverse tcp:8091 tcp:8091` — script `adb-reverse.ps1` à la racine)
+- Staging : `BASE_URL_STAGING`
+- `baseUrl` est un getter qui choisit selon `isEmulator` (heuristique `Build.FINGERPRINT`/`MODEL`/`PRODUCT`).
 
 **Interfaces principales :**
 
 | Interface | Endpoints clés |
 |---|---|
 | `AuthMobileControllerApi` | `authenticateUser()` → token Bearer |
-| `ContratsControllerApi` | `getByDevice()` → contrat complet avec toutes les sous-entités |
-| `SmartphonesMobileControllerApi` | `checkSmartphoneExists()`, `creerSmartphone()` |
+| `ContratsControllerApi` | `getByDevice()` → `ContratDmo` complet (sites, usagers, cartes, événements, **seuils**) |
+| `SmartphonesMobileControllerApi` | `checkSmartphoneExists()`, `creerSmartphone()` (avec GPS) |
+| `PassagesControllerApi` | `creer(CreerPassageRequest)` — envoi passage (matières + documents + `transactionId`) |
+| `SignalementsControllerApi` | `creerSignalement(CreerSignalementRequest)` — envoi signalement + photos (`FileData`) |
 
-**Auth :** token Bearer injecté automatiquement via un intercepteur OkHttp dans `ApiClient`.  
-**Enregistrement device :** au premier lancement, le smartphone est enregistré avec sa position GPS (permissions `ACCESS_FINE_LOCATION` et `ACCESS_COARSE_LOCATION`).
+**Adapters Moshi (`ApiModule`)** : `LocalDate`, `OffsetDateTime` (sérialisé **sans offset** → `LocalDateTime` attendu par le back .NET), `BigDecimal` (via `toPlainString()`, pas de notation scientifique).
+
+**Auth :** token Bearer injecté via intercepteur OkHttp dans `ApiModule` (lu depuis `TokenStore`).  
+**Enregistrement device :** au premier lancement, smartphone enregistré avec position GPS. `getCurrentLocation()` demande une position fraîche (`requestSingleUpdate`, timeout 5 s) puis fallback sur le cache de tous les providers. Les permissions sont demandées dans `MainScreen` avant `initializeApp()`.
 
 ---
 
@@ -114,16 +145,35 @@ La navigation est conditionnelle (pas de NavHost) : `MainScreen` route vers `Log
 ### `AuthManager.AuthState`
 ```kotlin
 isLoggedIn, isInitialized, loginError,
-loggedInSite, availableSites,
-availableUtilisateursTps, showValidationError
+loggedInSite, loggedInContrat, loggedInUtilisateurTp,
+availableSites, availableUtilisateursTps,
+isLoadingContracts, showValidationError
 ```
+`refreshLoggedInContrat()` recharge le contrat depuis la BDD après une synchro (les flags `hasPuce`… sont mis à jour pour l'UI). Appelé par `SyncService` après le transfert.
 
 ### `SyncManager.SyncState`
 ```kotlin
-lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
+lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring,
+syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées), false=échecs
 ```
 
 `MainViewModel` fusionne ces deux états pour l'UI principale.
+
+---
+
+## Synchronisation
+
+`SyncManager.executeTransfer(site)` enchaîne (selon `ConfigSingleton.IsSyncAscEnable/IsSyncDescEnable`) :
+
+1. **Synchro montante (`synchroMontante`)** : envoie chaque **passage** puis chaque **signalement** un par un. Après `200 OK`, suppression locale immédiate (l'idempotence côté back repose sur `transactionId`). Stats `(tentées, réussies)` cumulées **par site** → écrites dans `LastSynchroHistoryEntity` type `ENVOI`. Badge "Envoi" vert si `réussies == tentées`.
+2. **Synchro descendante (`synchroDescendante`)** : bloquée si des passages restent à envoyer. Sinon `getByDevice()` → `applyDiff(dmo)` dans une **transaction Room** (`database.withTransaction`, inserts séquentiels car mono-thread). Diff = upsert + suppression des lignes obsolètes (`deleteXxxNotIn`). Historique `RECEPTION` écrit **pour tous les sites** du contrat (données communes).
+
+**Robustesse écran éteint / doze :**
+- `executeTransfer` tient un `PARTIAL_WAKE_LOCK` + `WifiLock` (timeout 10 min).
+- Le transfert tourne dans un **foreground service** `SyncService` (type `dataSync`, notification persistante) lancé par `MainViewModel.executeTransfer()` → survit au deep doze. L'UI observe toujours `syncState` (singleton partagé).
+- `transactionId` (UUID) sur `PassageEntity`/`SignalementEntity` → anti-doublon si la réponse réseau est perdue (le back doit dédupliquer dessus).
+
+**Première synchro** : `AuthManager.saveContractToDatabase()` (chemin séparé de `applyDiff`) — toute modif de mapping DMO→entité doit être répercutée **dans les deux** (`AuthManager` ET `SyncManager.applyDiff`).
 
 ---
 
@@ -135,8 +185,8 @@ lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring
 | `ActionRowButton` | Bouton ligne blanc arrondi avec icône droite (`iconVector` ou `iconResId`) |
 | `BottomLargeButton` | Grand bouton bas d'écran corail avec image droite |
 | `CarteActionSheet` | Bottom sheet Material3 avec 3 actions carte |
-| `PhotoPickerComponent` | Prise/sélection photos, thumbnails suppressibles — état **hoisted** (`photos`, `onPhotosChange`) |
-| `BarcodeScannerComponent` | Scan code-barres via caméra/galerie + ML Kit → callback `onBarcodeDetected(value, format)` |
+| `PhotoPickerComponent` | Prise/sélection photos, thumbnails suppressibles + **visualisation plein écran au clic** (Dialog) — état **hoisted** (`photos`, `onPhotosChange`) |
+| `BarcodeScannerComponent` | Scan code-barres/QR via caméra + ML Kit. **Ne lance la caméra qu'au clic sur "Scanner"** ; params `title`/`subtitle` pour éviter le double-cadre ; callback `onBarcodeDetected(value, format)` |
 | `MifareReaderComponent` | Lecture NFC Mifare Classic → callback `onCardRead: (CartePuce) -> Unit` |
 | `MifareWriterComponent` | Écriture NFC Mifare Classic → lambda `buildCarte: (uid, numSerie) -> CartePuce?` appelé au moment du tap |
 | `SignatureComponent` | Canvas de dessin (bezier quadratique) → callback `onValidate: ((ImageBitmap) -> Unit)?` |
@@ -151,6 +201,8 @@ data class CardData(val cardNumber: String?, val expiryDate: String?, val cardho
 
 **`CartePuce`** (package `data.model`) : modèle métier carte Mifare avec `uid`, `numeroSerie`, `numeroIdentification`, `motDePasse`, `societe`, `nomPrenom`, `identClient`, `soldePoints`, `cumulPoints`, `paiementComptant`, flags booléens (`interne`, `prepaiement`, `facturation`, `gratuit`), `crc`. Méthodes : `serialize()` (240 octets ISO-8859-1), `parse(uid, numSerie, content)`, `isCrcValid`, `computeCrc()` (Triple-DES CBC).
 
+**`CarteCreationQr`** (package `data.model`) : contenu d'un QR de création de carte (trame fixe **192 caractères**). `parse(raw)` découpe par offsets, décode les modes de paiement (hex). `toCartePuce(uid, numeroSerie)` mappe vers `CartePuce` pour l'écriture NFC.
+
 **NFC** (`data.nfc`) :
 - `NfcConfig.kt` — constantes `NFC_TRIPLE_DES_KEY` et `NFC_TRIPLE_DES_IV` (visibilité `internal`)
 - `NfcRepository` — `@Singleton @Inject constructor()`, expose `suspend readCartePuce(tag)` et `suspend writeCartePuce(tag, carte)` avec dispatching IO interne (`withContext(Dispatchers.IO)`)
@@ -162,8 +214,10 @@ data class CardData(val cardNumber: String?, val expiryDate: String?, val cardho
 ## Permissions et FileProvider
 
 Permissions déclarées dans `AndroidManifest.xml` :
-- `INTERNET`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (existantes)
-- `CAMERA` (ajoutée pour la prise de photo)
+- `INTERNET`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `CAMERA`, `NFC`
+- `WAKE_LOCK`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`, `POST_NOTIFICATIONS` (pour `SyncService`)
+
+Service déclaré : `.service.SyncService` (`foregroundServiceType="dataSync"`, `exported=false`).
 
 FileProvider configuré : autorité `${applicationId}.fileprovider`, chemins dans `res/xml/file_paths.xml` (cache `images/`). Utilisé par `createCameraUri()` pour les photos caméra.
 
@@ -247,9 +301,14 @@ Toutes les couleurs du projet sont centralisées dans `Color.kt`. **Ne jamais é
 - **Clés cryptographiques** : les constantes sensibles sont dans `data/nfc/NfcConfig.kt` avec visibilité `internal`. Ne pas les dupliquer ou les déplacer dans `BuildConfig` sans concertation (la clé est partagée avec le back-end .NET).
 - **Réseau (Retrofit/OkHttp)** : toute la configuration HTTP est dans `di/ApiModule.kt`. Ne jamais recréer de client Retrofit ailleurs. Les API interfaces (`AuthMobileControllerApi`, `ContratsControllerApi`, `SmartphonesMobileControllerApi`) sont des singletons Hilt injectés directement dans les Managers.
 - **Token API** : le token Bearer est géré par `singleton/TokenStore.kt` (`@Singleton @Inject`). L'intercepteur `ApiModule` le lit, `AuthManager` l'écrit après authentification. Ne jamais stocker le token dans une variable globale ou `ConfigSingleton`.
-- **URLs** : les URLs sont dans `ConfigSingleton` avec des constantes nommées `BASE_URL_DEV` et `BASE_URL_STAGING`. Pour changer d'environnement, modifier `val baseUrl = BASE_URL_XXX` dans `ConfigSingleton`.
+- **URLs** : dans `ConfigSingleton` (`BASE_URL_DEV_EMULATOR`, `BASE_URL_DEV_DEVICE`, `BASE_URL_STAGING`). `baseUrl` est un getter auto émulateur/device. Test sur device → lancer `adb-reverse.ps1` (port-forward 8091, volatil : refait à chaque rebranchement/redémarrage adb).
 - **Formats de code-barres** : la fonction `Int.toFormatName()` est dans `data/model/BarcodeFormat.kt`. Ne pas la redéfinir localement dans les composants.
-- **Navigation secondaire** : pas de NavHost — utiliser `var showXxx by remember { mutableStateOf(false) }` dans le composable parent et un `if (showXxx) { XxxScreen(onBack = { showXxx = false }) ; return }` pour les nouvelles pages.
+- **Navigation** : `MainScreen` = NavHost (Login/Home/Poc). Navigations secondaires depuis `HomeScreen` = état local `var showXxx by remember { mutableStateOf(false) }` + `if (showXxx) { XxxScreen(onBack = { showXxx = false }) ; return }`.
+- **Synchro DMO→entité** : tout nouveau champ d'un DMO doit être mappé **dans les deux chemins** : `AuthManager.saveContractToDatabase` (1ère synchro) ET `SyncManager.applyDiff` (descendante).
+- **Photos** : redimensionnées avant stockage base64 (resize côté ViewModels passage/signalement). Stockées en base64 dans `*_document` ; lues en synchro via curseur `CursorWindow` 10 Mo.
+- **Champ immatriculation** : filtrer la saisie en uppercase alphanumérique non-accenté (`.uppercase().filter { it in 'A'..'Z' || it in '0'..'9' }`) + `KeyboardOptions` Characters/Ascii.
+- **Écriture carte à puce** : trame QR 192 car. → `CarteCreationQr` → `CartePuce` ; CRC recalculé dans `serialize()` au tap (dépend du `numeroSerie` réel). Toujours passer par `NfcRepository.writeCartePuce`.
+- **`fillMaxSize` + boutons bas** : pour un écran scrollable avec boutons toujours visibles → zone centrale `Modifier.weight(1f).verticalScroll(...)`, boutons hors du scroll, et `navigationBarsPadding()` sur la Column racine (sinon boutons sous la barre système).
 
 ---
 
@@ -268,3 +327,5 @@ Les dépendances de test sont configurées (JUnit 4, Espresso, Compose UI Test) 
 ```
 
 L'émulateur doit cibler API 24+ et avoir accès à `10.0.2.2:8091` (back-end local) pour que la synchro fonctionne en dev.
+
+**Sur device physique USB** : lancer `adb-reverse.ps1` (à la racine) pour rediriger `localhost:8091` du téléphone vers la machine. À refaire à chaque débranchement/redémarrage du serveur adb. Vérifier avec `adb reverse --list` (doit afficher `UsbFfs tcp:8091 tcp:8091`).
