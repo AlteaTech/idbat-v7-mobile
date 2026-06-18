@@ -27,13 +27,26 @@ class EcriturePuceViewModel @Inject constructor(
     val state: StateFlow<WriteState> = _state
 
     fun write(tag: Tag, carte: CartePuce) {
-        // Ignore les taps suivants pendant qu'une écriture est déjà en cours
-        if (_state.value is WriteState.Writing) return
+        // Ignore les taps suivants pendant qu'une écriture est déjà en cours,
+        // ou si on a déjà réussi (carte encore dans le champ).
+        if (_state.value is WriteState.Writing || _state.value is WriteState.Success) return
         _state.value = WriteState.Writing
         viewModelScope.launch {
             try {
                 nfcRepository.writeCartePuce(tag, carte)
-                _state.value = WriteState.Success(carte.uid)
+
+                // Relecture de contrôle : on s'assure que le contenu écrit est bien relu
+                val relu = nfcRepository.readCartePuce(tag)
+                val conforme = relu.numeroIdentification == carte.numeroIdentification &&
+                        relu.identClient == carte.identClient &&
+                        relu.nomPrenom == carte.nomPrenom &&
+                        relu.isCrcValid
+
+                if (conforme) {
+                    _state.value = WriteState.Success(carte.uid)
+                } else {
+                    _state.value = WriteState.Error("Relecture non conforme après écriture")
+                }
             } catch (e: Exception) {
                 _state.value = WriteState.Error(e.message ?: "Erreur d'écriture")
             }
