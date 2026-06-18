@@ -45,9 +45,12 @@ fun SaisieSignalementScreen(
 
     LaunchedEffect(contratId) { viewModel.loadEvenements(contratId) }
 
-    // Navigation retour automatique après succès
+    // Navigation retour automatique après succès (puis reset pour le prochain signalement)
     LaunchedEffect(uiState.submitSuccess) {
-        if (uiState.submitSuccess) onBack()
+        if (uiState.submitSuccess) {
+            viewModel.consumeSuccess()
+            onBack()
+        }
     }
 
     // Dialog erreur

@@ -31,6 +31,7 @@ import com.squareup.moshi.Json
  *
  * @param uid 
  * @param numeroIdentification 
+ * @param dateCreationMobile 
  */
 
 
@@ -40,7 +41,10 @@ data class MarquerCarteQrCodeRequest (
     val uid: kotlin.String,
 
     @Json(name = "numeroIdentification")
-    val numeroIdentification: kotlin.String
+    val numeroIdentification: kotlin.String,
+
+    @Json(name = "dateCreationMobile")
+    val dateCreationMobile: java.time.OffsetDateTime
 
 ) {
 

@@ -110,6 +110,15 @@ class SaisieSignalementViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(submitError = null)
     }
 
+    /** Réinitialise le formulaire après un envoi réussi (le VM est scopé à la route Home). */
+    fun consumeSuccess() {
+        _uiState.value = _uiState.value.copy(
+            submitSuccess = false,
+            commentaire = "",
+            selectedEvenement = null
+        )
+    }
+
     private fun resizeToMax(bytes: ByteArray, mimeType: String): ByteArray {
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return bytes
         val maxSide = maxOf(bitmap.width, bitmap.height)
