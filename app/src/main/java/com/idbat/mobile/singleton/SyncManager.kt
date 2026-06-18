@@ -14,6 +14,7 @@ import androidx.room.withTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
+import com.idbat.mobile.generated.client.api.CarteCreationControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
 import com.idbat.mobile.generated.client.api.SignalementsControllerApi
@@ -21,6 +22,7 @@ import com.idbat.mobile.generated.client.model.ContratDmo
 import com.idbat.mobile.generated.client.model.CreerPassageRequest
 import com.idbat.mobile.generated.client.model.CreerSignalementRequest
 import com.idbat.mobile.generated.client.model.FileData
+import com.idbat.mobile.generated.client.model.MarquerCarteQrCodeRequest
 import com.idbat.mobile.generated.client.model.PassageDocumentRequest
 import com.idbat.mobile.generated.client.model.PassageMatiereRequest
 import kotlinx.coroutines.*
@@ -41,7 +43,8 @@ class SyncManager @Inject constructor(
     private val tokenStore: TokenStore,
     private val contratsApi: ContratsControllerApi,
     private val passagesApi: PassagesControllerApi,
-    private val signalementsApi: SignalementsControllerApi
+    private val signalementsApi: SignalementsControllerApi,
+    private val carteCreationApi: CarteCreationControllerApi
 ) {
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState
@@ -104,14 +107,16 @@ class SyncManager @Inject constructor(
         val matiereDao      = database.passageMatiereDao()
         val usagerDao       = database.usagerDao()
         val signalementDao  = database.signalementDao()
+        val carteCreeeDao   = database.carteCreeeDao()
         val histoDao        = database.lastSynchroHistoryDao()
 
-        val allPassages    = passageDao.getAllPassages()
+        val allPassages     = passageDao.getAllPassages()
         val allSignalements = signalementDao.getAll()
-        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) à envoyer")
+        val allCartesCreees = carteCreeeDao.getAll()
+        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) à envoyer")
 
         // Rien à envoyer = on ne touche pas à l'historique (état précédent conservé)
-        if (allPassages.isEmpty() && allSignalements.isEmpty()) return
+        if (allPassages.isEmpty() && allSignalements.isEmpty() && allCartesCreees.isEmpty()) return
 
         // Stats par siteId : Pair(tentées, réussies)
         val statsBySite = mutableMapOf<Long, Pair<Long, Long>>()
@@ -204,6 +209,30 @@ class SyncManager @Inject constructor(
             } catch (e: Exception) {
                 statsBySite[signalement.siteId] = (prev.first + 1) to prev.second
                 Log.e("SYNC_MANAGER", "Erreur envoi signalement ${signalement.id}", e)
+            }
+        }
+
+        // ── Cartes créées ───────────────────────────────────────────────────────
+        for (carte in allCartesCreees) {
+            val request = MarquerCarteQrCodeRequest(
+                uid                   = carte.uid,
+                numeroIdentification  = carte.numeroIdentification
+            )
+
+            val prev = statsBySite.getOrDefault(carte.siteId, 0L to 0L)
+            try {
+                val response = carteCreationApi.marquerCarteCreationParQrCode(request)
+                if (response.isSuccessful) {
+                    carteCreeeDao.deleteById(carte.id)
+                    Log.d("SYNC_MANAGER", "Carte créée ${carte.id} envoyée (uid ${carte.uid})")
+                    statsBySite[carte.siteId] = (prev.first + 1) to (prev.second + 1)
+
+                } else {
+                    statsBySite[carte.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Carte créée ${carte.id} refusée — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("SYNC_MANAGER", "Erreur envoi carte créée ${carte.id}", e)
             }
         }
 

@@ -1,6 +1,7 @@
 package com.idbat.mobile.di
 
 import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
+import com.idbat.mobile.generated.client.api.CarteCreationControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
 import com.idbat.mobile.generated.client.api.SignalementsControllerApi
@@ -111,4 +112,9 @@ object ApiModule {
     @Singleton
     fun provideSignalementsApi(retrofit: Retrofit): SignalementsControllerApi =
         retrofit.create(SignalementsControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCarteCreationApi(retrofit: Retrofit): CarteCreationControllerApi =
+        retrofit.create(CarteCreationControllerApi::class.java)
 }

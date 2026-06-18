@@ -47,6 +47,7 @@ fun HomeScreen(
     var showCarteSheet by remember { mutableStateOf(false) }
     var showDepotScreen by remember { mutableStateOf(false) }
     var showSignalementScreen by remember { mutableStateOf(false) }
+    var showCreationCarteScreen by remember { mutableStateOf(false) }
 
     val testVolumeState by testVolumeViewModel.state.collectAsStateWithLifecycle()
 
@@ -107,6 +108,16 @@ fun HomeScreen(
             contratId = contrat?.id ?: 0L,
             agentId = agentId,
             onBack = { showSignalementScreen = false }
+        )
+        return
+    }
+
+    if (showCreationCarteScreen) {
+        CreationCarteScreen(
+            siteName = selectedSite?.nom ?: "",
+            contratId = contrat?.id ?: 0L,
+            siteId = selectedSite?.id ?: 0L,
+            onBack = { showCreationCarteScreen = false }
         )
         return
     }
@@ -191,13 +202,15 @@ fun HomeScreen(
                 onClick = { showSignalementScreen = true }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (contrat?.hasPuce == true) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            ActionRowButton(
-                title = "Gestion des cartes",
-                iconResId = R.drawable.carte_a_puce,
-                onClick = { showCarteSheet = true }
-            )
+                ActionRowButton(
+                    title = "Gestion des cartes",
+                    iconResId = R.drawable.carte_a_puce,
+                    onClick = { showCarteSheet = true }
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -214,6 +227,10 @@ fun HomeScreen(
         if (showCarteSheet) {
             CarteActionSheet(
                 onDismiss = { showCarteSheet = false },
+                onCreerCarte = {
+                    showCarteSheet = false
+                    showCreationCarteScreen = true
+                },
                 onPocClick = {
                     showCarteSheet = false
                     onNavigateToPoc()
