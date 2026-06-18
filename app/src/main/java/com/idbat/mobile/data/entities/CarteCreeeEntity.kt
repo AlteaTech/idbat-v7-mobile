@@ -12,6 +12,7 @@ data class CarteCreeeEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val contratId: Long,
+    val siteId: Long,                 // site connecté au moment de la création
     val type: String,                 // 'P' (carte à puce)
     val succes: Boolean = true,
     val uid: String,

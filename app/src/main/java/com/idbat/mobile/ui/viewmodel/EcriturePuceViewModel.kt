@@ -29,7 +29,7 @@ class EcriturePuceViewModel @Inject constructor(
     private val _state = MutableStateFlow<WriteState>(WriteState.Idle)
     val state: StateFlow<WriteState> = _state
 
-    fun write(tag: Tag, carteQr: CarteCreationQr, contratId: Long) {
+    fun write(tag: Tag, carteQr: CarteCreationQr, contratId: Long, siteId: Long) {
         // Ignore les taps suivants pendant qu'une écriture est en cours ou déjà réussie
         if (_state.value is WriteState.Writing || _state.value is WriteState.Success) return
         _state.value = WriteState.Writing
@@ -58,6 +58,7 @@ class EcriturePuceViewModel @Inject constructor(
                 database.carteCreeeDao().insert(
                     CarteCreeeEntity(
                         contratId = contratId,
+                        siteId = siteId,
                         type = "P",
                         succes = true,
                         uid = uid,

@@ -42,6 +42,7 @@ fun EcriturePuceScreen(
     siteName: String,
     carte: CarteCreationQr,
     contratId: Long,
+    siteId: Long,
     onBack: () -> Unit,
     onFinished: () -> Unit = onBack,
     viewModel: EcriturePuceViewModel = hiltViewModel()
@@ -74,7 +75,7 @@ fun EcriturePuceScreen(
             activity,
             { tag ->
                 if (tag == null) return@enableReaderMode
-                viewModel.write(tag, currentCarte.value, contratId)
+                viewModel.write(tag, currentCarte.value, contratId, siteId)
             },
             NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
             null

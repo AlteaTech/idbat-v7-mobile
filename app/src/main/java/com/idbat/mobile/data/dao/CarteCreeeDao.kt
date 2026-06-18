@@ -12,4 +12,7 @@ interface CarteCreeeDao {
 
     @Query("SELECT * FROM carte_creee ORDER BY dateCreation DESC")
     suspend fun getAll(): List<CarteCreeeEntity>
+
+    @Query("DELETE FROM carte_creee WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }
