@@ -18,6 +18,7 @@ import com.idbat.mobile.ui.theme.VeoliaGradientTop
 @Composable
 fun CreationCarteScreen(
     siteName: String,
+    contratId: Long,
     onBack: () -> Unit
 ) {
     var scannedValue by remember { mutableStateOf<String?>(null) }
@@ -32,7 +33,9 @@ fun CreationCarteScreen(
             EcriturePuceScreen(
                 siteName = siteName,
                 carte = carte,
-                onBack = { showEcriture = false }
+                contratId = contratId,
+                onBack = { showEcriture = false },   // flèche retour → infos carte
+                onFinished = onBack                  // popup "Fermer" → retour accueil
             )
             return
         }

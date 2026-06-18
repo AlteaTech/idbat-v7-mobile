@@ -41,7 +41,9 @@ import com.idbat.mobile.ui.viewmodel.EcriturePuceViewModel
 fun EcriturePuceScreen(
     siteName: String,
     carte: CarteCreationQr,
+    contratId: Long,
     onBack: () -> Unit,
+    onFinished: () -> Unit = onBack,
     viewModel: EcriturePuceViewModel = hiltViewModel()
 ) {
     val bgColor = MaterialTheme.colorScheme.background
@@ -72,9 +74,7 @@ fun EcriturePuceScreen(
             activity,
             { tag ->
                 if (tag == null) return@enableReaderMode
-                val uid = tag.id.joinToString(" ") { "%02X".format(it) }
-                val numSerie = tag.id.take(4).joinToString("") { "%02X".format(it) }
-                viewModel.write(tag, currentCarte.value.toCartePuce(uid, numSerie))
+                viewModel.write(tag, currentCarte.value, contratId)
             },
             NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
             null
@@ -206,7 +206,7 @@ fun EcriturePuceScreen(
         if (state is EcriturePuceViewModel.WriteState.Success) {
             CarteCreeeDialog(onFermer = {
                 viewModel.reset()
-                onBack()
+                onFinished()
             })
         }
     }

@@ -28,9 +28,10 @@ import com.idbat.mobile.data.entities.*
         PassageDocumentEntity::class,
         SignalementEntity::class,
         SignalementDocumentEntity::class,
-        SeuilEtatEntity::class
+        SeuilEtatEntity::class,
+        CarteCreeeEntity::class
     ],
-    version = 27,
+    version = 28,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -52,6 +53,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun signalementDao(): SignalementDao
     abstract fun signalementDocumentDao(): SignalementDocumentDao
     abstract fun seuilEtatDao(): SeuilEtatDao
+    abstract fun carteCreeeDao(): CarteCreeeDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -82,7 +84,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27
+            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
+            MIGRATION_27_28
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -334,6 +337,33 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_22_23 = object : Migration(22, 23) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE passage ADD COLUMN transactionId TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `carte_creee` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `succes` INTEGER NOT NULL DEFAULT 1,
+                        `uid` TEXT NOT NULL,
+                        `numeroSerie` TEXT NOT NULL,
+                        `numeroIdentification` TEXT NOT NULL,
+                        `motDePasse` TEXT NOT NULL,
+                        `societe` TEXT NOT NULL,
+                        `interne` INTEGER NOT NULL DEFAULT 0,
+                        `prepaiement` INTEGER NOT NULL DEFAULT 0,
+                        `facturation` INTEGER NOT NULL DEFAULT 0,
+                        `gratuit` INTEGER NOT NULL DEFAULT 0,
+                        `nomPrenom` TEXT NOT NULL,
+                        `identClient` TEXT NOT NULL,
+                        `soldePoints` TEXT NOT NULL,
+                        `cumulPoints` TEXT NOT NULL,
+                        `dateCreation` INTEGER NOT NULL
+                    )
+                """.trimIndent())
             }
         }
 

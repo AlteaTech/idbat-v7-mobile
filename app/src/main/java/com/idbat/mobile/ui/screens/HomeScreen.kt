@@ -115,6 +115,7 @@ fun HomeScreen(
     if (showCreationCarteScreen) {
         CreationCarteScreen(
             siteName = selectedSite?.nom ?: "",
+            contratId = contrat?.id ?: 0L,
             onBack = { showCreationCarteScreen = false }
         )
         return
