@@ -192,7 +192,12 @@ fun EcriturePuceScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("Écriture RFID", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = onSurface)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Présentez votre carte RFID", fontSize = 14.sp, color = onSurface)
+                        val sousTexte = when {
+                            nfcAdapter == null -> "NFC non disponible sur cet appareil"
+                            !nfcAdapter.isEnabled -> "Activez le NFC dans les réglages"
+                            else -> "Présentez votre carte RFID"
+                        }
+                        Text(sousTexte, fontSize = 14.sp, color = onSurface)
                     }
                 }
             }

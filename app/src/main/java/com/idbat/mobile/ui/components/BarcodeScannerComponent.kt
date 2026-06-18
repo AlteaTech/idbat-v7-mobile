@@ -137,7 +137,15 @@ fun BarcodeScannerComponent(
                         .background(Color.Black, RoundedCornerShape(12.dp))
                 ) {
                     val executor = remember { Executors.newSingleThreadExecutor() }
-                    DisposableEffect(Unit) { onDispose { executor.shutdown() } }
+                    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+                    // Libère la caméra quand on quitte le scan (sinon elle reste liée au lifecycle
+                    // de la route et tourne en arrière-plan — peut gêner d'autres usages matériels).
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            try { cameraProvider?.unbindAll() } catch (_: Exception) {}
+                            executor.shutdown()
+                        }
+                    }
 
                     AndroidView(
                         factory = { ctx ->
@@ -145,6 +153,7 @@ fun BarcodeScannerComponent(
                             val future = ProcessCameraProvider.getInstance(ctx)
                             future.addListener({
                                 val provider = future.get()
+                                cameraProvider = provider
                                 val preview = Preview.Builder().build()
                                     .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
