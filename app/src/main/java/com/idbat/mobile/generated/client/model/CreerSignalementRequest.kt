@@ -23,10 +23,7 @@
 
 package com.idbat.mobile.generated.client.model
 
-import com.idbat.mobile.generated.client.model.FileData
-
 import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
 
 /**
  * 

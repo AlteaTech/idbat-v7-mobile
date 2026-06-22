@@ -217,6 +217,7 @@ class SyncManager @Inject constructor(
             val request = MarquerCarteQrCodeRequest(
                 uid                   = carte.uid,
                 numeroIdentification  = carte.numeroIdentification,
+                userTpId              = carte.userTpId,
                 dateCreationMobile    = OffsetDateTime.ofInstant(
                     Instant.ofEpochMilli(carte.dateCreation), ZoneId.systemDefault()
                 )
