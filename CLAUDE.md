@@ -153,6 +153,12 @@ isLoadingContracts, showValidationError
 ```
 `refreshLoggedInContrat()` recharge le contrat depuis la BDD après une synchro (les flags `hasPuce`… sont mis à jour pour l'UI). Appelé par `SyncService` après le transfert.
 
+**Reconnexion obligatoire (retour de veille)** : `AuthManager` mémorise, au passage en arrière-plan/veille (`onAppBackgrounded()`, uniquement si une session est ouverte), **deux horodatages** : `SystemClock.elapsedRealtime()` (horloge monotone, deep sleep inclus) et `System.currentTimeMillis()` (horloge murale). Au retour au premier plan (`onAppForegrounded()`), `logout()` est appelé si **l'une** des deux règles est vraie :
+1. **Premier accès de la journée** (indépendant du paramètre) : le **jour calendaire** a changé entre la mise en veille et le retour (`isSameCalendarDay()` via `Calendar`, année + jour de l'année — robuste API 24). Reproduit le comportement v6 (comparaison à la sortie de veille).
+2. **Délai d'inactivité** : le temps écoulé (`elapsedRealtime`) dépasse `ConfigSingleton.sessionTimeoutMinutes` (défaut **10 min**).
+
+`logout()` met `isLoggedIn=false` → `MainScreen` re-route vers `LoginScreen` avec `popUpTo(0) { inclusive = true }` (l'écran précédent n'est PAS restauré). Les deux hooks sont déclenchés par `MainActivity.onStop()` / `onStart()`. La règle (1) utilise l'horloge murale (jour réel) ; la règle (2) l'horloge monotone (robuste au changement d'heure). *Limite connue (déjà présente en v6) : si l'app reste au premier plan toute la nuit sans veille ni écran éteint, aucun `onStop` n'est émis et le changement de jour n'est pas détecté.*
+
 ### `SyncManager.SyncState`
 ```kotlin
 lastSynchroDateEnvoi, lastSynchroDateReception, isTransferring,
@@ -302,7 +308,7 @@ Toutes les couleurs du projet sont centralisées dans `Color.kt`. **Ne jamais é
 
 - **Migrations Room** : toute modification de schéma doit s'accompagner d'une migration incrémentale dans `AppDatabase.kt` et d'un bump de version. Ne pas utiliser `fallbackToDestructiveMigration` en prod.
 - **Client API généré** : le dossier `generated/client/` ne se modifie pas à la main — regénérer depuis la spec OpenAPI.
-- **ConfigSingleton** : contient l'URL de base et le flag `webEnabled`. Changer l'URL ici pour switcher d'environnement.
+- **ConfigSingleton** : contient l'URL de base, le flag `webEnabled`, les intervalles (`syncIntervalMinutes`, `dataRetentionDays`) et le **délai d'inactivité avant reconnexion** `sessionTimeoutMinutes` (défaut 10 min, cf. State management). Changer l'URL ici pour switcher d'environnement.
 - **Imports en batch** : `UsagerEntity` est inséré par tranches de 2000 ; ne pas casser cette logique lors de refactorisations.
 - **Permissions Android** : `INTERNET` + localisation + `CAMERA` déclarées dans `AndroidManifest.xml` ; la localisation est utilisée à l'enregistrement du device uniquement ; la caméra est demandée à la volée (runtime permission) dans `PhotoPickerComponent` et `CardScanComponent`.
 - **FileProvider** : toute nouvelle fonctionnalité utilisant `TakePicture()` doit passer par `createCameraUri()` (`CameraUtils.kt`) — ne pas créer de URI caméra directement.

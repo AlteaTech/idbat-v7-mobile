@@ -10,6 +10,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -753,6 +754,63 @@ class AuthManager @Inject constructor(
             availableSites = _authState.value.availableSites,
             availableUtilisateursTps = _authState.value.availableUtilisateursTps
         )
+    }
+
+    // --- Reconnexion obligatoire au retour de veille -------------------------------------
+    // Horloge monotone (deep sleep inclus) au passage en arrière-plan → délai d'inactivité.
+    private var backgroundedAtElapsed: Long? = null
+    // Horloge murale (epoch millis) au passage en arrière-plan → détection du changement de jour.
+    private var backgroundedAtWallClock: Long? = null
+
+    /** À appeler quand l'app passe en arrière-plan/veille : mémorise les horodatages si connecté. */
+    fun onAppBackgrounded() {
+        if (_authState.value.isLoggedIn) {
+            backgroundedAtElapsed = SystemClock.elapsedRealtime()
+            backgroundedAtWallClock = System.currentTimeMillis()
+        } else {
+            backgroundedAtElapsed = null
+            backgroundedAtWallClock = null
+        }
+    }
+
+    /**
+     * À appeler au retour au premier plan. Force la reconnexion (retour écran de login) si :
+     *  1. premier accès de la journée (jour calendaire différent de la mise en veille), ou
+     *  2. délai d'inactivité [ConfigSingleton.sessionTimeoutMinutes] dépassé.
+     */
+    fun onAppForegrounded() {
+        val backgroundedElapsed = backgroundedAtElapsed
+        val backgroundedWallClock = backgroundedAtWallClock
+        backgroundedAtElapsed = null
+        backgroundedAtWallClock = null
+        if (!_authState.value.isLoggedIn) return
+
+        // 1. Premier accès de la journée : changement de jour calendaire (indépendant du paramètre).
+        if (backgroundedWallClock != null &&
+            !isSameCalendarDay(backgroundedWallClock, System.currentTimeMillis())
+        ) {
+            Log.d("AUTH_MANAGER", "Premier accès du jour → reconnexion obligatoire")
+            logout()
+            return
+        }
+
+        // 2. Délai d'inactivité dépassé.
+        if (backgroundedElapsed != null) {
+            val elapsedMs = SystemClock.elapsedRealtime() - backgroundedElapsed
+            val timeoutMs = ConfigSingleton.sessionTimeoutMinutes * 60_000L
+            if (elapsedMs >= timeoutMs) {
+                Log.d("AUTH_MANAGER", "Délai d'inactivité dépassé (${elapsedMs}ms) → reconnexion obligatoire")
+                logout()
+            }
+        }
+    }
+
+    /** Vrai si les deux instants (epoch millis) tombent le même jour calendaire local. */
+    private fun isSameCalendarDay(millisA: Long, millisB: Long): Boolean {
+        val calA = Calendar.getInstance().apply { timeInMillis = millisA }
+        val calB = Calendar.getInstance().apply { timeInMillis = millisB }
+        return calA.get(Calendar.YEAR) == calB.get(Calendar.YEAR) &&
+                calA.get(Calendar.DAY_OF_YEAR) == calB.get(Calendar.DAY_OF_YEAR)
     }
 
     private fun getDeviceModel(): String {
