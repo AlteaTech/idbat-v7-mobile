@@ -294,23 +294,16 @@ private fun MatiereLigneRow(
                 .size(20.dp)
                 .clickable { onDelete() }
         )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = ligne.matiere.libelle,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            if (!ligne.usagerNom.isNullOrBlank()) {
-                Text(
-                    text = ligne.usagerNom,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
         Text(
-            text = "${ligne.quantite} ${ligne.matiere.unitesDesApportLibelle}",
+            text = ligne.matiere.libelle,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            // affichage : le point décimal est remplacé par une virgule
+            text = "${ligne.quantite.replace('.', ',')} ${ligne.matiere.unitesDesApportLibelle}",
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
@@ -324,6 +317,27 @@ private fun MatiereLigneRow(
                 .clickable { onEdit() }
         )
     }
+}
+
+/**
+ * Filtre la saisie de quantité : ne conserve que les chiffres et un unique séparateur
+ * décimal (point ou virgule). Le séparateur ne peut pas être en première position.
+ * Un séparateur en fin est toléré pendant la frappe (ex. "12,") puis nettoyé à la validation.
+ */
+private fun sanitizeQuantiteInput(input: String): String {
+    val sb = StringBuilder()
+    var separatorUsed = false
+    for (c in input) {
+        when {
+            c.isDigit() -> sb.append(c)
+            c == '.' || c == ',' -> {
+                if (sb.isEmpty() || separatorUsed) continue
+                separatorUsed = true
+                sb.append(c)
+            }
+        }
+    }
+    return sb.toString()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -351,7 +365,8 @@ private fun AjouterMatiereDialog(
         mutableStateOf(initialLigne?.matiere ?: availableMatieres.firstOrNull())
     }
     var quantite by remember(initialLigne) {
-        mutableStateOf(initialLigne?.quantite ?: "")
+        // pré-remplissage en édition : on ré-affiche le séparateur en virgule
+        mutableStateOf(initialLigne?.quantite?.replace('.', ',') ?: "")
     }
     // RG2 : erreur si quantité vide au moment de valider
     var quantiteError by remember { mutableStateOf(false) }
@@ -454,8 +469,9 @@ private fun AjouterMatiereDialog(
                     OutlinedTextField(
                         value = quantite,
                         onValueChange = {
-                            quantite = it
-                            if (it.isNotBlank()) quantiteError = false
+                            // RG : chiffres + un seul séparateur (point ou virgule), pas en début
+                            quantite = sanitizeQuantiteInput(it)
+                            if (quantite.isNotBlank()) quantiteError = false
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
@@ -486,10 +502,17 @@ private fun AjouterMatiereDialog(
                     enabled = quantite.isNotBlank() && quantite.toDoubleOrNull() != null,
                     onClick = {
                         val matiere = selectedMatiere ?: return@Button
+                        // format numérique stocké : séparateur final supprimé, virgule → point
+                        val quantiteNormalisee = quantite.trimEnd('.', ',').replace(',', '.')
+                        // RG2 : quantité obligatoire (0 est autorisé, blanc ne l'est pas)
+                        if (quantiteNormalisee.isBlank()) {
+                            quantiteError = true
+                            return@Button
+                        }
                         onValidate(
                             SaisieMatiereLigne(
                                 matiere = matiere,
-                                quantite = quantite,
+                                quantite = quantiteNormalisee,
                                 usagerNom = usagerNom,
                                 numeroCarte = numeroCarte,
                                 date = System.currentTimeMillis(),
