@@ -89,6 +89,9 @@ class SyncManager @Inject constructor(
 
             if (ConfigSingleton.IsSyncAscEnable) synchroMontante(site)
             if (ConfigSingleton.IsSyncDescEnable) synchroDescendante(site)
+
+            // RG3 : à chaque synchro, purge des données envoyées et saisies il y a plus de X jours
+            purgeOldSyncedData()
         } catch (e: Exception) {
             Log.e("SYNC_MANAGER", "Erreur critique lors du transfert", e)
             _syncState.value = _syncState.value.copy(syncError = "Erreur inattendue : ${e.message}")
@@ -97,6 +100,20 @@ class SyncManager @Inject constructor(
             if (wifiLock.isHeld) wifiLock.release()
             _syncState.value = _syncState.value.copy(isTransferring = false)
         }
+    }
+
+    /**
+     * RG3 : supprime les données saisies (passages, signalements, cartes créées) qui ont été
+     * envoyées avec succès et dont l'horodatage de saisie dépasse la durée de rétention
+     * (ConfigSingleton.dataRetentionDays). Les lignes non envoyées ne sont jamais touchées.
+     */
+    private suspend fun purgeOldSyncedData() {
+        val threshold = System.currentTimeMillis() -
+                ConfigSingleton.dataRetentionDays * 24L * 60L * 60L * 1000L
+        database.passageDao().deleteSentOlderThan(threshold)
+        database.signalementDao().deleteSentOlderThan(threshold)
+        database.carteCreeeDao().deleteSentOlderThan(threshold)
+        Log.d("SYNC_MANAGER", "Purge RG3 effectuée (seuil = $threshold)")
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -110,9 +127,12 @@ class SyncManager @Inject constructor(
         val carteCreeeDao   = database.carteCreeeDao()
         val histoDao        = database.lastSynchroHistoryDao()
 
-        val allPassages     = passageDao.getAllPassages()
-        val allSignalements = signalementDao.getAll()
-        val allCartesCreees = carteCreeeDao.getAll()
+        // RG3 : on n'envoie que ce qui n'a pas encore été transmis avec succès.
+        // Les lignes déjà envoyées restent en base et seront purgées après X jours.
+        val nowMillis       = System.currentTimeMillis()
+        val allPassages     = passageDao.getUnsentPassages()
+        val allSignalements = signalementDao.getUnsent()
+        val allCartesCreees = carteCreeeDao.getUnsent()
         Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) à envoyer")
 
         // Rien à envoyer = on ne touche pas à l'historique (état précédent conservé)
@@ -160,7 +180,7 @@ class SyncManager @Inject constructor(
             try {
                 val response = passagesApi.creer(request)
                 if (response.isSuccessful) {
-                    passageDao.deleteById(passage.id)
+                    passageDao.markSent(passage.id, nowMillis)
                     statsBySite[passage.siteId] = (prev.first + 1) to (prev.second + 1)
                     Log.d("SYNC_MANAGER", "Passage ${passage.id} envoyé (site ${passage.siteId})")
                 } else {
@@ -199,7 +219,7 @@ class SyncManager @Inject constructor(
             try {
                 val response = signalementsApi.creerSignalement(request)
                 if (response.isSuccessful) {
-                    signalementDao.deleteById(signalement.id)
+                    signalementDao.markSent(signalement.id, nowMillis)
                     statsBySite[signalement.siteId] = (prev.first + 1) to (prev.second + 1)
                     Log.d("SYNC_MANAGER", "Signalement ${signalement.id} envoyé (site ${signalement.siteId})")
                 } else {
@@ -227,7 +247,7 @@ class SyncManager @Inject constructor(
             try {
                 val response = carteCreationApi.marquerCarteCreationParQrCode(request)
                 if (response.isSuccessful) {
-                    carteCreeeDao.deleteById(carte.id)
+                    carteCreeeDao.markSent(carte.id, nowMillis)
                     Log.d("SYNC_MANAGER", "Carte créée ${carte.id} envoyée (uid ${carte.uid})")
                     statsBySite[carte.siteId] = (prev.first + 1) to (prev.second + 1)
 
@@ -271,8 +291,10 @@ class SyncManager @Inject constructor(
         if (!ConfigSingleton.webEnable) return
 
         // Bloquer si des passages non transférés existent après la montante
-        val passageCount = database.passageDao().count()
-        val signalementCount = database.signalementDao().count()
+        // RG3 : on ne bloque que sur les lignes encore à envoyer (les lignes déjà
+        // transmises restent en base le temps de la rétention, mais n'empêchent pas la réception).
+        val passageCount = database.passageDao().countUnsent()
+        val signalementCount = database.signalementDao().countUnsent()
         if (passageCount > 0) {
             _syncState.value = _syncState.value.copy(
                 syncError = "Impossible de synchroniser : $passageCount passage(s) en attente de transfert.\nVeuillez d'abord envoyer les passages."

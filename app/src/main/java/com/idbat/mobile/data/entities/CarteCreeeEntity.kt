@@ -29,5 +29,7 @@ data class CarteCreeeEntity(
     val identClient: String,
     val soldePoints: String,
     val cumulPoints: String,
-    val dateCreation: Long
+    val dateCreation: Long,
+    // RG3 : horodatage de l'envoi réussi au BO (null = non envoyé). Sert à différer la purge.
+    val sentAt: Long? = null
 )

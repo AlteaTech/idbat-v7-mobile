@@ -31,7 +31,7 @@ import com.idbat.mobile.data.entities.*
         SeuilEtatEntity::class,
         CarteCreeeEntity::class
     ],
-    version = 30,
+    version = 31,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -85,7 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
             MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
-            MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30
+            MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -349,6 +349,15 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_29_30 = object : Migration(29, 30) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE carte_creee ADD COLUMN userTpId INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // RG3 : colonne d'horodatage d'envoi (null = non envoyé) pour différer la purge
+        private val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN sentAt INTEGER")
+                db.execSQL("ALTER TABLE signalement ADD COLUMN sentAt INTEGER")
+                db.execSQL("ALTER TABLE carte_creee ADD COLUMN sentAt INTEGER")
             }
         }
 

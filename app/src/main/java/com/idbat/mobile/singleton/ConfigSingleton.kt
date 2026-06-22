@@ -11,6 +11,10 @@ object ConfigSingleton {
     // Intervalle de déclenchement de la synchronisation automatique (en minutes)
     val syncIntervalMinutes = 1L
 
+    // RG3 : durée de rétention locale des données saisies (en jours). Les données envoyées
+    // avec succès ne sont purgées qu'après ce délai, à chaque synchro réussie.
+    val dataRetentionDays = 2L
+
     const val BASE_URL_DEV_EMULATOR = "http://10.0.2.2:8091/"
     const val BASE_URL_DEV_DEVICE   = "http://localhost:8091/"   // nécessite : adb reverse tcp:8091 tcp:8091
     const val BASE_URL_STAGING      = "https://idbat-mobile-rec.recyclage.veolia.fr/"
