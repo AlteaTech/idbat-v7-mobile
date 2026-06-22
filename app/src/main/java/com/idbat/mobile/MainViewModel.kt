@@ -8,12 +8,15 @@ import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.service.SyncService
 import com.idbat.mobile.singleton.AuthManager
+import com.idbat.mobile.singleton.ConfigSingleton
 import com.idbat.mobile.singleton.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -57,6 +60,20 @@ class MainViewModel @Inject constructor(
                 // Charger les dates de synchro quand un site est sélectionné
                 newState.authState.loggedInSite?.let { site ->
                     syncManager.loadSyncDatesForSite(site)
+                }
+            }
+        }
+
+        // Auto-synchro périodique : déclenche un transfert toutes les X minutes
+        // (intervalle dans ConfigSingleton), uniquement si connecté et qu'aucun
+        // transfert n'est déjà en cours. La montante et la descendante restent
+        // indépendantes (cf. SyncManager : l'une s'exécute même si l'autre n'a rien à faire).
+        viewModelScope.launch {
+            while (isActive) {
+                delay(ConfigSingleton.syncIntervalMinutes * 60_000L)
+                val state = _uiState.value
+                if (state.isLoggedIn && !state.syncState.isTransferring) {
+                    executeTransfer()
                 }
             }
         }
