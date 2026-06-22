@@ -80,26 +80,36 @@ class MainViewModel @Inject constructor(
     }
 
     suspend fun getSuiviContentAsync(siteId: Long): CharSequence {
-        val operationsTentees = database.lastSynchroHistoryDao().getTotalOperationsTentees(siteId) ?: 0L
-        val operationsReussies = database.lastSynchroHistoryDao().getTotalOperationsReussies(siteId) ?: 0L
-        val operationsEchouees = operationsTentees - operationsReussies
+        // Suivi des transferts : nombre d'enregistrements locaux des opérations
+        // (passages/dépôts + signalements/événements + cartes créées ; les futurs flux —
+        // rechargement carte, maj e-mail usager, maj uid RFID — viendront s'ajouter ici).
+        // RG3 : "Opérations" = tout ce qui est en base (déjà transféré non purgé + non transféré).
+        val operations =
+            database.passageDao().count() +
+            database.signalementDao().count() +
+            database.carteCreeeDao().count()
+
+        // "Opérations non transférées" = uniquement les lignes pas encore montées vers le BO
+        // (sentAt IS NULL). En théorie 0 juste après une synchro réussie.
+        val operationsNonTransferees =
+            database.passageDao().countUnsent() +
+            database.signalementDao().countUnsent() +
+            database.carteCreeeDao().countUnsent()
 
         return buildSuiviContent(
-            siteId,
             _uiState.value.syncState.lastSynchroDateEnvoi,
             _uiState.value.syncState.lastSynchroDateReception,
-            operationsTentees,
-            operationsEchouees
+            operations,
+            operationsNonTransferees
         )
     }
 
 
     private fun buildSuiviContent(
-        siteId: Long,
         lastEnvoi: Date?,
         lastReception: Date?,
-        operation: Long,
-        operationFailed: Long
+        operations: Long,
+        operationsNonTransferees: Long
     ): CharSequence { // 1. On retourne un CharSequence au lieu d'un String
         val formatter = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
 
@@ -112,10 +122,10 @@ class MainViewModel @Inject constructor(
             append("\n${lastReception?.let { formatter.format(it) } ?: "Jamais"}\n\n")
 
             bold { append("Opérations :") }
-            append("\n$operation\n\n")
+            append("\n$operations\n\n")
 
             bold { append("Opérations non transférées :") }
-            append("\n$operationFailed\n")
+            append("\n$operationsNonTransferees\n")
         }
     }
 

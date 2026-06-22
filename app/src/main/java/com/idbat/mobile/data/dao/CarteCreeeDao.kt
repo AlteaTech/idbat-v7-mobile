@@ -13,6 +13,14 @@ interface CarteCreeeDao {
     @Query("SELECT * FROM carte_creee ORDER BY dateCreation DESC")
     suspend fun getAll(): List<CarteCreeeEntity>
 
+    // Suivi : nombre total de cartes créées en base (envoyées non purgées + non envoyées)
+    @Query("SELECT COUNT(*) FROM carte_creee")
+    suspend fun count(): Long
+
+    // Suivi : nombre de cartes créées restant à transférer
+    @Query("SELECT COUNT(*) FROM carte_creee WHERE sentAt IS NULL")
+    suspend fun countUnsent(): Long
+
     // RG3 : cartes créées non encore envoyées au BO
     @Query("SELECT * FROM carte_creee WHERE sentAt IS NULL ORDER BY dateCreation ASC")
     suspend fun getUnsent(): List<CarteCreeeEntity>

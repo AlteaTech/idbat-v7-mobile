@@ -97,13 +97,14 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `LastSynchroHistoryEntity` | Historique de synchronisation (ENVOI / RECEPTION), stats par site |
 | `UsagerCarteEntity` | Liaison usager↔carte (dates début/fin) |
 | `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*` |
-| `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID pour idempotence |
+| `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID, `userTpId` (user connecté), `sentAt` (RG3) |
 | `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) |
 | `PassageDocumentEntity` | Photos/signature d'un passage en base64 (FK passage CASCADE) |
-| `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) + `transactionId` |
+| `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) — `transactionId`, `agentId` (user connecté), `sentAt` (RG3) |
 | `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |
+| `CarteCreeeEntity` | Journal des cartes créées (outbox, **sans FK**) — `userTpId` (user connecté), `sentAt` (RG3) |
 
-**Migrations :** trajet complet v1→v27 documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT`.  
+**Migrations :** trajet complet (**version actuelle : 31**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
 **Init :** un utilisateur admin par défaut (login `admin`, PIN `1234`) est créé au premier accès.
 
 > **Piège cascade Room** : `ContratDao`/`SiteDao` utilisent `@Upsert` (et non `@Insert(REPLACE)`). `REPLACE` fait DELETE+INSERT → déclenche `ON DELETE CASCADE` et efface l'historique de synchro / sous-entités. `@Upsert` met à jour en place sans cascade.
@@ -132,6 +133,7 @@ Les colonnes `base64` (photos) dépassent le `CursorWindow` SQLite par défaut (
 | `SmartphonesMobileControllerApi` | `checkSmartphoneExists()`, `creerSmartphone()` (avec GPS) |
 | `PassagesControllerApi` | `creer(CreerPassageRequest)` — envoi passage (matières + documents + `transactionId`) |
 | `SignalementsControllerApi` | `creerSignalement(CreerSignalementRequest)` — envoi signalement + photos (`FileData`) |
+| `CarteCreationControllerApi` | `marquerCarteCreationParQrCode(MarquerCarteQrCodeRequest)` — `POST api/carte-creation` (uid, numeroIdentification, `userTpId`, dateCreationMobile) |
 
 **Adapters Moshi (`ApiModule`)** : `LocalDate`, `OffsetDateTime` (sérialisé **sans offset** → `LocalDateTime` attendu par le back .NET), `BigDecimal` (via `toPlainString()`, pas de notation scientifique).
 
@@ -163,15 +165,25 @@ syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées),
 
 ## Synchronisation
 
-`SyncManager.executeTransfer(site)` enchaîne (selon `ConfigSingleton.IsSyncAscEnable/IsSyncDescEnable`) :
+`SyncManager.executeTransfer(site)` enchaîne (selon `ConfigSingleton.IsSyncAscEnable/IsSyncDescEnable`) puis appelle `purgeOldSyncedData()` :
 
-1. **Synchro montante (`synchroMontante`)** : envoie chaque **passage** puis chaque **signalement** un par un. Après `200 OK`, suppression locale immédiate (l'idempotence côté back repose sur `transactionId`). Stats `(tentées, réussies)` cumulées **par site** → écrites dans `LastSynchroHistoryEntity` type `ENVOI`. Badge "Envoi" vert si `réussies == tentées`.
-2. **Synchro descendante (`synchroDescendante`)** : bloquée si des passages restent à envoyer. Sinon `getByDevice()` → `applyDiff(dmo)` dans une **transaction Room** (`database.withTransaction`, inserts séquentiels car mono-thread). Diff = upsert + suppression des lignes obsolètes (`deleteXxxNotIn`). Historique `RECEPTION` écrit **pour tous les sites** du contrat (données communes).
+1. **Synchro montante (`synchroMontante`)** : envoie un par un les **passages**, **signalements** puis **cartes créées** qui restent à transmettre (`sentAt IS NULL` via `getUnsentXxx()`). Après `200 OK`, la ligne n'est **pas supprimée** mais **marquée** `markSent(id, now)` (RG3, cf. ci-dessous). Stats `(tentées, réussies)` cumulées **par site** → `LastSynchroHistoryEntity` type `ENVOI`. Badge "Envoi" vert si `réussies == tentées`. **« Rien à envoyer » = contrôle d'envoi réussi** : l'horodatage `ENVOI` du site courant est quand même rafraîchi (compteur d'opérations conservé) — sinon la date paraît périmée.
+2. **Synchro descendante (`synchroDescendante`)** : bloquée si des passages/signalements restent **à envoyer** (`countUnsent() > 0`, pas `count()` — les lignes en rétention ne bloquent pas). Sinon `getByDevice()` → `applyDiff(dmo)` dans une **transaction Room**. La date `RECEPTION` est rafraîchie à **chaque** réception réussie (pas de court-circuit « rien à recevoir »).
+
+**RG3 — rétention locale (`ConfigSingleton.dataRetentionDays`, défaut 2 j)** : les données saisies ne sont supprimées que **X jours après leur saisie ET une fois envoyées**. Mécanique : `sentAt` (horodatage d'envoi, `null` = non envoyé) sur `passage`/`signalement`/`carte_creee` ; `purgeOldSyncedData()` (appelée à chaque transfert) fait `deleteSentOlderThan(now − X j)` sur les 3 tables (`WHERE sentAt IS NOT NULL AND <horodatage saisie> < seuil`). Sert au petit reporting / réédition de bons (hors MVP). ⚠️ `PassageEntity` a des **FK CASCADE** vers Site/Contrat : un passage en rétention peut être supprimé prématurément si la descendante retire son site/contrat (`signalement`/`carte_creee` sont sans FK, donc protégés).
+
+**Traçabilité (user connecté + device)** : chaque ligne d'outbox porte l'**id du TP connecté** (`AuthManager.loggedInUtilisateurTp.id`) — `userTpId` (passage), `agentId` (signalement), `userTpId` (carte créée, → `MarquerCarteQrCodeRequest.userTpId`). L'**identifiant du device n'est PAS envoyé** dans les payloads : il est **déduit du token** côté back (le login se fait avec `idMobile = ANDROID_ID`).
+
+**Auto-synchro périodique** : `MainViewModel` (boucle `viewModelScope`) déclenche `executeTransfer()` toutes les `ConfigSingleton.syncIntervalMinutes` minutes, si connecté et `!isTransferring`. Tourne tant que le process vit (pas de WorkManager → s'arrête si le process est tué).
+
+**Suivi (popup du bouton « Suivi »)** : `MainViewModel.getSuiviContentAsync` calcule les compteurs à partir des **enregistrements en base** (pas de l'historique) : **« Opérations »** = `count()` cumulé sur les outbox (`passage`+`signalement`+`carte_creee` ; inclut RG3 : envoyé-non-purgé + non-envoyé) ; **« Opérations non transférées »** = `countUnsent()` cumulé (`sentAt IS NULL`, ≈ 0 après une synchro).
 
 **Robustesse écran éteint / doze :**
 - `executeTransfer` tient un `PARTIAL_WAKE_LOCK` + `WifiLock` (timeout 10 min).
 - Le transfert tourne dans un **foreground service** `SyncService` (type `dataSync`, notification persistante) lancé par `MainViewModel.executeTransfer()` → survit au deep doze. L'UI observe toujours `syncState` (singleton partagé).
 - `transactionId` (UUID) sur `PassageEntity`/`SignalementEntity` → anti-doublon si la réponse réseau est perdue (le back doit dédupliquer dessus).
+
+> **Ajouter un nouveau type d'opération outbox** (ex. rechargement carte, maj e-mail usager, maj uid RFID) : (1) entité avec `userTpId` + `sentAt` ; (2) migration Room (+ bump version) ; (3) DAO `getUnsent` / `markSent` / `countUnsent` / `count` / `deleteSentOlderThan` ; (4) envoi dans `synchroMontante` (markSent, pas delete) ; (5) purge dans `purgeOldSyncedData()` ; (6) ajouter `count()`/`countUnsent()` aux sommes du Suivi (`MainViewModel.getSuiviContentAsync`).
 
 **Première synchro** : `AuthManager.saveContractToDatabase()` (chemin séparé de `applyDiff`) — toute modif de mapping DMO→entité doit être répercutée **dans les deux** (`AuthManager` ET `SyncManager.applyDiff`).
 

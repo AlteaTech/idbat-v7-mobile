@@ -135,8 +135,8 @@ class SyncManager @Inject constructor(
         val allCartesCreees = carteCreeeDao.getUnsent()
         Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) à envoyer")
 
-        // Rien à envoyer = on ne touche pas à l'historique (état précédent conservé)
-        if (allPassages.isEmpty() && allSignalements.isEmpty() && allCartesCreees.isEmpty()) return
+        // Note : même s'il n'y a rien à envoyer, on continue. Un contrôle « rien à envoyer »
+        // compte comme un envoi réussi et doit rafraîchir l'horodatage (cf. statsBySite plus bas).
 
         // Stats par siteId : Pair(tentées, réussies)
         val statsBySite = mutableMapOf<Long, Pair<Long, Long>>()
@@ -260,7 +260,7 @@ class SyncManager @Inject constructor(
             }
         }
 
-        // Historique ENVOI par site
+        // Historique ENVOI par site ayant réellement eu des opérations
         val dateExec = Date()
         for ((siteId, stats) in statsBySite) {
             histoDao.deleteTypeForSite(siteId, TypeSynchro.ENVOI)
@@ -275,13 +275,28 @@ class SyncManager @Inject constructor(
             )
         }
 
-        // Rafraîchir le state pour le site courant
-        statsBySite[site.id]?.let { stats ->
-            _syncState.value = _syncState.value.copy(
-                lastSynchroDateEnvoi = dateExec,
-                lastEnvoiSuccess = stats.second == stats.first  // réussies == tentées
+        // « Rien à envoyer pour le site courant » compte comme un contrôle d'envoi réussi :
+        // on rafraîchit l'horodatage ENVOI en conservant le compteur d'opérations précédent.
+        if (!statsBySite.containsKey(site.id)) {
+            val previous = histoDao.getLastSynchroForSiteAndType(site.id, TypeSynchro.ENVOI)
+            histoDao.deleteTypeForSite(site.id, TypeSynchro.ENVOI)
+            histoDao.insertSynchro(
+                LastSynchroHistoryEntity(
+                    siteId             = site.id,
+                    date               = dateExec,
+                    type               = TypeSynchro.ENVOI,
+                    operationsTentees  = previous?.operationsTentees ?: 0L,
+                    operationsReussies = previous?.operationsReussies ?: 0L
+                )
             )
         }
+
+        // Rafraîchir le state pour le site courant (envoi réussi OU rien à envoyer)
+        val currentStats = statsBySite[site.id]
+        _syncState.value = _syncState.value.copy(
+            lastSynchroDateEnvoi = dateExec,
+            lastEnvoiSuccess = currentStats?.let { it.second == it.first } ?: true
+        )
 
         Log.d("SYNC_MANAGER", "Synchro montante terminée — stats: $statsBySite")
     }
