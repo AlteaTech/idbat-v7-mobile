@@ -35,7 +35,6 @@ fun HomeScreen(
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
     lastEnvoiSuccess: Boolean?,
-    agentId: Long,
     onTransferClick: () -> Unit,
     onNavigateToPoc: () -> Unit,
     isTransferring: Boolean = false,
@@ -106,7 +105,6 @@ fun HomeScreen(
             siteName = selectedSite?.nom ?: "",
             siteId = selectedSite?.id ?: 0L,
             contratId = contrat?.id ?: 0L,
-            agentId = agentId,
             onBack = { showSignalementScreen = false }
         )
         return

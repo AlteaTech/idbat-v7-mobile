@@ -34,7 +34,6 @@ fun SaisieSignalementScreen(
     siteName: String,
     siteId: Long,
     contratId: Long,
-    agentId: Long,
     onBack: () -> Unit,
     viewModel: SaisieSignalementViewModel = hiltViewModel()
 ) {
@@ -274,7 +273,7 @@ fun SaisieSignalementScreen(
 
             // ── Soumettre ──────────────────────────────────────────────────
             Button(
-                onClick = { viewModel.soumettre(siteId, contratId, agentId, photos, context) },
+                onClick = { viewModel.soumettre(siteId, contratId, photos, context) },
                 enabled = uiState.selectedEvenement != null && !uiState.isSubmitting,
                 modifier = Modifier
                     .fillMaxWidth()

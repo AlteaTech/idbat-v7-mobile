@@ -25,12 +25,14 @@ package com.idbat.mobile.generated.client.model
 
 
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 /**
  * 
  *
  * @param uid 
  * @param numeroIdentification 
+ * @param userTpId 
  * @param dateCreationMobile 
  */
 
@@ -42,6 +44,9 @@ data class MarquerCarteQrCodeRequest (
 
     @Json(name = "numeroIdentification")
     val numeroIdentification: kotlin.String,
+
+    @Json(name = "userTpId")
+    val userTpId: kotlin.Long,
 
     @Json(name = "dateCreationMobile")
     val dateCreationMobile: java.time.OffsetDateTime

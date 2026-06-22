@@ -23,7 +23,13 @@
 
 package com.idbat.mobile.generated.client.model
 
+import com.idbat.mobile.generated.client.model.ContratEvenementDmo
+import com.idbat.mobile.generated.client.model.ContratSiteDmo
+import com.idbat.mobile.generated.client.model.ContratUsagerDmo
+import com.idbat.mobile.generated.client.model.ContratUtilisateursTpsDmo
+
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 /**
  * 

@@ -1,9 +1,12 @@
 package com.idbat.mobile.generated.client.api
 
-import com.idbat.mobile.generated.client.model.PatchUsagerMobileRequest
+import org.openapitools.client.infrastructure.CollectionFormats.*
+import retrofit2.http.*
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.PUT
+import okhttp3.RequestBody
+import com.squareup.moshi.Json
+
+import com.idbat.mobile.generated.client.model.PatchUsagerMobileRequest
 
 interface UsagersControllerApi {
     /**

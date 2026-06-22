@@ -98,7 +98,6 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
                 lastSynchroDateEnvoi = uiState.syncState.lastSynchroDateEnvoi,
                 lastSynchroDateReception = uiState.syncState.lastSynchroDateReception,
                 lastEnvoiSuccess = uiState.syncState.lastEnvoiSuccess,
-                agentId = uiState.authState.loggedInUtilisateurTp?.id ?: 0L,
                 onTransferClick = { viewModel.executeTransfer() },
                 isTransferring = uiState.syncState.isTransferring,
                 getSuiviContent = { siteId -> viewModel.getSuiviContentAsync(siteId) },

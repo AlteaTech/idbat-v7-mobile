@@ -7,6 +7,7 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.CarteCreeeEntity
 import com.idbat.mobile.data.model.CarteCreationQr
 import com.idbat.mobile.data.nfc.NfcRepository
+import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class EcriturePuceViewModel @Inject constructor(
     private val nfcRepository: NfcRepository,
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     sealed class WriteState {
@@ -32,6 +34,14 @@ class EcriturePuceViewModel @Inject constructor(
     fun write(tag: Tag, carteQr: CarteCreationQr, contratId: Long, siteId: Long) {
         // Ignore les taps suivants pendant qu'une écriture est en cours ou déjà réussie
         if (_state.value is WriteState.Writing || _state.value is WriteState.Success) return
+
+        // L'utilisateur connecté (TP) doit être présent pour tracer la création
+        val userTpId = authManager.authState.value.loggedInUtilisateurTp?.id
+        if (userTpId == null) {
+            _state.value = WriteState.Error("Utilisateur non connecté")
+            return
+        }
+
         _state.value = WriteState.Writing
 
         val uid = tag.id.joinToString(" ") { "%02X".format(it) }
@@ -59,6 +69,7 @@ class EcriturePuceViewModel @Inject constructor(
                     CarteCreeeEntity(
                         contratId = contratId,
                         siteId = siteId,
+                        userTpId = userTpId,
                         type = "P",
                         succes = true,
                         uid = uid,
