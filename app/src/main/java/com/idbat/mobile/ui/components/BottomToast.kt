@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.idbat.mobile.data.model.ToastData
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
 
 @Composable

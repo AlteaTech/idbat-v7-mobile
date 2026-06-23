@@ -94,7 +94,7 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
         composable(AppDestination.Home.route) {
             HomeScreen(
                 selectedSite = uiState.authState.loggedInSite,
-                contrat = uiState.authState.loggedInContrat,
+                contratId = uiState.authState.loggedInContrat?.id ?: 0L,
                 lastSynchroDateEnvoi = uiState.syncState.lastSynchroDateEnvoi,
                 lastSynchroDateReception = uiState.syncState.lastSynchroDateReception,
                 lastEnvoiSuccess = uiState.syncState.lastEnvoiSuccess,

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageEntity
 import com.idbat.mobile.data.entities.SeuilEtatEntity
+import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,13 +15,6 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-
-sealed class PassageSaveState {
-    object Idle    : PassageSaveState()
-    object Saving  : PassageSaveState()
-    object Success : PassageSaveState()
-    data class Error(val message: String) : PassageSaveState()
-}
 
 @HiltViewModel
 class PassageViewModel @Inject constructor(

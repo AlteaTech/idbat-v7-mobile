@@ -31,7 +31,7 @@ import com.idbat.mobile.data.entities.*
         SeuilEtatEntity::class,
         CarteCreeeEntity::class
     ],
-    version = 31,
+    version = 32,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -85,7 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
             MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
-            MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31
+            MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32
         )
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -358,6 +358,13 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE passage ADD COLUMN sentAt INTEGER")
                 db.execSQL("ALTER TABLE signalement ADD COLUMN sentAt INTEGER")
                 db.execSQL("ALTER TABLE carte_creee ADD COLUMN sentAt INTEGER")
+            }
+        }
+
+        private val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasAccessSimpleParticuliers INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasAccessSimpleProfessionnels INTEGER NOT NULL DEFAULT 0")
             }
         }
 

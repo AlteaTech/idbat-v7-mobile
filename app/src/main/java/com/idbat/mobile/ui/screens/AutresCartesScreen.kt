@@ -26,28 +26,31 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.UsagerEntity
 import com.idbat.mobile.ui.theme.*
 import com.idbat.mobile.ui.viewmodel.AutresCartesViewModel
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 
 @Composable
 fun AutresCartesScreen(
     siteName: String,
     siteId: Long,
-    contrat: ContratEntity?,
+    contratId: Long,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit = {},
-    viewModel: AutresCartesViewModel = hiltViewModel()
+    viewModel: AutresCartesViewModel = hiltViewModel(),
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(contratId) {
+        viewModel.setContratId(contratId)
+        contratViewModel.setContratId(contratId)
+    }
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
     val bgColor = MaterialTheme.colorScheme.background
     val showCodebarres = contrat?.hasCodebarres == true
     val showImmatriculation = contrat?.hasImmatriculation == true
     val showSelectionUsager = contrat?.hasSelectionusager == true
-
-    LaunchedEffect(contrat?.id) {
-        contrat?.id?.let { viewModel.setContratId(it) }
-    }
 
     val usagers by viewModel.usagers.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -70,8 +73,7 @@ fun AutresCartesScreen(
         SaisieMatiereScreen(
             siteName = siteName,
             siteId = siteId,
-            contratId = contrat?.id ?: 0L,
-            contrat = contrat,
+            contratId = contratId,
             info = passageInfo!!,
             onBack = { showSaisieMatiere = false },
             onNavigateToHome = {
@@ -88,7 +90,7 @@ fun AutresCartesScreen(
         PassageInfoScreen(
             siteName = siteName,
             siteId = siteId,
-            contratId = contrat?.id ?: 0L,
+            contratId = contratId,
             info = passageInfo!!,
             onBack = { viewModel.clearPassageInfo() },
             onNavigateToHome = {

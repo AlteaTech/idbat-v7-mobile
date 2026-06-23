@@ -467,7 +467,9 @@ class AuthManager @Inject constructor(
                 hasImmatriculation = contratDmo.hasImmatriculation,
                 hasSelectionusager = contratDmo.hasSelectionusager,
                 hasSignatureParticuliers = contratDmo.hasSignatureparticuliers,
-                hasSignatureProfessionnels = contratDmo.hasSignatureprofessionels
+                hasSignatureProfessionnels = contratDmo.hasSignatureprofessionels,
+                hasAccessSimpleParticuliers = contratDmo.hasAccessimpleparticuliers,
+                hasAccessSimpleProfessionnels = contratDmo.hasAccessimpleprofessionels
             )
 
             contratDao.insertContrat(contratEntity)

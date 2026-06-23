@@ -14,5 +14,7 @@ data class ContratEntity(
     val hasImmatriculation: Boolean = false,
     val hasSelectionusager: Boolean = false,
     val hasSignatureParticuliers: Boolean = false,
-    val hasSignatureProfessionnels: Boolean = false
+    val hasSignatureProfessionnels: Boolean = false,
+    val hasAccessSimpleParticuliers: Boolean = false,
+    val hasAccessSimpleProfessionnels: Boolean = false
 )

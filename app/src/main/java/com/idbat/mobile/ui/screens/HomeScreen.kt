@@ -24,6 +24,7 @@ import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.ui.components.*
 import com.idbat.mobile.ui.theme.VeoliaCoral
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,7 +32,7 @@ import java.util.*
 @Composable
 fun HomeScreen(
     selectedSite: SiteEntity?,
-    contrat: ContratEntity?,
+    contratId: Long,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
     lastEnvoiSuccess: Boolean?,
@@ -39,8 +40,12 @@ fun HomeScreen(
     onNavigateToPoc: () -> Unit,
     isTransferring: Boolean = false,
     getSuiviContent: suspend (Long) -> CharSequence = { "" },
-    testVolumeViewModel: TestVolumeViewModel = hiltViewModel()
+    testVolumeViewModel: TestVolumeViewModel = hiltViewModel(),
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(contratId) { contratViewModel.setContratId(contratId) }
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
     var showCarteSheet by remember { mutableStateOf(false) }
@@ -93,7 +98,7 @@ fun HomeScreen(
         DepotScreen(
             siteName = selectedSite?.nom ?: "",
             siteId = selectedSite?.id ?: 0L,
-            contrat = contrat,
+            contratId = contratId,
             onBack = { showDepotScreen = false },
             onNavigateToHome = { showDepotScreen = false }
         )
@@ -104,7 +109,7 @@ fun HomeScreen(
         SaisieSignalementScreen(
             siteName = selectedSite?.nom ?: "",
             siteId = selectedSite?.id ?: 0L,
-            contratId = contrat?.id ?: 0L,
+            contratId = contratId,
             onBack = { showSignalementScreen = false }
         )
         return
@@ -113,7 +118,7 @@ fun HomeScreen(
     if (showCreationCarteScreen) {
         CreationCarteScreen(
             siteName = selectedSite?.nom ?: "",
-            contratId = contrat?.id ?: 0L,
+            contratId = contratId,
             siteId = selectedSite?.id ?: 0L,
             onBack = { showCreationCarteScreen = false }
         )

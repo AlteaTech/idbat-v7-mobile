@@ -20,13 +20,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.idbat.mobile.data.entities.ContratEntity
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.SaisieMatiereLigne
 import androidx.compose.ui.window.Dialog
 import com.idbat.mobile.ui.components.PhotoPickerComponent
 import com.idbat.mobile.ui.components.SignatureComponent
 import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import java.util.Locale
 
 @Composable
@@ -34,12 +36,15 @@ fun ConfirmationPassageScreen(
     siteName: String,
     siteId: Long,
     contratId: Long,
-    contrat: ContratEntity?,
     info: InfoCartePassage,
     lignes: List<SaisieMatiereLigne>,
     onBack: () -> Unit,
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(contratId) { contratViewModel.setContratId(contratId) }
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
     // États hoistés — déclarés avant les early returns pour survivre à la navigation enfant
     var commentaire by remember { mutableStateOf("") }
     var photos by remember { mutableStateOf<List<Uri>>(emptyList()) }

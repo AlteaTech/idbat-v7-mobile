@@ -20,8 +20,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.R
-import com.idbat.mobile.data.entities.ContratEntity
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
 import com.idbat.mobile.ui.theme.VeoliaSubtle
 import com.idbat.mobile.ui.theme.White
@@ -30,17 +32,21 @@ import com.idbat.mobile.ui.theme.White
 fun DepotScreen(
     siteName: String,
     siteId: Long,
-    contrat: ContratEntity?,
+    contratId: Long,
     onBack: () -> Unit,
-    onNavigateToHome: () -> Unit = {}
+    onNavigateToHome: () -> Unit = {},
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(contratId) { contratViewModel.setContratId(contratId) }
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
     var showAutresScreen by remember { mutableStateOf(false) }
 
     if (showAutresScreen) {
         AutresCartesScreen(
             siteName = siteName,
             siteId = siteId,
-            contrat = contrat,
+            contratId = contratId,
             onBack = { showAutresScreen = false },
             onNavigateToHome = onNavigateToHome
         )

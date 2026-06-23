@@ -9,7 +9,7 @@ object ConfigSingleton {
     val IsSyncAscEnable = true
 
     // Intervalle de déclenchement de la synchronisation automatique (en minutes)
-    val syncIntervalMinutes = 1L
+    val syncIntervalMinutes = 60L
 
     // RG3 : durée de rétention locale des données saisies (en jours). Les données envoyées
     // avec succès ne sont purgées qu'après ce délai, à chaque synchro réussie.
