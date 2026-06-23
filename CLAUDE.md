@@ -225,6 +225,12 @@ data class CardData(val cardNumber: String?, val expiryDate: String?, val cardho
 - `NfcConfig.kt` — constantes `NFC_TRIPLE_DES_KEY` et `NFC_TRIPLE_DES_IV` (visibilité `internal`)
 - `NfcRepository` — `@Singleton @Inject constructor()`, expose `suspend readCartePuce(tag)` et `suspend writeCartePuce(tag, carte)` avec dispatching IO interne (`withContext(Dispatchers.IO)`)
 
+**Format Mifare sur carte (réplique exacte du device .NET — `ecriture-lecture.cs` à la racine sert de référence)** :
+- **Cartographie** : secteurs **1 à 10**, blocs **0/1/2** (le trailer bloc 3 et **tout le secteur 0** ne sont jamais touchés). 30 blocs × 8 chars logiques = 240 chars (la trame `CartePuce.serialize()`). Index bloc = `sectorToBlock(secteur) + bloc`.
+- **Authentification** : KeyA avec `MifareClassic.KEY_DEFAULT` (`FF×6`).
+- **Encodage on-card (hex-ASCII)** : chaque caractère logique est écrit sur **2 octets = les 2 chiffres hexa ASCII de son code** (ex. `'A'` 0x41 → octets `'4'`,`'1'` = 0x34,0x31). Donc 8 chars logiques → 16 octets/bloc, et la trame de 240 chars occupe 480 octets. La lecture fait l'inverse (paires d'octets hexa → char). ⚠️ **Ne pas confondre** avec un simple `toByteArray(ISO-8859-1)` : ce n'est PAS le format carte.
+- Lecture tolérante sur secteurs 9-10 (bloc illisible → 8 espaces), stricte sur 1-8.
+
 **`PocViewModel`** (`ui/viewmodel`) — `@HiltViewModel` qui injecte `NfcRepository` et l'expose aux composants Mifare. Les composants gèrent le cycle de vie NFC adapter (`DisposableEffect` → `enableReaderMode`/`disableReaderMode`) mais délèguent tout le protocole I/O au repository.
 
 ---
