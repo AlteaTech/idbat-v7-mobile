@@ -1,7 +1,5 @@
 package com.idbat.mobile.singleton
 
-import android.os.Build
-
 object ConfigSingleton {
     val webEnable = true
     

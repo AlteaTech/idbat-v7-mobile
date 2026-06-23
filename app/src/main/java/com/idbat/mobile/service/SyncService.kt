@@ -15,11 +15,7 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.singleton.AuthManager
 import com.idbat.mobile.singleton.SyncManager
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import javax.inject.Inject
 
 /**

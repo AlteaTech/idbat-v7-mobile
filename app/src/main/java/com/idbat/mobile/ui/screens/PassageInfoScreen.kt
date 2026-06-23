@@ -12,7 +12,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -24,11 +26,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.entities.SeuilEtatEntity
 import com.idbat.mobile.data.model.InfoCartePassage
+import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.ui.theme.VeoliaAlertOrange
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
 import com.idbat.mobile.ui.theme.VeoliaLightGray
 import com.idbat.mobile.ui.theme.White
-import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import com.idbat.mobile.ui.viewmodel.PassageViewModel
 

@@ -3,7 +3,6 @@ package com.idbat.mobile.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,7 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.SaisieMatiereLigne
-import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.theme.VeoliaGradientTop
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.VeoliaSubtle
+import com.idbat.mobile.ui.theme.White
 import java.text.SimpleDateFormat
 import java.util.*
 

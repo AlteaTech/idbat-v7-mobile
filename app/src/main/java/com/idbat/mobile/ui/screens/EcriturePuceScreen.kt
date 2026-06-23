@@ -29,12 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.model.CarteCreationQr
-import com.idbat.mobile.ui.theme.VeoliaCoral
-import com.idbat.mobile.ui.theme.VeoliaCoralLight
-import com.idbat.mobile.ui.theme.VeoliaErrorDark
-import com.idbat.mobile.ui.theme.VeoliaGradientTop
-import com.idbat.mobile.ui.theme.VeoliaPrincipal
-import com.idbat.mobile.ui.theme.White
+import com.idbat.mobile.ui.theme.*
 import com.idbat.mobile.ui.viewmodel.EcriturePuceViewModel
 
 @Composable

@@ -23,10 +23,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.R
-import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
 import com.idbat.mobile.ui.theme.VeoliaSubtle
-import com.idbat.mobile.ui.theme.White
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 
 @Composable
 fun DepotScreen(

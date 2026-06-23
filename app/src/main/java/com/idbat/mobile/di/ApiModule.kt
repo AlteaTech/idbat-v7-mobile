@@ -1,11 +1,6 @@
 package com.idbat.mobile.di
 
-import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
-import com.idbat.mobile.generated.client.api.CarteCreationControllerApi
-import com.idbat.mobile.generated.client.api.ContratsControllerApi
-import com.idbat.mobile.generated.client.api.PassagesControllerApi
-import com.idbat.mobile.generated.client.api.SignalementsControllerApi
-import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
+import com.idbat.mobile.generated.client.api.*
 import com.idbat.mobile.singleton.ConfigSingleton
 import com.idbat.mobile.singleton.TokenStore
 import com.squareup.moshi.FromJson

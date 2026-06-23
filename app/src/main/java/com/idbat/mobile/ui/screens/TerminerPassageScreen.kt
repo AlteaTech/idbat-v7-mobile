@@ -2,7 +2,6 @@ package com.idbat.mobile.ui.screens
 
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -15,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -23,7 +23,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.SaisieMatiereLigne
-import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.theme.VeoliaGradientTop
+import com.idbat.mobile.ui.theme.VeoliaPrincipal
+import com.idbat.mobile.ui.theme.VeoliaSubtle
+import com.idbat.mobile.ui.theme.White
 import com.idbat.mobile.ui.viewmodel.TerminerPassageViewModel
 import com.idbat.mobile.ui.viewmodel.TerminerSaveState
 
