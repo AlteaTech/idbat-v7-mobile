@@ -32,5 +32,6 @@ data class MatiereSiteEntity(
     val libelle: String,
     val unitesDesApportId: Long,
     val unitesDesApportLibelle: String,
-    val tarif: Double = 0.0
+    val tarif: Double = 0.0,
+    val isEnable: Boolean
 )

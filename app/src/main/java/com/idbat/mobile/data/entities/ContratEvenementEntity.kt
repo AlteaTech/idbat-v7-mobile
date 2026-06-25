@@ -25,5 +25,6 @@ data class ContratEvenementEntity(
     val evenementId: Long,
     val libelle: String,
     val jointureId: Long,
-    val contratId: Long
+    val contratId: Long,
+    val isEnable: Boolean
 )

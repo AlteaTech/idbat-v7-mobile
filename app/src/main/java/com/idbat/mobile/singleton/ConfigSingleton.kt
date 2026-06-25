@@ -1,11 +1,6 @@
 package com.idbat.mobile.singleton
 
 object ConfigSingleton {
-    val webEnable = true
-    
-    val IsSyncDescEnable = true
-    val IsSyncAscEnable = true
-
     // Intervalle de déclenchement de la synchronisation automatique (en minutes)
     val syncIntervalMinutes = 60L
 

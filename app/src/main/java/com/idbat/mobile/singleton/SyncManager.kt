@@ -82,8 +82,8 @@ class SyncManager @Inject constructor(
             wakeLock.acquire(2 *60 * 60 * 1000L /* timeout sécurité 2h */)
             wifiLock.acquire()
 
-            if (ConfigSingleton.IsSyncAscEnable) synchroMontante(site)
-            if (ConfigSingleton.IsSyncDescEnable) synchroDescendante(site)
+            synchroMontante(site)
+            synchroDescendante(site)
 
             // RG3 : à chaque synchro, purge des données envoyées et saisies il y a plus de X jours
             purgeOldSyncedData()
@@ -113,8 +113,6 @@ class SyncManager @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun synchroMontante(site: SiteEntity) {
-        if (!ConfigSingleton.webEnable) return
-
         val passageDao      = database.passageDao()
         val matiereDao      = database.passageMatiereDao()
         val usagerDao       = database.usagerDao()
@@ -298,8 +296,6 @@ class SyncManager @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun synchroDescendante(site: SiteEntity) {
-        if (!ConfigSingleton.webEnable) return
-
         // Bloquer si des passages non transférés existent après la montante
         // RG3 : on ne bloque que sur les lignes encore à envoyer (les lignes déjà
         // transmises restent en base le temps de la rétention, mais n'empêchent pas la réception).
@@ -457,6 +453,7 @@ class SyncManager @Inject constructor(
                     siteId = siteDmo.id,
                     matiereId = m.id,
                     libelle = m.libelle,
+                    isEnable= m.isEnable,
                     unitesDesApportId = m.unitesDesApportId,
                     unitesDesApportLibelle = m.unitesDesApportLibelle,
                     tarif = m.tarif.toDouble()
@@ -509,6 +506,7 @@ class SyncManager @Inject constructor(
                 evenementId = evDmo.evenementId,
                 libelle = evDmo.libelle,
                 jointureId = evDmo.jointureId,
+                isEnable = evDmo.isEnable,
                 contratId = contratEntity.id
             )
         }

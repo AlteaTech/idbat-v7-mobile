@@ -90,8 +90,11 @@ class AuthManager @Inject constructor(
                         override fun onLocationChanged(location: Location) {
                             if (continuation.isActive) continuation.resume(location) {}
                         }
+
                         @Suppress("OVERRIDE_DEPRECATION")
-                        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+                        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+                        }
+
                         override fun onProviderEnabled(provider: String) {}
                         override fun onProviderDisabled(provider: String) {}
                     }
@@ -101,7 +104,10 @@ class AuthManager @Inject constructor(
             }
 
             if (freshLocation != null) {
-                Log.d("AUTH_MANAGER", "Position fraîche (${freshLocation.provider}): lat=${freshLocation.latitude}, lng=${freshLocation.longitude}")
+                Log.d(
+                    "AUTH_MANAGER",
+                    "Position fraîche (${freshLocation.provider}): lat=${freshLocation.latitude}, lng=${freshLocation.longitude}"
+                )
                 return@withContext Pair(freshLocation.latitude, freshLocation.longitude)
             }
 
@@ -112,7 +118,10 @@ class AuthManager @Inject constructor(
                 .maxByOrNull { it.time }
 
             if (cachedLocation != null) {
-                Log.d("AUTH_MANAGER", "Position en cache (${cachedLocation.provider}): lat=${cachedLocation.latitude}, lng=${cachedLocation.longitude}")
+                Log.d(
+                    "AUTH_MANAGER",
+                    "Position en cache (${cachedLocation.provider}): lat=${cachedLocation.latitude}, lng=${cachedLocation.longitude}"
+                )
                 return@withContext Pair(cachedLocation.latitude, cachedLocation.longitude)
             }
 
@@ -128,74 +137,72 @@ class AuthManager @Inject constructor(
     suspend fun initializeApp() {
         try {
             try {
-                if (ConfigSingleton.webEnable) {
-                    // Récupérer l'identifiant unique du device
-                    val identifiantDevice = Settings.Secure.getString(
-                        context.contentResolver,
-                        Settings.Secure.ANDROID_ID
-                    )
+                // Récupérer l'identifiant unique du device
+                val identifiantDevice = Settings.Secure.getString(
+                    context.contentResolver,
+                    Settings.Secure.ANDROID_ID
+                )
 
-                    // D'abord, vérifier si le smartphone existe
-                    val checkResponse = smartphonesApi.checkSmartphoneExists(identifiantDevice)
+                // D'abord, vérifier si le smartphone existe
+                val checkResponse = smartphonesApi.checkSmartphoneExists(identifiantDevice)
 
-                    if (checkResponse.isSuccessful) {
-                        val smartphoneExists = checkResponse.body() ?: false
-                        Log.d("AUTH_MANAGER", "Vérification smartphone avec ID $identifiantDevice: $smartphoneExists")
+                if (checkResponse.isSuccessful) {
+                    val smartphoneExists = checkResponse.body() ?: false
+                    Log.d("AUTH_MANAGER", "Vérification smartphone avec ID $identifiantDevice: $smartphoneExists")
 
-                        if (!smartphoneExists) {
-                            Log.d("AUTH_MANAGER", "smartphone inexistant, début de la procédure de creation")
+                    if (!smartphoneExists) {
+                        Log.d("AUTH_MANAGER", "smartphone inexistant, début de la procédure de creation")
 
-                            // Récupérer la localisation actuelle
-                            val (latitude, longitude) = getCurrentLocation()
+                        // Récupérer la localisation actuelle
+                        val (latitude, longitude) = getCurrentLocation()
 
-                            // Créer le smartphone
-                            val creerSmartphoneRequest = CreerSmartphoneMobileRequest(
-                                numSerie = identifiantDevice,
-                                identifiantDevice = identifiantDevice,
-                                nom = "${Build.MANUFACTURER} ${Build.MODEL}",
-                                typeTerminal = getDeviceModel(),
-                                longitude = longitude,
-                                latitude = latitude
-                            )
+                        // Créer le smartphone
+                        val creerSmartphoneRequest = CreerSmartphoneMobileRequest(
+                            numSerie = identifiantDevice,
+                            identifiantDevice = identifiantDevice,
+                            nom = "${Build.MANUFACTURER} ${Build.MODEL}",
+                            typeTerminal = getDeviceModel(),
+                            longitude = longitude,
+                            latitude = latitude
+                        )
 
-                            val creerResponse = smartphonesApi.creerSmartphone(creerSmartphoneRequest)
+                        val creerResponse = smartphonesApi.creerSmartphone(creerSmartphoneRequest)
 
-                            if (creerResponse.isSuccessful) {
-                                Log.d("AUTH_MANAGER", "Smartphone créé avec succès (lat: $latitude, lng: $longitude)")
-                            } else {
-                                Log.e(
-                                    "AUTH_MANAGER",
-                                    "Erreur lors de la création du smartphone: ${creerResponse.code()}"
-                                )
-                            }
-                        }
-
-                        val requete = LoginMobileRequest(idMobile = identifiantDevice)
-                        val reponse = authApi.authenticateUser(loginMobileRequest = requete)
-
-                        if (reponse.isSuccessful) {
-                            val donnees = reponse.body()
-                            tokenStore.token = donnees?.get("token") ?: ""
-                            Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${tokenStore.token}")
-
-                            val contratDao = database.contratDao()
-                            val siteDao = database.siteDao()
-                            if (contratDao.count() == 0L || siteDao.count() == 0L) {
-                                loadContractsFromApi()
-                            }
+                        if (creerResponse.isSuccessful) {
+                            Log.d("AUTH_MANAGER", "Smartphone créé avec succès (lat: $latitude, lng: $longitude)")
                         } else {
-                            Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
-                            // Afficher le message de validation
-                            _authState.value = _authState.value.copy(
-                                isInitialized = true,
-                                showValidationError = true,
+                            Log.e(
+                                "AUTH_MANAGER",
+                                "Erreur lors de la création du smartphone: ${creerResponse.code()}"
                             )
-                            return // Sortir de la fonction sans continuer
+                        }
+                    }
+
+                    val requete = LoginMobileRequest(idMobile = identifiantDevice)
+                    val reponse = authApi.authenticateUser(loginMobileRequest = requete)
+
+                    if (reponse.isSuccessful) {
+                        val donnees = reponse.body()
+                        tokenStore.token = donnees?.get("token") ?: ""
+                        Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${tokenStore.token}")
+
+                        val contratDao = database.contratDao()
+                        val siteDao = database.siteDao()
+                        if (contratDao.count() == 0L || siteDao.count() == 0L) {
+                            loadContractsFromApi()
                         }
                     } else {
-                        Log.e("AUTH_MANAGER", "Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
-                        throw Exception("Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
+                        Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
+                        // Afficher le message de validation
+                        _authState.value = _authState.value.copy(
+                            isInitialized = true,
+                            showValidationError = true,
+                        )
+                        return // Sortir de la fonction sans continuer
                     }
+                } else {
+                    Log.e("AUTH_MANAGER", "Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
+                    throw Exception("Erreur lors de la vérification du smartphone: ${checkResponse.code()}")
                 }
             } catch (e: Exception) {
                 Log.e("AUTH_MANAGER", "Erreur lors de l'initialisation", e)
@@ -213,12 +220,6 @@ class AuthManager @Inject constructor(
             if (nbContrats == 0L) {
                 Log.d("AUTH_MANAGER", "0 contrat trouvé, purge de la table Site...")
                 siteDao.purge()
-                if (!ConfigSingleton.webEnable) {
-                    mockSites()
-                    mockUsagers()
-                    mockCartes()
-                    insertMockEvenements()
-                }
             }
             database.utilisateurTPDao().getAllUtilisateurTPFlow().collect { utilisteursTps ->
 
@@ -273,175 +274,6 @@ class AuthManager @Inject constructor(
             pin = "1234"
         )
         utilisateurTPDao.insertUtilisateur(utilisateurTP)
-    }
-
-    private suspend fun insertMockEvenements() {
-        val mockEvenements = listOf(
-            "Départ de feu",
-            "Fuite de produit toxique",
-            "Benne endommagée",
-            "Portail bloqué",
-            "Intrusion",
-            "Déversement sauvage",
-            "Panne presse",
-            "Accident voyageur",
-            "Matériel manquant",
-            "Odeur suspecte",
-            "Animal mort",
-            "Panne éclairage",
-            "Problème signalétique",
-            "Défaut de tri",
-            "Casse barrière"
-        )
-
-        val contratEvenementDao = database.contratEvenementDao()
-        // On insère les mocks pour le contratId 1 (qui est le contrat par défaut)
-        mockEvenements.forEachIndexed { index, libelle ->
-            val  ContratEvenement = ContratEvenementEntity(
-                evenementId = (index + 1).toLong(),
-                libelle = libelle,
-                jointureId = (index + 1).toLong(),
-                contratId = 1L
-            )
-            contratEvenementDao.insertEvenement(ContratEvenement)
-        }
-    }
-    private suspend fun mockSites() {
-        val contratDao = database.contratDao()
-        val siteDao = database.siteDao()
-
-        val contrat = ContratEntity(
-            id = 1L,
-            trigramme = "VEO",
-            nom = "Veolia Recyclage",
-            hasCodebarres = true,
-            hasPuce = true,
-            hasImmatriculation = true,
-            hasSelectionusager = true,
-            hasSignatureParticuliers = true,
-            hasSignatureProfessionnels = false
-        )
-        contratDao.insertContrat(contrat)
-
-        siteDao.insertSites(
-            listOf(
-                SiteEntity(
-                    id = 1L,
-                    trigramme = "MAR",
-                    nom = "Déchetterie Marseille Nord",
-                    adresse1 = "12 Rue des Abeilles",
-                    adresse2 = null,
-                    codePostal = "13014",
-                    ville = "Marseille",
-                    typeImprimante = null,
-                    macImprimante = null,
-                    horairesOuverture = "Lun-Sam 8h-18h",
-                    destinatairesMailTransfertTP = null,
-                    contratId = 1L
-                ),
-                SiteEntity(
-                    id = 2L,
-                    trigramme = "LYO",
-                    nom = "Centre de tri Lyon Sud",
-                    adresse1 = "47 Avenue de la Confluence",
-                    adresse2 = null,
-                    codePostal = "69007",
-                    ville = "Lyon",
-                    typeImprimante = null,
-                    macImprimante = null,
-                    horairesOuverture = "Lun-Ven 7h-17h",
-                    destinatairesMailTransfertTP = null,
-                    contratId = 1L
-                )
-            )
-        )
-        val matiereSiteDao = database.matiereSiteDao()
-        matiereSiteDao.insertMatieres(
-            listOf(
-                MatiereSiteEntity(matiereId = 1L, siteId = 1L, libelle = "Ferrailles",      unitesDesApportId = 1L, unitesDesApportLibelle = "Kg",  tarif = 0.50),
-                MatiereSiteEntity(matiereId = 2L, siteId = 1L, libelle = "Gravats 170107",  unitesDesApportId = 2L, unitesDesApportLibelle = "m3",  tarif = 0.10),
-                MatiereSiteEntity(matiereId = 3L, siteId = 2L, libelle = "Cartons",         unitesDesApportId = 1L, unitesDesApportLibelle = "Kg",  tarif = 0.30),
-                MatiereSiteEntity(matiereId = 4L, siteId = 2L, libelle = "Plastiques",      unitesDesApportId = 2L, unitesDesApportLibelle = "m3",  tarif = 0.25)
-            )
-        )
-        Log.d("AUTH_MANAGER", "2 sites mock insérés avec 2 matières chacun")
-    }
-    private suspend fun mockUsagers() {
-        val usagerDao = database.usagerDao()
-        usagerDao.purge()
-        usagerDao.insertUsager(
-            UsagerEntity(
-                id = 1L,
-                nom = "VIDAL",
-                prenom = "jérémie",
-                contratId = 1L,
-                refClientIdBat = 123456,
-                typeApporteurIsPro = false,
-                couriel = "jeremie.vidal@example.com"
-            )
-        )
-        usagerDao.insertUsager(
-            UsagerEntity(
-                id = 2L,
-                nom = "lan",
-                prenom = "alicia",
-                contratId = 1L,
-                refClientIdBat = 123457,
-                typeApporteurIsPro = false
-            )
-        )
-        usagerDao.insertUsager(
-            UsagerEntity(
-                id = 3L,
-                nom = "rosier",
-                prenom = "ronald",
-                contratId = 1L,
-                refClientIdBat = 13,
-                typeApporteurIsPro = true
-            )
-        )
-        Log.d("AUTH_MANAGER", "3 Usagers mock insérés")
-    }
-
-    private suspend fun mockCartes() {
-        val dao = database.carteContratDao()
-        dao.clearCartes()
-
-        val cartes = listOf(
-            // Usager 1 : VIDAL jérémie (id=1)
-            CarteContratEntity(id = 1L,  libelle = "Carte Puce VIDAL",  type = "P", valeur = null,    uidRfid = "A1B2C3D4", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
-            CarteContratEntity(id = 2L,  libelle = "Carte CB VIDAL",    type = "C", valeur = "123456", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 1L),
-            CarteContratEntity(id = 3L,  libelle = "Carte Immat VIDAL", type = "I", valeur = "GT977GW",     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "AB123CD", carteGriseF3 = null, contratId = 1L, carteId = 1L),
-            // Usager 2 : lan alicia (id=2)
-            CarteContratEntity(id = 4L,  libelle = "Carte Puce LAN",    type = "P", valeur = null,    uidRfid = "E5F6A7B8", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
-            CarteContratEntity(id = 5L,  libelle = "Carte CB LAN",      type = "C", valeur = "123457", uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 2L),
-            CarteContratEntity(id = 6L,  libelle = "Carte Immat LAN",   type = "I", valeur = "GT978GW",     uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "EF456GH", carteGriseF3 = null, contratId = 1L, carteId = 2L),
-            // Usager 3 : rosier ronald (id=3)
-            CarteContratEntity(id = 7L,  libelle = "Carte Puce ROSIER",  type = "P", valeur = null,   uidRfid = "C9D0E1F2", isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
-            CarteContratEntity(id = 8L,  libelle = "Carte CB ROSIER",    type = "C", valeur = "13",   uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = null,      carteGriseF3 = null, contratId = 1L, carteId = 3L),
-            CarteContratEntity(id = 9L,  libelle = "Carte Immat ROSIER", type = "I", valeur = "GT979GW",    uidRfid = null,        isCreationByQRCode = false, carteGriseJ1 = "IJ789KL", carteGriseF3 = null, contratId = 1L, carteId = 3L),
-        )
-
-        dao.insertCartes(cartes)
-        Log.d("AUTH_MANAGER", "9 cartes mock insérées (3 par usager : P, C, I)")
-
-        val usagerCarteDao = database.usagerCarteDao()
-        usagerCarteDao.clearUsagerCartes()
-        val dateDebut = GregorianCalendar(2000, Calendar.JANUARY, 1).time
-        val dateFin = GregorianCalendar(3000, Calendar.DECEMBER, 31).time
-        val liens = listOf(
-            UsagerCarteEntity(usagerId = 1L, carteId = 1L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 1L, carteId = 2L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 1L, carteId = 3L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 2L, carteId = 4L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 2L, carteId = 5L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 2L, carteId = 6L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 3L, carteId = 7L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 3L, carteId = 8L, dateDebut = dateDebut, dateFin = dateFin),
-            UsagerCarteEntity(usagerId = 3L, carteId = 9L, dateDebut = dateDebut, dateFin = dateFin),
-        )
-        usagerCarteDao.insertUsagerCartes(liens)
-        Log.d("AUTH_MANAGER", "9 liens usager_cartes mock insérés")
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -501,14 +333,18 @@ class AuthManager @Inject constructor(
                                     matiereId = matiereDmo.id ?: 0,
                                     libelle = matiereDmo.libelle ?: "",
                                     unitesDesApportId = matiereDmo.unitesDesApportId,
-                                    unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle
+                                    unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle,
+                                    isEnable = matiereDmo.isEnable
                                 )
                             } ?: emptyList()
                             siteEntity
                         }
 
                         siteDao.insertSites(sitesEntities)
-                        Log.d("AUTH_MANAGER", "Sauvegarde de ${sitesEntities.size} sites pour le contrat ${contratEntity.nom}")
+                        Log.d(
+                            "AUTH_MANAGER",
+                            "Sauvegarde de ${sitesEntities.size} sites pour le contrat ${contratEntity.nom}"
+                        )
 
                         val allMatieres = mutableListOf<MatiereSiteEntity>()
                         sitesDmo.forEach { siteDmo ->
@@ -519,13 +355,17 @@ class AuthManager @Inject constructor(
                                     libelle = matiereDmo.libelle ?: "",
                                     unitesDesApportId = matiereDmo.unitesDesApportId,
                                     unitesDesApportLibelle = matiereDmo.unitesDesApportLibelle,
-                                    tarif = matiereDmo.tarif.toDouble()
+                                    tarif = matiereDmo.tarif.toDouble(),
+                                    isEnable = matiereDmo.isEnable
                                 )
                             }?.let { allMatieres.addAll(it) }
                         }
-                        
+
                         matiereSiteDao.insertMatieres(allMatieres)
-                        Log.d("AUTH_MANAGER", "Sauvegarde de ${allMatieres.size} matières pour les sites du contrat ${contratEntity.nom}")
+                        Log.d(
+                            "AUTH_MANAGER",
+                            "Sauvegarde de ${allMatieres.size} matières pour les sites du contrat ${contratEntity.nom}"
+                        )
 
                     } ?: run {
                         Log.w("AUTH_MANAGER", "Aucun site associé trouvé pour le contrat ${contratEntity.nom}")
@@ -602,10 +442,14 @@ class AuthManager @Inject constructor(
                                     carteId = carteDmo.id,
                                     isEnListeNoire = carteDmo.isEnListeNoire,
                                     dtEntreeListeNoire = carteDmo.dtEntreeListeNoire?.let {
-                                        java.util.Date.from(it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+                                        Date.from(
+                                            it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                        )
                                     },
                                     dtSortieListeNoire = carteDmo.dtSortieListeNoire?.let {
-                                        java.util.Date.from(it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+                                        Date.from(
+                                            it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                                        )
                                     },
                                     motifListeNoireContratId = carteDmo.motifslistenoireContratId,
                                     motifListeNoireLibelle = carteDmo.motifslistenoireLibelle
@@ -619,12 +463,12 @@ class AuthManager @Inject constructor(
                                 UsagerCarteEntity(
                                     usagerId = contratUsager.id ?: 0,
                                     carteId = carteDmo.id,
-                                    dateDebut = java.util.Date.from(
+                                    dateDebut = Date.from(
                                         carteDmo.dateDebutAffectation
                                             .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
                                     ),
                                     dateFin = carteDmo.dateFinAffectation?.let {
-                                        java.util.Date.from(
+                                        Date.from(
                                             it.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
                                         )
                                     }
@@ -673,7 +517,8 @@ class AuthManager @Inject constructor(
                                 evenementId = evenementDmo.evenementId,
                                 libelle = evenementDmo.libelle,
                                 jointureId = evenementDmo.jointureId,
-                                contratId = contratEntity.id
+                                contratId = contratEntity.id,
+                                isEnable = evenementDmo.isEnable
                             )
                         }
 
@@ -701,7 +546,7 @@ class AuthManager @Inject constructor(
                 val dateExec = Date()
                 contratDmo.contratSite?.let { sitesDmo ->
                     sitesDmo.forEach { siteDmo ->
-                        lastSynchroHistoryDao.deleteTypeForSite(siteDmo.id,TypeSynchro.RECEPTION)
+                        lastSynchroHistoryDao.deleteTypeForSite(siteDmo.id, TypeSynchro.RECEPTION)
                         lastSynchroHistoryDao.insertSynchro(
                             LastSynchroHistoryEntity(
                                 siteId = siteDmo.id,
@@ -761,6 +606,7 @@ class AuthManager @Inject constructor(
     // --- Reconnexion obligatoire au retour de veille -------------------------------------
     // Horloge monotone (deep sleep inclus) au passage en arrière-plan → délai d'inactivité.
     private var backgroundedAtElapsed: Long? = null
+
     // Horloge murale (epoch millis) au passage en arrière-plan → détection du changement de jour.
     private var backgroundedAtWallClock: Long? = null
 
