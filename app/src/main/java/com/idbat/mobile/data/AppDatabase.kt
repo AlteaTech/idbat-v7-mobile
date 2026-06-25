@@ -31,7 +31,7 @@ import com.idbat.mobile.data.entities.*
         SeuilEtatEntity::class,
         CarteCreeeEntity::class
     ],
-    version = 33,
+    version = 34,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -86,8 +86,15 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
             MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
             MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
-            MIGRATION_32_33
+            MIGRATION_32_33, MIGRATION_33_34
         )
+
+        private val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasPrepaiementParticuliers INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasPrepaiementProfessionnels INTEGER NOT NULL DEFAULT 0")
+            }
+        }
 
         private val MIGRATION_32_33 = object : Migration(32, 33) {
             override fun migrate(db: SupportSQLiteDatabase) {

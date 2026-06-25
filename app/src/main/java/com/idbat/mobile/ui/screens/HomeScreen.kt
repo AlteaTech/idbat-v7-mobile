@@ -237,7 +237,10 @@ fun HomeScreen(
                     showCarteSheet = false
                     onNavigateToPoc()
                 },
-                onTestVolumeClick = { testVolumeViewModel.generer() }
+                onTestVolumeClick = { testVolumeViewModel.generer() },
+                // RG0 : "Recharger" visible si puce + (prépaiement particuliers OU professionnels)
+                showRecharger = contrat?.hasPuce == true &&
+                        (contrat?.hasPrepaiementParticuliers ?: false || contrat?.hasPrepaiementProfessionnels ?: false)
             )
         }
     }

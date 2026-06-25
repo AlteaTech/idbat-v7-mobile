@@ -43,6 +43,9 @@ import com.squareup.moshi.Json
  * @param hasSignatureprofessionels 
  * @param hasAccessimpleparticuliers 
  * @param hasAccessimpleprofessionels 
+ * @param hasPrepaiementParticuliers 
+ * @param hasPrepaiementprofessionels 
+ * @param hasGratuitParticuliers 
  */
 
 
@@ -91,7 +94,16 @@ data class ContratDmo (
     val hasAccessimpleparticuliers: kotlin.Boolean,
 
     @Json(name = "hasAccessimpleprofessionels")
-    val hasAccessimpleprofessionels: kotlin.Boolean
+    val hasAccessimpleprofessionels: kotlin.Boolean,
+
+    @Json(name = "hasPrepaiementParticuliers")
+    val hasPrepaiementParticuliers: kotlin.Boolean,
+
+    @Json(name = "hasPrepaiementprofessionels")
+    val hasPrepaiementprofessionels: kotlin.Boolean,
+
+    @Json(name = "hasGratuitParticuliers")
+    val hasGratuitParticuliers: kotlin.Boolean
 
 ) {
 

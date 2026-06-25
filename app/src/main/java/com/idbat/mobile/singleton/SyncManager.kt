@@ -83,7 +83,7 @@ class SyncManager @Inject constructor(
             wifiLock.acquire()
 
             synchroMontante(site)
-            synchroDescendante(site)
+            synchroDescendante()
 
             // RG3 : à chaque synchro, purge des données envoyées et saisies il y a plus de X jours
             purgeOldSyncedData()
@@ -295,7 +295,7 @@ class SyncManager @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun synchroDescendante(site: SiteEntity) {
+    public suspend fun synchroDescendante() {
         // Bloquer si des passages non transférés existent après la montante
         // RG3 : on ne bloque que sur les lignes encore à envoyer (les lignes déjà
         // transmises restent en base le temps de la rétention, mais n'empêchent pas la réception).
@@ -374,7 +374,11 @@ class SyncManager @Inject constructor(
             hasImmatriculation = dmo.hasImmatriculation,
             hasSelectionusager = dmo.hasSelectionusager,
             hasSignatureParticuliers = dmo.hasSignatureparticuliers,
-            hasSignatureProfessionnels = dmo.hasSignatureprofessionels
+            hasSignatureProfessionnels = dmo.hasSignatureprofessionels,
+            hasAccessSimpleParticuliers = dmo.hasAccessimpleparticuliers,
+            hasAccessSimpleProfessionnels = dmo.hasAccessimpleprofessionels,
+            hasPrepaiementParticuliers = dmo.hasPrepaiementParticuliers,
+            hasPrepaiementProfessionnels = dmo.hasPrepaiementprofessionels
         )
         contratDao.insertContrat(contratEntity)
 

@@ -37,7 +37,8 @@ class AuthManager @Inject constructor(
     private val contratsApi: ContratsControllerApi,
     private val smartphonesApi: SmartphonesMobileControllerApi,
     private val tokenStore: TokenStore,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    val syncManager: SyncManager
 ) {
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState
@@ -134,6 +135,7 @@ class AuthManager @Inject constructor(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun initializeApp() {
         try {
             try {
@@ -187,8 +189,8 @@ class AuthManager @Inject constructor(
                         Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${tokenStore.token}")
 
                         val contratDao = database.contratDao()
-                        val siteDao = database.siteDao()
-                        if (contratDao.count() == 0L || siteDao.count() == 0L) {
+                        if (contratDao.count() != 1L) {
+                            contratDao.purge()
                             loadContractsFromApi()
                         }
                     } else {
@@ -241,24 +243,13 @@ class AuthManager @Inject constructor(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun loadContractsFromApi() {
         try {
             _authState.value = _authState.value.copy(isLoadingContracts = true)
             Log.d("AUTH_MANAGER", "Récupération des contrats depuis l'API...")
-
-            val response = contratsApi.getByDevice()
-
-            if (response.isSuccessful) {
-                val contratDmo = response.body()
-                Log.d("AUTH_MANAGER", "Contrats récupérés avec succès: ${contratDmo?.nom}")
-
-                contratDmo?.let { dmo ->
-                    saveContractToDatabase(dmo)
-                }
-            } else {
-                Log.e("AUTH_MANAGER", "Erreur récupération contrats: ${response.code()}")
-                Log.e("AUTH_MANAGER", "Message d'erreur: ${response.errorBody()?.string()}")
-            }
+            syncManager.synchroDescendante()
+            Log.d("AUTH_MANAGER", "Récupération des contrats depuis l'API fini")
         } catch (e: Exception) {
             Log.e("AUTH_MANAGER", "Erreur lors de la récupération des contrats", e)
         } finally {
@@ -301,7 +292,9 @@ class AuthManager @Inject constructor(
                 hasSignatureParticuliers = contratDmo.hasSignatureparticuliers,
                 hasSignatureProfessionnels = contratDmo.hasSignatureprofessionels,
                 hasAccessSimpleParticuliers = contratDmo.hasAccessimpleparticuliers,
-                hasAccessSimpleProfessionnels = contratDmo.hasAccessimpleprofessionels
+                hasAccessSimpleProfessionnels = contratDmo.hasAccessimpleprofessionels,
+                hasPrepaiementParticuliers = contratDmo.hasPrepaiementParticuliers,
+                hasPrepaiementProfessionnels = contratDmo.hasPrepaiementprofessionels
             )
 
             contratDao.insertContrat(contratEntity)
