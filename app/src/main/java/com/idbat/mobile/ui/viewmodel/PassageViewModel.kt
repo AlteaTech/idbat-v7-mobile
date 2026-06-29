@@ -28,6 +28,11 @@ class PassageViewModel @Inject constructor(
     private val _seuils = MutableStateFlow<List<SeuilEtatEntity>>(emptyList())
     val seuils: StateFlow<List<SeuilEtatEntity>> = _seuils.asStateFlow()
 
+    // Liste noire de la carte présentée (null = pas en liste noire / carte inconnue)
+    data class ListeNoireInfo(val libelle: String?)
+    private val _listeNoire = MutableStateFlow<ListeNoireInfo?>(null)
+    val listeNoire: StateFlow<ListeNoireInfo?> = _listeNoire.asStateFlow()
+
     fun loadSeuils(usagerId: Long?) {
         if (usagerId == null) {
             _seuils.value = emptyList()
@@ -35,6 +40,21 @@ class PassageViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _seuils.value = database.seuilEtatDao().getSeuilsByUsager(usagerId)
+        }
+    }
+
+    fun loadListeNoire(carteId: Long?) {
+        if (carteId == null) {
+            _listeNoire.value = null
+            return
+        }
+        viewModelScope.launch {
+            val carte = database.carteContratDao().getCarteById(carteId)
+            _listeNoire.value = if (carte?.isEnListeNoire == true) {
+                ListeNoireInfo(libelle = carte.motifListeNoireLibelle)
+            } else {
+                null
+            }
         }
     }
 
