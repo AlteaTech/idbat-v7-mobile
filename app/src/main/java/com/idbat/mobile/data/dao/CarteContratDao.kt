@@ -57,6 +57,9 @@ interface CarteContratDao {
     @Query("SELECT * FROM carte_contrat WHERE id = :id LIMIT 1")
     suspend fun getCarteById(id: Long): CarteContratEntity?
 
+    @Query("SELECT * FROM carte_contrat WHERE uidRfid = :uidRfid LIMIT 1")
+    suspend fun getCarteByUidRfid(uidRfid: String): CarteContratEntity?
+
     @Query("DELETE FROM carte_contrat")
     suspend fun clearCartes()
 

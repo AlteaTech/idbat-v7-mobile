@@ -51,6 +51,7 @@ fun HomeScreen(
     var showDepotScreen by remember { mutableStateOf(false) }
     var showSignalementScreen by remember { mutableStateOf(false) }
     var showCreationCarteScreen by remember { mutableStateOf(false) }
+    var showRechargeCarteScreen by remember { mutableStateOf(false) }
 
     val testVolumeState by testVolumeViewModel.state.collectAsStateWithLifecycle()
 
@@ -120,6 +121,15 @@ fun HomeScreen(
             contratId = contratId,
             siteId = selectedSite?.id ?: 0L,
             onBack = { showCreationCarteScreen = false }
+        )
+        return
+    }
+
+    if (showRechargeCarteScreen) {
+        RechargeCarteScreen(
+            siteName = selectedSite?.nom ?: "",
+            contratId = contratId,
+            onBack = { showRechargeCarteScreen = false }
         )
         return
     }
@@ -232,6 +242,10 @@ fun HomeScreen(
                 onCreerCarte = {
                     showCarteSheet = false
                     showCreationCarteScreen = true
+                },
+                onRechargerCarte = {
+                    showCarteSheet = false
+                    showRechargeCarteScreen = true
                 },
                 onPocClick = {
                     showCarteSheet = false
