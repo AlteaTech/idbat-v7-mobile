@@ -28,6 +28,7 @@ import com.idbat.mobile.data.entities.SeuilEtatEntity
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.ui.theme.VeoliaAlertOrange
+import com.idbat.mobile.ui.theme.VeoliaErrorDark
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
 import com.idbat.mobile.ui.theme.VeoliaLightGray
 import com.idbat.mobile.ui.theme.White
@@ -52,8 +53,10 @@ fun PassageInfoScreen(
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     val isSaving = saveState == PassageSaveState.Saving
     val seuils by viewModel.seuils.collectAsStateWithLifecycle()
+    val listeNoire by viewModel.listeNoire.collectAsStateWithLifecycle()
 
     LaunchedEffect(info.usagerId) { viewModel.loadSeuils(info.usagerId) }
+    LaunchedEffect(info.carteId) { viewModel.loadListeNoire(info.carteId) }
 
     // RG1 : un seul bouton selon le flag « accès simple » du contrat correspondant
     // au type d'apporteur de l'usager sélectionné. accessSimple == true → « Enregistrer
@@ -166,11 +169,14 @@ fun PassageInfoScreen(
                     }
                 }
 
+                // Liste noire : affichée au-dessus des seuils si la carte est blacklistée
+                listeNoire?.let { ListeNoireCard(libelle = it.libelle) }
+
                 SeuilsCard(seuils = seuils)
             }
 
-            // Usager bloqué : au moins un seuil atteint (isAlerte == false)
-            val usagerBloque = seuils.any { !it.isAlerte }
+            // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
+            val usagerBloque = listeNoire != null || seuils.any { !it.isAlerte }
 
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
@@ -254,6 +260,37 @@ fun PassageInfoScreen(
                     }
 
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListeNoireCard(libelle: String?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = VeoliaErrorDark,
+                modifier = Modifier.size(20.dp)
+            )
+            Column {
+                Text(
+                    text = "Cette carte est en liste noire",
+                    fontWeight = FontWeight.Bold,
+                    color = VeoliaErrorDark,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
