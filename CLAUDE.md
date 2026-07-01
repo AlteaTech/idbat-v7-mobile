@@ -182,7 +182,7 @@ syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées),
 
 **Auto-synchro périodique** : `MainViewModel` (boucle `viewModelScope`) déclenche `executeTransfer()` toutes les `ConfigSingleton.syncIntervalMinutes` minutes, si connecté et `!isTransferring`. Tourne tant que le process vit (pas de WorkManager → s'arrête si le process est tué).
 
-**Suivi (popup du bouton « Suivi »)** : `MainViewModel.getSuiviContentAsync` calcule les compteurs à partir des **enregistrements en base** (pas de l'historique) : **« Opérations »** = `count()` cumulé sur les outbox (`passage`+`signalement`+`carte_creee` ; inclut RG3 : envoyé-non-purgé + non-envoyé) ; **« Opérations non transférées »** = `countUnsent()` cumulé (`sentAt IS NULL`, ≈ 0 après une synchro).
+**Suivi (popup du bouton « Suivi »)** : `MainViewModel.getSuiviContentAsync` calcule les compteurs à partir des **enregistrements en base** (pas de l'historique) : **« Opérations »** = `count()` cumulé sur les outbox (`passage`+`signalement`+`carte_creee`+`recharge_carte` ; inclut RG3 : envoyé-non-purgé + non-envoyé) ; **« Opérations non transférées »** = `countUnsent()` cumulé (`sentAt IS NULL`, ≈ 0 après une synchro).
 
 **Robustesse écran éteint / doze :**
 - `executeTransfer` tient un `PARTIAL_WAKE_LOCK` + `WifiLock` (timeout 10 min).

@@ -112,4 +112,9 @@ object ApiModule {
     @Singleton
     fun provideCarteCreationApi(retrofit: Retrofit): CarteCreationControllerApi =
         retrofit.create(CarteCreationControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideRechargesCarteApi(retrofit: Retrofit): RechargesCarteControllerApi =
+        retrofit.create(RechargesCarteControllerApi::class.java)
 }

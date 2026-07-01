@@ -16,6 +16,7 @@ import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.CarteCreationControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
+import com.idbat.mobile.generated.client.api.RechargesCarteControllerApi
 import com.idbat.mobile.generated.client.api.SignalementsControllerApi
 import com.idbat.mobile.generated.client.model.*
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,7 +40,8 @@ class SyncManager @Inject constructor(
     private val contratsApi: ContratsControllerApi,
     private val passagesApi: PassagesControllerApi,
     private val signalementsApi: SignalementsControllerApi,
-    private val carteCreationApi: CarteCreationControllerApi
+    private val carteCreationApi: CarteCreationControllerApi,
+    private val rechargesCarteApi: RechargesCarteControllerApi
 ) {
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState
@@ -98,8 +100,8 @@ class SyncManager @Inject constructor(
     }
 
     /**
-     * RG3 : supprime les données saisies (passages, signalements, cartes créées) qui ont été
-     * envoyées avec succès et dont l'horodatage de saisie dépasse la durée de rétention
+     * RG3 : supprime les données saisies (passages, signalements, cartes créées, rechargements)
+     * qui ont été envoyées avec succès et dont l'horodatage de saisie dépasse la durée de rétention
      * (ConfigSingleton.dataRetentionDays). Les lignes non envoyées ne sont jamais touchées.
      */
     private suspend fun purgeOldSyncedData() {
@@ -108,6 +110,7 @@ class SyncManager @Inject constructor(
         database.passageDao().deleteSentOlderThan(threshold)
         database.signalementDao().deleteSentOlderThan(threshold)
         database.carteCreeeDao().deleteSentOlderThan(threshold)
+        database.rechargeCarteDao().deleteSentOlderThan(threshold)
         Log.d("SYNC_MANAGER", "Purge RG3 effectuée (seuil = $threshold)")
     }
 
@@ -118,6 +121,7 @@ class SyncManager @Inject constructor(
         val usagerDao       = database.usagerDao()
         val signalementDao  = database.signalementDao()
         val carteCreeeDao   = database.carteCreeeDao()
+        val rechargeDao     = database.rechargeCarteDao()
         val histoDao        = database.lastSynchroHistoryDao()
 
         // RG3 : on n'envoie que ce qui n'a pas encore été transmis avec succès.
@@ -126,7 +130,8 @@ class SyncManager @Inject constructor(
         val allPassages     = passageDao.getUnsentPassages()
         val allSignalements = signalementDao.getUnsent()
         val allCartesCreees = carteCreeeDao.getUnsent()
-        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) à envoyer")
+        val allRecharges    = rechargeDao.getUnsent()
+        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) + ${allRecharges.size} rechargement(s) à envoyer")
 
         // Note : même s'il n'y a rien à envoyer, on continue. Un contrôle « rien à envoyer »
         // compte comme un envoi réussi et doit rafraîchir l'horodatage (cf. statsBySite plus bas).
@@ -250,6 +255,40 @@ class SyncManager @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("SYNC_MANAGER", "Erreur envoi carte créée ${carte.id}", e)
+            }
+        }
+
+        // ── Rechargements de carte ──────────────────────────────────────────────
+        for (recharge in allRecharges) {
+            val request = CreerRechargeCarteRequest(
+                contratId            = recharge.contratId,
+                siteId               = recharge.siteId,
+                uid                  = recharge.uid,
+                numeroIdentification = recharge.numeroIdentification,
+                identClient          = recharge.identClient,
+                ancienSolde          = recharge.ancienSolde,
+                pointsRecharges      = recharge.pointsRecharges,
+                nouveauSolde         = recharge.nouveauSolde,
+                dateRecharge         = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(recharge.dateRecharge), ZoneId.systemDefault()
+                ),
+                transactionId        = recharge.transactionId
+            )
+
+            val prev = statsBySite.getOrDefault(recharge.siteId, 0L to 0L)
+            try {
+                val response = rechargesCarteApi.syncRechargesCarte(request)
+                if (response.isSuccessful) {
+                    rechargeDao.markSent(recharge.id, nowMillis)
+                    statsBySite[recharge.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Rechargement ${recharge.id} envoyé (site ${recharge.siteId})")
+                } else {
+                    statsBySite[recharge.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Rechargement ${recharge.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[recharge.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi rechargement ${recharge.id}", e)
             }
         }
 
@@ -378,7 +417,7 @@ class SyncManager @Inject constructor(
             hasAccessSimpleParticuliers = dmo.hasAccessimpleparticuliers,
             hasAccessSimpleProfessionnels = dmo.hasAccessimpleprofessionels,
             hasPrepaiementParticuliers = dmo.hasPrepaiementParticuliers,
-            hasPrepaiementProfessionnels = dmo.hasPrepaiementprofessionels
+            hasPrepaiementProfessionnels = dmo.hasPrepaiementProfessionnels
         )
         contratDao.insertContrat(contratEntity)
 
