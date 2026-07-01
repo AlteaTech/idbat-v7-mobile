@@ -195,7 +195,9 @@ fun TerminerPassageScreen(
                             emailSaisi = email.trim().takeIf { it.isNotBlank() },
                             usagerId = info.usagerId,
                             photos = photos,
-                            signatureImage = signatureImage
+                            signatureImage = signatureImage,
+                            uidCarte = info.uid,
+                            soldePointsAvant = info.soldePoints
                         )
                     }
                 },

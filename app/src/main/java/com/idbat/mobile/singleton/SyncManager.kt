@@ -139,58 +139,6 @@ class SyncManager @Inject constructor(
         // Stats par siteId : Pair(tentées, réussies)
         val statsBySite = mutableMapOf<Long, Pair<Long, Long>>()
 
-        for (passage in allPassages) {
-            val matieres  = matiereDao.getMatieresByPassage(passage.id)
-            val documents = getDocumentsForSync(passage.id)
-            val usagerId  = passage.carteId?.let { usagerDao.getUsagerByCarte(it)?.id }
-
-            val request = CreerPassageRequest(
-                contratId        = passage.contratId,
-                siteId           = passage.siteId,
-                userTpId         = passage.userTpId,
-                transactionId    = passage.transactionId,
-                datePassage      = OffsetDateTime.ofInstant(
-                    Instant.ofEpochMilli(passage.dateHeure), ZoneId.systemDefault()
-                ),
-                numeroBonPassage = passage.numeroBonPassage,
-                matieres         = matieres.map { m ->
-                    PassageMatiereRequest(
-                        matieresSiteId = m.matiereId,
-                        quantite       = BigDecimal(m.quantite)
-                    )
-                },
-                documents        = documents.map { d ->
-                    PassageDocumentRequest(
-                        type      = d.type,
-                        nomFichier = d.nomFichier,
-                        mimeType  = d.mimeType,
-                        base64    = Base64.decode(d.base64, Base64.DEFAULT)
-                    )
-                },
-                usagerId    = usagerId,
-                carteId     = passage.carteId,
-                commentaire = passage.commentaire,
-                emailUsager = passage.emailUsager
-            )
-
-            val prev = statsBySite.getOrDefault(passage.siteId, 0L to 0L)
-
-            try {
-                val response = passagesApi.creer(request)
-                if (response.isSuccessful) {
-                    passageDao.markSent(passage.id, nowMillis)
-                    statsBySite[passage.siteId] = (prev.first + 1) to (prev.second + 1)
-                    Log.d("SYNC_MANAGER", "Passage ${passage.id} envoyé (site ${passage.siteId})")
-                } else {
-                    statsBySite[passage.siteId] = (prev.first + 1) to prev.second
-                    Log.w("SYNC_MANAGER", "Passage ${passage.id} refusé — code ${response.code()}")
-                }
-            } catch (e: Exception) {
-                statsBySite[passage.siteId] = (prev.first + 1) to prev.second
-                Log.e("SYNC_MANAGER", "Erreur envoi passage ${passage.id}", e)
-            }
-        }
-
         // ── Signalements ────────────────────────────────────────────────────────
         for (signalement in allSignalements) {
             val documents = getSignalementDocumentsForSync(signalement.id)
@@ -289,6 +237,58 @@ class SyncManager @Inject constructor(
             } catch (e: Exception) {
                 statsBySite[recharge.siteId] = (prev.first + 1) to prev.second
                 Log.e("SYNC_MANAGER", "Erreur envoi rechargement ${recharge.id}", e)
+            }
+        }
+
+        for (passage in allPassages) {
+            val matieres  = matiereDao.getMatieresByPassage(passage.id)
+            val documents = getDocumentsForSync(passage.id)
+            val usagerId  = passage.carteId?.let { usagerDao.getUsagerByCarte(it)?.id }
+
+            val request = CreerPassageRequest(
+                contratId        = passage.contratId,
+                siteId           = passage.siteId,
+                userTpId         = passage.userTpId,
+                transactionId    = passage.transactionId,
+                datePassage      = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(passage.dateHeure), ZoneId.systemDefault()
+                ),
+                numeroBonPassage = passage.numeroBonPassage,
+                matieres         = matieres.map { m ->
+                    PassageMatiereRequest(
+                        matieresSiteId = m.matiereId,
+                        quantite       = BigDecimal(m.quantite)
+                    )
+                },
+                documents        = documents.map { d ->
+                    PassageDocumentRequest(
+                        type      = d.type,
+                        nomFichier = d.nomFichier,
+                        mimeType  = d.mimeType,
+                        base64    = Base64.decode(d.base64, Base64.DEFAULT)
+                    )
+                },
+                usagerId    = usagerId,
+                carteId     = passage.carteId,
+                commentaire = passage.commentaire,
+                emailUsager = passage.emailUsager
+            )
+
+            val prev = statsBySite.getOrDefault(passage.siteId, 0L to 0L)
+
+            try {
+                val response = passagesApi.creer(request)
+                if (response.isSuccessful) {
+                    passageDao.markSent(passage.id, nowMillis)
+                    statsBySite[passage.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Passage ${passage.id} envoyé (site ${passage.siteId})")
+                } else {
+                    statsBySite[passage.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Passage ${passage.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[passage.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi passage ${passage.id}", e)
             }
         }
 

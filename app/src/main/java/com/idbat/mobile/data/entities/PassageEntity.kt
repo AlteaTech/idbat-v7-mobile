@@ -40,6 +40,9 @@ data class PassageEntity(
     val numeroBonPassage: String,
     val commentaire: String? = null,
     val emailUsager: String? = null,
+    // Carte à puce : UID lu + solde de points avant le passage (null pour les autres cartes)
+    val uidCarte: String? = null,
+    val soldePointsAvant: Double? = null,
     val transactionId: String = java.util.UUID.randomUUID().toString(),
     // RG3 : horodatage de l'envoi réussi au BO (null = non envoyé). Sert à différer la purge.
     val sentAt: Long? = null

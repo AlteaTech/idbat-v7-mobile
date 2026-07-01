@@ -40,6 +40,7 @@ fun DepotScreen(
     val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
 
     var showAutresScreen by remember { mutableStateOf(false) }
+    var showLecturePuce by remember { mutableStateOf(false) }
 
     if (showAutresScreen) {
         AutresCartesScreen(
@@ -47,6 +48,17 @@ fun DepotScreen(
             siteId = siteId,
             contratId = contratId,
             onBack = { showAutresScreen = false },
+            onNavigateToHome = onNavigateToHome
+        )
+        return
+    }
+
+    if (showLecturePuce) {
+        LecturePuceScreen(
+            siteName = siteName,
+            siteId = siteId,
+            contratId = contratId,
+            onBack = { showLecturePuce = false },   // retour au choix (Autres / Carte à puce)
             onNavigateToHome = onNavigateToHome
         )
         return
@@ -134,7 +146,7 @@ fun DepotScreen(
                                 iconResId = R.drawable.carte_a_puce,
                                 iconTint = iconTint,
                                 modifier = Modifier.fillMaxWidth(),
-                                onClick = { }
+                                onClick = { showLecturePuce = true }
                             )
                         }
                         if (showAutres) {

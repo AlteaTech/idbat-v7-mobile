@@ -166,6 +166,10 @@ fun PassageInfoScreen(
                         InfoRow(label = "N° de carte", value = info.numeroCarte)
                         InfoRow(label = "Type d'apporteur", value = info.typeApporteur)
                         InfoRow(label = "Contact", value = info.contact)
+                        // Solde de points : uniquement pour une carte à puce (valeur lue sur la carte)
+                        info.soldePoints?.let {
+                            InfoRow(label = "Solde de points", value = "%.2f points".format(it))
+                        }
                     }
                 }
 
@@ -202,7 +206,11 @@ fun PassageInfoScreen(
                     if(accessSimple){
                         Button(
                             onClick = {
-                                if (!isSaving) viewModel.enregistrerPassage(contratId, siteId, info.carteId)
+                                if (!isSaving) viewModel.enregistrerPassage(
+                                    contratId, siteId, info.carteId,
+                                    uidCarte = info.uid,
+                                    soldePointsAvant = info.soldePoints
+                                )
                             },
                             modifier = Modifier
                                 .fillMaxWidth()

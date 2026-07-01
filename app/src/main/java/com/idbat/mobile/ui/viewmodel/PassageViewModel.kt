@@ -58,7 +58,13 @@ class PassageViewModel @Inject constructor(
         }
     }
 
-    fun enregistrerPassage(contratId: Long, siteId: Long, carteId: Long?) {
+    fun enregistrerPassage(
+        contratId: Long,
+        siteId: Long,
+        carteId: Long?,
+        uidCarte: String? = null,
+        soldePointsAvant: Double? = null
+    ) {
         if (_saveState.value == PassageSaveState.Saving) return
         viewModelScope.launch {
             _saveState.value = PassageSaveState.Saving
@@ -84,6 +90,8 @@ class PassageViewModel @Inject constructor(
                         carteId = carteId,
                         userTpId = userTp.id,
                         numeroBonPassage = numeroBonPassage,
+                        uidCarte = uidCarte,
+                        soldePointsAvant = soldePointsAvant,
                         transactionId = java.util.UUID.randomUUID().toString()
                     )
                 )

@@ -54,7 +54,9 @@ class TerminerPassageViewModel @Inject constructor(
         emailSaisi: String?,
         usagerId: Long?,
         photos: List<Uri>,
-        signatureImage: ImageBitmap?
+        signatureImage: ImageBitmap?,
+        uidCarte: String? = null,
+        soldePointsAvant: Double? = null
     ) {
         if (_saveState.value == TerminerSaveState.Saving) return
         viewModelScope.launch {
@@ -86,6 +88,8 @@ class TerminerPassageViewModel @Inject constructor(
                             numeroBonPassage = numeroBonPassage,
                             commentaire = commentaire.takeIf { it.isNotBlank() },
                             emailUsager = emailSnapshot,
+                            uidCarte = uidCarte,
+                            soldePointsAvant = soldePointsAvant,
                             transactionId = java.util.UUID.randomUUID().toString()
                         )
                     )
