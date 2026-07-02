@@ -3,7 +3,8 @@
     "allow": [
       "Bash(psql -U postgres -c \"SHOW data_directory;\")",
       "PowerShell(./gradlew :app:compileDebugKotlin -q 2>&1)",
-      "PowerShell($out = ./gradlew :app:compileDebugKotlin 2>$null; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK \\($LASTEXITCODE\\)\" } else { \"BUILD FAILED \\($LASTEXITCODE\\)\"; $out | Select-Object -Last 50 })"
+      "PowerShell($out = ./gradlew :app:compileDebugKotlin 2>$null; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK \\($LASTEXITCODE\\)\" } else { \"BUILD FAILED \\($LASTEXITCODE\\)\"; $out | Select-Object -Last 50 })",
+      "PowerShell($out = ./gradlew :app:compileDebugKotlin 2>$null; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK\" } else { \"BUILD FAILED \\($LASTEXITCODE\\)\"; $out | Select-Object -Last 50 })"
     ]
   }
 }

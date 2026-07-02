@@ -130,7 +130,8 @@ class TerminerPassageViewModel @Inject constructor(
                 }
 
                 // RG2 : nouveau solde = solde de départ − total des points. Tout le reste inchangé.
-                // TODO RG2.1 : bloquer en amont si nouveauSolde < 0 (ticket suivant).
+                // RG2.1 (#238) : le dépassement du solde est bloqué en amont (SaisieMatiereScreen),
+                // donc nouveauSolde ne devrait jamais être négatif ici.
                 val carteMaj = carte.copy(soldePoints = nouveauSolde)
 
                 withContext(Dispatchers.IO) {
