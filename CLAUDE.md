@@ -55,7 +55,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `AutresCartesScreen` | Code-barres / Immatriculation (uppercase alphanumérique only) / Sélection usager |
 | `PassageInfoScreen` | Infos carte + **seuils/alertes** ; bouton "Fermer" si usager bloqué (seuil atteint) |
 | `SaisieMatiereScreen` | Saisie des matières du passage (quantité obligatoire) |
-| `TerminerPassageScreen` | Photos + signature + email → enregistrement passage en BDD (resize photos ≤4000px) |
+| `TerminerPassageScreen` | Email bon de dépôt → enregistrement passage en BDD. **RG1-RG3 dépôt puce pré-paiement** : si carte 'P' (`info.uid != null`) ET `hasPrepaiement{Particuliers,Professionnels}` selon le type d'apporteur, « Terminer » passe en **phase d'écriture NFC** (relit la carte, vérifie l'UID RG3.1, écrit le nouveau solde = solde de départ − total points, RG2) et n'enregistre le passage qu'après écriture réussie (RG3.2) → dialog « Dépôt enregistré » → accueil (RG3.3). Sinon enregistrement direct. |
 | `SaisieSignalementScreen` | Événement + commentaire (max 50) + photos → signalement en BDD (offline-first) |
 | `CreationCarteScreen` | Scan QR (192 car.) pour créer une carte à puce |
 | `CarteCreationInfoScreen` | Affiche les infos parsées du QR + bouton Valider |
