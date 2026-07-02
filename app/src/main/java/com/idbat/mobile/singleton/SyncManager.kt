@@ -417,7 +417,8 @@ class SyncManager @Inject constructor(
             hasAccessSimpleParticuliers = dmo.hasAccessimpleparticuliers,
             hasAccessSimpleProfessionnels = dmo.hasAccessimpleprofessionels,
             hasPrepaiementParticuliers = dmo.hasPrepaiementParticuliers,
-            hasPrepaiementProfessionnels = dmo.hasPrepaiementProfessionnels
+            hasPrepaiementProfessionnels = dmo.hasPrepaiementProfessionnels,
+            hasGratuitParticuliers = dmo.hasGratuitParticuliers
         )
         contratDao.insertContrat(contratEntity)
 
