@@ -124,9 +124,9 @@ fun PassageInfoScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
+            val isListeNoire = listeNoire != null;
             // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
-            val usagerBloque = listeNoire != null || seuils.any { !it.isAlerte }
+            val usagerBloque = isListeNoire || seuils.any { !it.isAlerte }
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -178,7 +178,7 @@ fun PassageInfoScreen(
                 // Liste noire : affichée au-dessus des seuils si la carte est blacklistée
                 listeNoire?.let { ListeNoireCard(libelle = it.libelle) }
 
-                SeuilsCard(seuils = seuils, usagerBloque)
+                SeuilsCard(seuils = seuils, isListeNoire)
             }
 
 
@@ -305,25 +305,28 @@ private fun ListeNoireCard(libelle: String?) {
 }
 
 @Composable
-private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerBloque: Boolean) {
+private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (!usagerBloque) {
-                Text(
-                    text = "Aucune alerte",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                seuils.forEach { seuil -> SeuilRow(seuil) }
+
+        if (!usagerListeNoire) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (!usagerListeNoire && seuils.isEmpty()) {
+                    Text(
+                        text = "Aucune alerte",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    seuils.forEach { seuil -> SeuilRow(seuil) }
+                }
             }
         }
     }

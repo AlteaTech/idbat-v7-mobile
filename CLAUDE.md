@@ -205,6 +205,7 @@ syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées),
 | `CarteActionSheet` | Bottom sheet Material3 avec 3 actions carte |
 | `PhotoPickerComponent` | Prise/sélection photos, thumbnails suppressibles + **visualisation plein écran au clic** (Dialog) — état **hoisted** (`photos`, `onPhotosChange`) |
 | `BarcodeScannerComponent` | Scan code-barres/QR via caméra + ML Kit. **Ne lance la caméra qu'au clic sur "Scanner"** ; params `title`/`subtitle` pour éviter le double-cadre ; callback `onBarcodeDetected(value, format)` |
+| `CodeBarreScannerComponent` | Scanner **dédié codes-barres 1D uniquement** (QR/DataMatrix/PDF417 exclus) ; fenêtre de visée **rectangulaire large** + ligne horizontale. Même API que `BarcodeScannerComponent` (`scannedValue`, `onBarcodeDetected`, `title`/`subtitle`). Utilisé dans `AutresCartesScreen` (section code-barres du dépôt). |
 | `MifareReaderComponent` | Lecture NFC Mifare Classic → callback `onCardRead: (CartePuce) -> Unit` |
 | `MifareWriterComponent` | Écriture NFC Mifare Classic → lambda `buildCarte: (uid, numSerie) -> CartePuce?` appelé au moment du tap |
 | `SignatureComponent` | Canvas de dessin (bezier quadratique) → callback `onValidate: ((ImageBitmap) -> Unit)?` |
