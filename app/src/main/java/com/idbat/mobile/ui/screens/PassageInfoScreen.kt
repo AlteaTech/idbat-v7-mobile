@@ -125,6 +125,8 @@ fun PassageInfoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
+            val usagerBloque = listeNoire != null || seuils.any { !it.isAlerte }
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -176,11 +178,9 @@ fun PassageInfoScreen(
                 // Liste noire : affichée au-dessus des seuils si la carte est blacklistée
                 listeNoire?.let { ListeNoireCard(libelle = it.libelle) }
 
-                SeuilsCard(seuils = seuils)
+                SeuilsCard(seuils = seuils, usagerBloque)
             }
 
-            // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
-            val usagerBloque = listeNoire != null || seuils.any { !it.isAlerte }
 
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
@@ -305,7 +305,7 @@ private fun ListeNoireCard(libelle: String?) {
 }
 
 @Composable
-private fun SeuilsCard(seuils: List<SeuilEtatEntity>) {
+private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerBloque: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -316,7 +316,7 @@ private fun SeuilsCard(seuils: List<SeuilEtatEntity>) {
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (seuils.isEmpty()) {
+            if (!usagerBloque) {
                 Text(
                     text = "Aucune alerte",
                     style = MaterialTheme.typography.bodyMedium,
