@@ -8,12 +8,12 @@ import retrofit2.http.POST
 interface CarteCreationControllerApi {
     /**
      * POST api/carte-creation
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: OK
      *
-     * @param marquerCarteQrCodeRequest 
+     * @param marquerCarteQrCodeRequest
      * @return [Unit]
      */
     @POST("api/carte-creation")

@@ -27,14 +27,14 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param id 
- * @param courriel 
+ *
+ * @param id
+ * @param courriel
  */
 
 
-data class PatchUsagerMobileRequest (
+data class PatchUsagerMobileRequest(
 
     @Json(name = "id")
     val id: kotlin.Long,

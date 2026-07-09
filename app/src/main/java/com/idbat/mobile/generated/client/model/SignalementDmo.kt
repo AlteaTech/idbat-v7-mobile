@@ -27,13 +27,13 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param id 
+ *
+ * @param id
  */
 
 
-data class SignalementDmo (
+data class SignalementDmo(
 
     @Json(name = "id")
     val id: kotlin.Long

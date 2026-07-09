@@ -27,18 +27,18 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param numSerie 
- * @param identifiantDevice 
- * @param nom 
- * @param typeTerminal 
- * @param longitude 
- * @param latitude 
+ *
+ * @param numSerie
+ * @param identifiantDevice
+ * @param nom
+ * @param typeTerminal
+ * @param longitude
+ * @param latitude
  */
 
 
-data class CreerSmartphoneMobileRequest (
+data class CreerSmartphoneMobileRequest(
 
     @Json(name = "numSerie")
     val numSerie: kotlin.String,

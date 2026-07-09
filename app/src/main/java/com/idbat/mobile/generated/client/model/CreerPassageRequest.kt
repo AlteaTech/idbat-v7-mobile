@@ -26,24 +26,24 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param contratId 
- * @param siteId 
- * @param userTpId 
- * @param datePassage 
- * @param transactionId 
- * @param numeroBonPassage 
- * @param matieres 
- * @param documents 
- * @param usagerId 
- * @param carteId 
- * @param commentaire 
- * @param emailUsager 
+ *
+ * @param contratId
+ * @param siteId
+ * @param userTpId
+ * @param datePassage
+ * @param transactionId
+ * @param numeroBonPassage
+ * @param matieres
+ * @param documents
+ * @param usagerId
+ * @param carteId
+ * @param commentaire
+ * @param emailUsager
  */
 
 
-data class CreerPassageRequest (
+data class CreerPassageRequest(
 
     @Json(name = "contratId")
     val contratId: kotlin.Long,

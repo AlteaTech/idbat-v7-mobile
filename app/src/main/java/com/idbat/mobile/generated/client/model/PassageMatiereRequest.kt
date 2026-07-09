@@ -27,20 +27,24 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param matieresSiteId 
- * @param quantite 
+ *
+ * @param matieresSiteId
+ * @param quantite
+ * @param points
  */
 
 
-data class PassageMatiereRequest (
+data class PassageMatiereRequest(
 
     @Json(name = "matieresSiteId")
     val matieresSiteId: kotlin.Long,
 
     @Json(name = "quantite")
-    val quantite: java.math.BigDecimal
+    val quantite: java.math.BigDecimal,
+
+    @Json(name = "points")
+    val points: java.math.BigDecimal
 
 ) {
 

@@ -27,16 +27,16 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
- * 
  *
- * @param uid 
- * @param numeroIdentification 
- * @param userTpId 
- * @param dateCreationMobile 
+ *
+ * @param uid
+ * @param numeroIdentification
+ * @param userTpId
+ * @param dateCreationMobile
  */
 
 
-data class MarquerCarteQrCodeRequest (
+data class MarquerCarteQrCodeRequest(
 
     @Json(name = "uid")
     val uid: kotlin.String,

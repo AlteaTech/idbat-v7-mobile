@@ -9,12 +9,12 @@ import retrofit2.http.POST
 interface SignalementsControllerApi {
     /**
      * POST api/signalements
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: OK
      *
-     * @param creerSignalementRequest 
+     * @param creerSignalementRequest
      * @return [SignalementDmo]
      */
     @POST("api/signalements")
