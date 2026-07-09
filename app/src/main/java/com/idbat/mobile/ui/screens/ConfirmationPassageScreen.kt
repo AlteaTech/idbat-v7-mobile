@@ -1,6 +1,7 @@
 package com.idbat.mobile.ui.screens
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -85,6 +86,9 @@ fun ConfirmationPassageScreen(
         )
         return
     }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
 
     if (showSignatureDialog) {
         Dialog(onDismissRequest = { showSignatureDialog = false }) {

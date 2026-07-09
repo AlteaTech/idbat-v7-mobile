@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -55,6 +56,9 @@ fun CreationCarteScreen(
         )
         return
     }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
 
     Box(
         modifier = Modifier

@@ -4,6 +4,7 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.nfc.NfcAdapter
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,6 +43,9 @@ fun EcriturePuceScreen(
     onFinished: () -> Unit = onBack,
     viewModel: EcriturePuceViewModel = hiltViewModel()
 ) {
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
+
     val bgColor = MaterialTheme.colorScheme.background
     val onSurface = MaterialTheme.colorScheme.onSurface
     val state by viewModel.state.collectAsStateWithLifecycle()

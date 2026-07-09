@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -83,6 +84,9 @@ fun SaisieMatiereScreen(
         )
         return
     }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
 
     val bgColor = MaterialTheme.colorScheme.background
 

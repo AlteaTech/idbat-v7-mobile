@@ -2,6 +2,7 @@ package com.idbat.mobile.ui.screens
 
 import android.nfc.NfcAdapter
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,6 +70,13 @@ fun RechargeCarteScreen(
     // Phase d'écriture (RG3) : déclenchée par "Soumettre" du formulaire
     var ecritureEnCours by remember { mutableStateOf(false) }
     var pointsToWrite by remember { mutableStateOf(0.0) }
+
+    // Back système = back de l'écran (bouton haut-gauche) : en phase d'écriture, on annule
+    // l'écriture et on revient au formulaire ; sinon on quitte l'écran.
+    BackHandler {
+        if (ecritureEnCours) { ecritureEnCours = false; viewModel.resetWrite() }
+        else onBack()
+    }
 
     // Quelle lecture NFC est active : READ (lecture initiale) / WRITE (réécriture) / NONE
     val phase = when {

@@ -3,6 +3,7 @@ package com.idbat.mobile.ui.screens
 import android.net.Uri
 import android.nfc.NfcAdapter
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -88,6 +89,13 @@ fun TerminerPassageScreen(
 
     // Phase d'écriture NFC (RG3)
     var ecritureEnCours by remember { mutableStateOf(false) }
+
+    // Back système = back de l'écran (bouton haut-gauche) : en phase d'écriture, on annule
+    // l'écriture et on revient au bon de dépôt ; sinon on quitte l'écran.
+    BackHandler {
+        if (ecritureEnCours) { ecritureEnCours = false; viewModel.resetWrite() }
+        else onBack()
+    }
 
     LaunchedEffect(saveState) {
         if (saveState == TerminerSaveState.Success) {
