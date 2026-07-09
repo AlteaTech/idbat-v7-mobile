@@ -92,6 +92,9 @@ class PassageViewModel @Inject constructor(
                         numeroBonPassage = numeroBonPassage,
                         uidCarte = uidCarte,
                         soldePointsAvant = soldePointsAvant,
+                        // Accès simple : aucune matière → valeur 0, solde inchangé
+                        valeurPoints = 0.0,
+                        nouveauSoldePoints = soldePointsAvant,
                         transactionId = java.util.UUID.randomUUID().toString()
                     )
                 )

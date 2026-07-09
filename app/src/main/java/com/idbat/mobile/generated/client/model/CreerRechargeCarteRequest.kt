@@ -27,23 +27,23 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
+ * 
  *
- *
- * @param contratId
- * @param siteId
- * @param uid
- * @param numeroIdentification
- * @param identClient
- * @param ancienSolde
- * @param pointsRecharges
- * @param nouveauSolde
- * @param dateRecharge
- * @param transactionId
- * @param sentAt
+ * @param contratId 
+ * @param siteId 
+ * @param uid 
+ * @param numeroIdentification 
+ * @param identClient 
+ * @param ancienSolde 
+ * @param pointsRecharges 
+ * @param nouveauSolde 
+ * @param dateRecharge 
+ * @param transactionId 
+ * @param sentAt 
  */
 
 
-data class CreerRechargeCarteRequest(
+data class CreerRechargeCarteRequest (
 
     @Json(name = "contratId")
     val contratId: kotlin.Long,

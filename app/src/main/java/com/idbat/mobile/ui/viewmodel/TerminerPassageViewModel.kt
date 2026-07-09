@@ -180,6 +180,10 @@ class TerminerPassageViewModel @Inject constructor(
         val numeroBonPassage = "${contrat.trigramme}${site.trigramme}$dateSuffix"
         val emailSnapshot = emailSaisi?.trim()?.takeIf { it.isNotBlank() }
 
+        // Valeur totale du passage en points (0 si aucune matière) + nouveau solde éventuel
+        val valeurPoints = lignes.sumOf { (it.quantite.toDoubleOrNull() ?: 0.0) * it.matiere.tarif }
+        val nouveauSoldePoints = soldePointsAvant?.let { it - valeurPoints }
+
         // 1. Enregistrement du passage
         val passageId = database.passageDao().insertPassage(
             PassageEntity(
@@ -193,6 +197,8 @@ class TerminerPassageViewModel @Inject constructor(
                 emailUsager = emailSnapshot,
                 uidCarte = uidCarte,
                 soldePointsAvant = soldePointsAvant,
+                valeurPoints = valeurPoints,
+                nouveauSoldePoints = nouveauSoldePoints,
                 transactionId = java.util.UUID.randomUUID().toString()
             )
         )
@@ -207,6 +213,7 @@ class TerminerPassageViewModel @Inject constructor(
                     libelle = ligne.matiere.libelle,
                     quantite = ligne.quantite,
                     tarif = ligne.matiere.tarif,
+                    points = (ligne.quantite.toDoubleOrNull() ?: 0.0) * ligne.matiere.tarif,
                     unitesLibelle = ligne.matiere.unitesDesApportLibelle
                 )
             }

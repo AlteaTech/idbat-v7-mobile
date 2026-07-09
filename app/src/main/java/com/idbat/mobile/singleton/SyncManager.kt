@@ -257,7 +257,8 @@ class SyncManager @Inject constructor(
                 matieres         = matieres.map { m ->
                     PassageMatiereRequest(
                         matieresSiteId = m.matiereId,
-                        quantite       = BigDecimal(m.quantite)
+                        quantite       = BigDecimal(m.quantite),
+                        points         = BigDecimal(m.points),
                     )
                 },
                 documents        = documents.map { d ->
@@ -271,7 +272,11 @@ class SyncManager @Inject constructor(
                 usagerId    = usagerId,
                 carteId     = passage.carteId,
                 commentaire = passage.commentaire,
-                emailUsager = passage.emailUsager
+                emailUsager = passage.emailUsager,
+                valeurPoints = BigDecimal(passage.valeurPoints),
+                ancienSoldePoints = BigDecimal(passage.soldePointsAvant ?: 0.0),
+                nouveauSoldePoints = BigDecimal(passage.nouveauSoldePoints ?: 0.0),
+
             )
 
             val prev = statsBySite.getOrDefault(passage.siteId, 0L to 0L)

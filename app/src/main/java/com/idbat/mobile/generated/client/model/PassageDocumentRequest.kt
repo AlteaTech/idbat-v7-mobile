@@ -27,16 +27,16 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
+ * 
  *
- *
- * @param type
- * @param nomFichier
- * @param mimeType
- * @param base64
+ * @param type 
+ * @param nomFichier 
+ * @param mimeType 
+ * @param base64 
  */
 
 
-data class PassageDocumentRequest(
+data class PassageDocumentRequest (
 
     @Json(name = "type")
     val type: kotlin.String,

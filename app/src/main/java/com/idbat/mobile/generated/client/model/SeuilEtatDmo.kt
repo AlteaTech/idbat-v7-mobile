@@ -27,24 +27,24 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
+ * 
  *
- *
- * @param seuilId
- * @param nom
- * @param nbPassagesAutorises
- * @param nbPassagesEffectues
- * @param isAlerte
- * @param seuilDetailNom
- * @param seuilDetailType
- * @param seuilDetailPeriode
- * @param seuilDetailSeuilPrevention
- * @param seuilDetailContratId
- * @param message
- * @param seuilDetailNbPassage
+ * @param seuilId 
+ * @param nom 
+ * @param nbPassagesAutorises 
+ * @param nbPassagesEffectues 
+ * @param isAlerte 
+ * @param seuilDetailNom 
+ * @param seuilDetailType 
+ * @param seuilDetailPeriode 
+ * @param seuilDetailSeuilPrevention 
+ * @param seuilDetailContratId 
+ * @param message 
+ * @param seuilDetailNbPassage 
  */
 
 
-data class SeuilEtatDmo(
+data class SeuilEtatDmo (
 
     @Json(name = "seuilId")
     val seuilId: kotlin.Long,

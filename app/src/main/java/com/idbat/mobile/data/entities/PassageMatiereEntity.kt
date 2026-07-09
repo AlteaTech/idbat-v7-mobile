@@ -26,5 +26,7 @@ data class PassageMatiereEntity(
     val libelle: String,
     val quantite: String,
     val tarif: Double,
+    // Valeur de la ligne en points = quantité × tarif
+    val points: Double,
     val unitesLibelle: String
 )

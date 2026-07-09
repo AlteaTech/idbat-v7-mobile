@@ -27,26 +27,26 @@ package com.idbat.mobile.generated.client.model
 import com.squareup.moshi.Json
 
 /**
+ * 
  *
- *
- * @param id
- * @param type
- * @param valeur
- * @param isCreationByQRCode
- * @param dateDebutAffectation
- * @param isEnListeNoire
- * @param uidRfid
- * @param carteGriseJ1
- * @param carteGriseF3
- * @param dateFinAffectation
- * @param dtEntreeListeNoire
- * @param dtSortieListeNoire
- * @param motifslistenoireContratId
- * @param motifslistenoireLibelle
+ * @param id 
+ * @param type 
+ * @param valeur 
+ * @param isCreationByQRCode 
+ * @param dateDebutAffectation 
+ * @param isEnListeNoire 
+ * @param uidRfid 
+ * @param carteGriseJ1 
+ * @param carteGriseF3 
+ * @param dateFinAffectation 
+ * @param dtEntreeListeNoire 
+ * @param dtSortieListeNoire 
+ * @param motifslistenoireContratId 
+ * @param motifslistenoireLibelle 
  */
 
 
-data class CarteDmo(
+data class CarteDmo (
 
     @Json(name = "id")
     val id: kotlin.Long,

@@ -82,7 +82,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 27
+**Nom :** `idbat_bdd` — **Version actuelle :** 38
 
 | Entité | Description |
 |---|---|
@@ -98,7 +98,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `UsagerCarteEntity` | Liaison usager↔carte (dates début/fin) |
 | `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*` |
 | `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID, `userTpId` (user connecté), `sentAt` (RG3) |
-| `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) |
+| `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) — `quantite`, `tarif`, **`points`** (= quantité×tarif, stocké à l'enregistrement) |
 | `PassageDocumentEntity` | Photos/signature d'un passage en base64 (FK passage CASCADE) |
 | `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) — `transactionId`, `agentId` (user connecté), `sentAt` (RG3) |
 | `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |

@@ -59,6 +59,13 @@ fun RechargeCarteScreen(
     val activity = context as? ComponentActivity
     val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
 
+    // Toujours repartir d'un état vierge : le VM est partagé sur la route Home, donc son état
+    // (erreur de lecture, carte lue…) survivrait à la navigation locale. On le réinitialise en
+    // quittant l'écran pour que chaque entrée reparte de zéro.
+    DisposableEffect(Unit) {
+        onDispose { viewModel.reset() }
+    }
+
     // Phase d'écriture (RG3) : déclenchée par "Soumettre" du formulaire
     var ecritureEnCours by remember { mutableStateOf(false) }
     var pointsToWrite by remember { mutableStateOf(0) }
