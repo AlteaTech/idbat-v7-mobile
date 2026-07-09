@@ -234,7 +234,7 @@ private fun CarteCreeeDialog(onFermer: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Cette carte est désormais utilisable immédiatement.",
+                    text = "Cette carte sera utilisable à la prochaine synchronisation.",
                     textAlign = TextAlign.Center,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
