@@ -17,9 +17,9 @@ data class RechargeCarteEntity(
     val uid: String,
     val numeroIdentification: String,
     val identClient: String,
-    val ancienSolde: Int,
-    val pointsRecharges: Int,
-    val nouveauSolde: Int,
+    val ancienSolde: Double,
+    val pointsRecharges: Double,
+    val nouveauSolde: Double,
     val dateRecharge: Long,
     val transactionId: String = java.util.UUID.randomUUID().toString(),
     // pour une future synchro montante (null = non envoyé)

@@ -79,7 +79,7 @@ class RechargeCarteViewModel @Inject constructor(
                         numeroCarte = carte.numeroIdentification,
                         typeApporteur = usager?.typeApporteurLibelle,
                         contact = usager?.couriel,
-                        soldePoints = carte.soldePoints.toInt(),
+                        soldePoints = carte.soldePoints,
                         typeApporteurIsPro = isPro
                     ),
                     carteLue = carte
@@ -94,7 +94,7 @@ class RechargeCarteViewModel @Inject constructor(
      * RG3 : réécrit la carte avec le nouveau solde. La carte présentée doit être la même que
      * celle lue (RG3.1). Le rechargement n'est journalisé en base qu'après écriture réussie (RG3.2).
      */
-    fun ecrireRechargement(tag: Tag, points: Int, contratId: Long, siteId: Long) {
+    fun ecrireRechargement(tag: Tag, points: Double, contratId: Long, siteId: Long) {
         if (_writeState.value is WriteState.Writing || _writeState.value is WriteState.Success) return
         val ready = _state.value as? ReadState.Ready ?: return
         val carteLue = ready.carteLue
@@ -109,7 +109,7 @@ class RechargeCarteViewModel @Inject constructor(
                     return@launch
                 }
 
-                val ancienSolde = carteLue.soldePoints.toInt()
+                val ancienSolde = carteLue.soldePoints
                 val nouveauSolde = ancienSolde + points
                 val carteMaj = carteLue.copy(soldePoints = carteLue.soldePoints + points)
 

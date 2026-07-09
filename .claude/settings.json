@@ -7,7 +7,8 @@
       "PowerShell($out = ./gradlew :app:compileDebugKotlin 2>$null; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK\" } else { \"BUILD FAILED \\($LASTEXITCODE\\)\"; $out | Select-Object -Last 50 })",
       "PowerShell($out = ./gradlew :app:compileDebugKotlin 2>$null; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK\" } else { \"BUILD FAILED \\($LASTEXITCODE\\)\"; $out | Select-Object -Last 40 })",
       "PowerShell($o = ./gradlew :app:compileDebugKotlin --console=plain 2>&1 | Out-String; \\($o -split \"`n\" | Select-String -Pattern \"e: |error:\" | Select-Object -First 30\\) -join \"`n\")",
-      "PowerShell($o = ./gradlew :app:compileDebugKotlin --console=plain 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK\" } else { \"BUILD FAILED\"; \\($o -split \"`n\" | Select-String -Pattern \"e: |error:\" | Select-Object -First 30\\) -join \"`n\" })"
+      "PowerShell($o = ./gradlew :app:compileDebugKotlin --console=plain 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK\" } else { \"BUILD FAILED\"; \\($o -split \"`n\" | Select-String -Pattern \"e: |error:\" | Select-Object -First 30\\) -join \"`n\" })",
+      "PowerShell($o = ./gradlew :app:compileDebugKotlin --console=plain 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { \"BUILD OK\" } else { \"BUILD FAILED\"; \\($o -split \"`n\" | Select-String -Pattern \"e: |error:|Call requires\" | Select-Object -First 30\\) -join \"`n\" })"
     ]
   }
 }

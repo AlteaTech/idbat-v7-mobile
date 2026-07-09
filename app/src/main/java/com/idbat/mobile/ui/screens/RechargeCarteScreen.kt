@@ -68,7 +68,7 @@ fun RechargeCarteScreen(
 
     // Phase d'écriture (RG3) : déclenchée par "Soumettre" du formulaire
     var ecritureEnCours by remember { mutableStateOf(false) }
-    var pointsToWrite by remember { mutableStateOf(0) }
+    var pointsToWrite by remember { mutableStateOf(0.0) }
 
     // Quelle lecture NFC est active : READ (lecture initiale) / WRITE (réécriture) / NONE
     val phase = when {
@@ -308,11 +308,12 @@ private fun ConcentricCircles() {
 @Composable
 private fun ColumnScope.RechargeForm(
     info: RechargeCarteInfo,
-    onSubmit: (points: Int) -> Unit
+    onSubmit: (points: Double) -> Unit
 ) {
     var points by remember { mutableStateOf("") }
-    val pointsInt = points.toIntOrNull() ?: 0
-    val futurSolde = info.soldePoints + pointsInt
+    // RG2 : saisie décimale (2 décimales max) ; séparateur normalisé en virgule
+    val pointsValue = points.replace(',', '.').toDoubleOrNull() ?: 0.0
+    val futurSolde = info.soldePoints + pointsValue
 
     Spacer(modifier = Modifier.height(16.dp))
 
@@ -344,7 +345,7 @@ private fun ColumnScope.RechargeForm(
                 InfoRow(label = "N° de carte", value = info.numeroCarte)
                 InfoRow(label = "Type d'apporteur", value = info.typeApporteur)
                 InfoRow(label = "Contact", value = info.contact)
-                InfoRow(label = "Solde de points", value = info.soldePoints.toString())
+                InfoRow(label = "Solde de points", value = fmt2(info.soldePoints))
             }
         }
 
@@ -367,10 +368,10 @@ private fun ColumnScope.RechargeForm(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = points,
-                        onValueChange = { input -> points = input.filter { it.isDigit() }.take(3) },
+                        onValueChange = { input -> points = sanitizeDecimalInput(input) },
                         placeholder = { Text("Ex : 50") },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.width(120.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -379,23 +380,23 @@ private fun ColumnScope.RechargeForm(
                         )
                     )
                     Text("Points", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                    if (pointsInt > 0) {
-                        Text("soit $pointsInt €", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (pointsValue > 0) {
+                        Text("soit ${fmt2(pointsValue)} €", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Calcul du futur solde", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("$futurSolde points", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${fmt2(futurSolde)} points", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 
     // ── Bloc 3 : Soumettre ─────────────────────────────────────────────────────
     Button(
-        onClick = { onSubmit(pointsInt) },
-        enabled = pointsInt > 0,
+        onClick = { onSubmit(pointsValue) },
+        enabled = pointsValue > 0,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp)
@@ -459,4 +460,31 @@ private fun InfoRow(label: String, value: String?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+/** Formatage 2 décimales, séparateur virgule (RG1). */
+private fun fmt2(value: Double): String = String.format(java.util.Locale.FRANCE, "%.2f", value)
+
+/**
+ * RG2 : filtre une saisie décimale — chiffres + un seul séparateur (`.`/`,` normalisé en `,`),
+ * pas en première position, 2 décimales max.
+ */
+private fun sanitizeDecimalInput(input: String): String {
+    val sb = StringBuilder()
+    var separator = false
+    var decimals = 0
+    for (c in input) {
+        when {
+            c.isDigit() -> {
+                if (separator) {
+                    if (decimals < 2) { sb.append(c); decimals++ }
+                } else sb.append(c)
+            }
+            (c == '.' || c == ',') && !separator && sb.isNotEmpty() -> {
+                separator = true
+                sb.append(',')
+            }
+        }
+    }
+    return sb.toString()
 }

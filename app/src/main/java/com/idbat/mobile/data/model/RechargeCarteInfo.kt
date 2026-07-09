@@ -10,6 +10,6 @@ data class RechargeCarteInfo(
     val numeroCarte: String? = null,
     val typeApporteur: String? = null,
     val contact: String? = null,
-    val soldePoints: Int = 0,
+    val soldePoints: Double = 0.0,
     val typeApporteurIsPro: Boolean = false
 )
