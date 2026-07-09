@@ -108,14 +108,18 @@ private fun formatContent(content: CharSequence) = buildAnnotatedString {
                     line.contains("Dernière réception réussie le :") ||
                     line.contains("Opérations :") ||
                     line.contains("Opérations non transférées :") -> {
+                // Seul le libellé (jusqu'au ':') est en gras ; la valeur éventuellement présente
+                // sur la même ligne (RG1/RG2) reste en texte normal.
+                val labelEnd = line.indexOf(':')
                 withStyle(
                     style = SpanStyle(
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                 ) {
-                    append(line)
+                    append(if (labelEnd >= 0) line.substring(0, labelEnd + 1) else line)
                 }
+                if (labelEnd >= 0) append(line.substring(labelEnd + 1))
             }
 
             else -> {
