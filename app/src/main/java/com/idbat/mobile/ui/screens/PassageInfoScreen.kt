@@ -218,26 +218,28 @@ fun PassageInfoScreen(
                             shape = RoundedCornerShape(50.dp),
                             enabled = !isSaving,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = VeoliaLightGray,
-                                contentColor = Color.Black
+                                containerColor = Color.Black,
+                                contentColor = White
                             )
                         ) {
                             if (isSaving) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color.Black
+                                    color = White
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
+                                    tint = White,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (isSaving) "Enregistrement…" else "Enregistrer le passage",
+                                color = White,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp
                             )

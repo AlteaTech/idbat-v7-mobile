@@ -140,6 +140,8 @@ fun CodeBarreScannerComponent(
                 ) {
                     val executor = remember { Executors.newSingleThreadExecutor() }
                     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+                    // Anti-lecture-partielle : n'accepte une valeur qu'après N frames identiques
+                    val confirmer = remember { StableBarcodeConfirmer(REQUIRED_CONFIRMATIONS, WARMUP_MS) }
                     // Libère la caméra quand on quitte le scan (sinon elle reste liée au lifecycle
                     // de la route et tourne en arrière-plan — peut gêner d'autres usages matériels).
                     DisposableEffect(Unit) {
@@ -165,9 +167,12 @@ fun CodeBarreScannerComponent(
                                     .also { analysis ->
                                         analysis.setAnalyzer(executor) { proxy ->
                                             if (isActive) analyzeLinearFrame(proxy) { value, format ->
-                                                isActive = false
-                                                isScanning = false
-                                                onBarcodeDetected(value, format)
+                                                // Confirmé seulement si lu N fois de suite à l'identique
+                                                if (confirmer.confirm(value)) {
+                                                    isActive = false
+                                                    isScanning = false
+                                                    onBarcodeDetected(value, format)
+                                                }
                                             } else proxy.close()
                                         }
                                     }
@@ -246,20 +251,66 @@ private fun BarcodeOverlay(found: Boolean) {
     }
 }
 
-/** Client ML Kit restreint aux formats de codes-barres **linéaires (1D)**. */
+/** Nombre de lectures identiques consécutives requises pour valider un code-barres. */
+private const val REQUIRED_CONFIRMATIONS = 5
+
+/**
+ * Période de chauffe (ms) : on ignore toute lecture pendant ce délai après la 1ʳᵉ frame reçue, le
+ * temps que l'autofocus se stabilise (les frames floues du démarrage sont la principale source de
+ * fragments parasites).
+ */
+private const val WARMUP_MS = 800L
+
+/**
+ * Filtre anti-lecture-partielle en deux temps :
+ * 1. **Chauffe** ([warmupMs]) : toute lecture est ignorée le temps que la caméra fasse le point.
+ * 2. **Confirmation** : une valeur n'est validée qu'après avoir été lue [required] fois **de suite
+ *    à l'identique**. Les fragments parasites (qui changent d'une frame à l'autre) ne s'accumulent
+ *    jamais ; seul le code réel, maintenu stable, franchit le seuil.
+ *
+ * Appelé uniquement depuis le listener de succès ML Kit (thread principal), donc pas de
+ * synchronisation nécessaire.
+ */
+private class StableBarcodeConfirmer(
+    private val required: Int,
+    private val warmupMs: Long
+) {
+    private var firstSeenAt = 0L
+    private var last: String? = null
+    private var count = 0
+
+    fun confirm(value: String): Boolean {
+        val now = System.currentTimeMillis()
+        if (firstSeenAt == 0L) firstSeenAt = now
+        // 1. Chauffe : on laisse l'autofocus se stabiliser avant de prendre en compte les lectures
+        if (now - firstSeenAt < warmupMs) return false
+        // 2. Confirmation : N lectures identiques consécutives
+        if (value == last) count++ else { last = value; count = 1 }
+        if (count >= required) {
+            count = 0
+            last = null
+            return true
+        }
+        return false
+    }
+}
+
+/**
+ * Client ML Kit restreint aux codes-barres 1D qui **conservent la chaîne littérale** (zéros de
+ * tête inclus) : CODE 128 / 39 / 93.
+ *
+ * ⚠️ On exclut volontairement `ITF` et la famille `UPC`/`EAN` : ce sont des symbologies à
+ * longueur contrainte (ITF = chiffres par **paires**, UPC/EAN = longueur fixe avec chiffre de
+ * contrôle) qui, sur un code numérique comme `000003576`, ajoutent/retirent un `0` de tête ou
+ * réinterprètent la valeur. Les laisser activées provoquait des lectures erronées.
+ */
 private val linearBarcodeScanner by lazy {
     BarcodeScanning.getClient(
         BarcodeScannerOptions.Builder()
             .setBarcodeFormats(
                 Barcode.FORMAT_CODE_128,
                 Barcode.FORMAT_CODE_39,
-                Barcode.FORMAT_CODE_93,
-                Barcode.FORMAT_CODABAR,
-                Barcode.FORMAT_EAN_13,
-                Barcode.FORMAT_EAN_8,
-                Barcode.FORMAT_ITF,
-                Barcode.FORMAT_UPC_A,
-                Barcode.FORMAT_UPC_E
+                Barcode.FORMAT_CODE_93
             )
             .build()
     )
