@@ -667,7 +667,6 @@ class SyncManager @Inject constructor(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             CursorWindow(name, 10L * 1024 * 1024)
         } else {
-            @Suppress("DEPRECATION")
             CursorWindow(name)
         }
 }
