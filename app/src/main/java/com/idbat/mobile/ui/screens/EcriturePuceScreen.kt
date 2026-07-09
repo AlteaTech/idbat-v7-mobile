@@ -4,6 +4,7 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.nfc.NfcAdapter
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,6 +43,9 @@ fun EcriturePuceScreen(
     onFinished: () -> Unit = onBack,
     viewModel: EcriturePuceViewModel = hiltViewModel()
 ) {
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
+
     val bgColor = MaterialTheme.colorScheme.background
     val onSurface = MaterialTheme.colorScheme.onSurface
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -234,7 +238,7 @@ private fun CarteCreeeDialog(onFermer: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Cette carte est désormais utilisable immédiatement.",
+                    text = "Cette carte sera utilisable à la prochaine synchronisation.",
                     textAlign = TextAlign.Center,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

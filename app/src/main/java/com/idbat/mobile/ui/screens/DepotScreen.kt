@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -63,6 +64,9 @@ fun DepotScreen(
         )
         return
     }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
 
     val bgColor = MaterialTheme.colorScheme.background
     val showCarteAPuce = contrat?.hasPuce == true

@@ -123,11 +123,12 @@ class MainViewModel @Inject constructor(
             bold { append("Dernière réception réussie le :") }
             append("\n${lastReception?.let { formatter.format(it) } ?: "Jamais"}\n\n")
 
-            bold { append("Opérations :") }
-            append("\n$operations\n\n")
+            // RG1/RG2 : valeur sur la même ligne que le libellé — RG3 : pas de ligne vide finale
+            bold { append("Opérations : ") }
+            append("$operations\n\n")
 
-            bold { append("Opérations non transférées :") }
-            append("\n$operationsNonTransferees\n")
+            bold { append("Opérations non transférées : ") }
+            append("$operationsNonTransferees")
         }
     }
 

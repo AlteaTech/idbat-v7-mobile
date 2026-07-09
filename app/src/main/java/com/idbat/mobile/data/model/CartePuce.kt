@@ -6,6 +6,7 @@ import com.idbat.mobile.data.nfc.NFC_TRIPLE_DES_KEY
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlin.math.roundToLong
 
 data class CartePuce(
     val uid: String,                  // UID complet pour l'affichage
@@ -43,8 +44,9 @@ data class CartePuce(
             append(flags)
             append(nomPrenom.take(30).padEnd(30))
             append(identClient.take(18).padEnd(18))
-            append((soldePoints * 100).toLong().toString().padStart(7, '0'))
-            append((cumulPoints * 100).toLong().toString().padStart(7, '0'))
+            // Arrondi (pas de troncature) : 85.6 * 100 = 8559.9999… en Double → doit donner 8560
+            append((soldePoints * 100).roundToLong().toString().padStart(7, '0'))
+            append((cumulPoints * 100).roundToLong().toString().padStart(7, '0'))
             append(paiementComptant.take(70).padEnd(70))
             append(crcStr.take(48).padEnd(48))
         }

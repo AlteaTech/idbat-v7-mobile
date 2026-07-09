@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -36,6 +37,9 @@ fun PocScreen(
     onBack: () -> Unit,
     viewModel: PocViewModel = hiltViewModel()
 ) {
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(

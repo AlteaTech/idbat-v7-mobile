@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +29,9 @@ fun CarteCreationInfoScreen(
     onBack: () -> Unit,
     onValider: () -> Unit
 ) {
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
+
     val bgColor = MaterialTheme.colorScheme.background
 
     Box(

@@ -257,7 +257,8 @@ class SyncManager @Inject constructor(
                 matieres         = matieres.map { m ->
                     PassageMatiereRequest(
                         matieresSiteId = m.matiereId,
-                        quantite       = BigDecimal(m.quantite)
+                        quantite       = BigDecimal(m.quantite),
+                        points         = BigDecimal(m.points),
                     )
                 },
                 documents        = documents.map { d ->
@@ -271,7 +272,11 @@ class SyncManager @Inject constructor(
                 usagerId    = usagerId,
                 carteId     = passage.carteId,
                 commentaire = passage.commentaire,
-                emailUsager = passage.emailUsager
+                emailUsager = passage.emailUsager,
+                valeurPoints = BigDecimal(passage.valeurPoints),
+                ancienSoldePoints = BigDecimal(passage.soldePointsAvant ?: 0.0),
+                nouveauSoldePoints = BigDecimal(passage.nouveauSoldePoints ?: 0.0),
+
             )
 
             val prev = statsBySite.getOrDefault(passage.siteId, 0L to 0L)
@@ -597,7 +602,7 @@ class SyncManager @Inject constructor(
             // CursorWindow par défaut = 2MB — insuffisant pour des photos base64.
             // On le remplace par un de 10MB avant la première lecture.
             if (cursor is AbstractWindowedCursor) {
-                cursor.window = CursorWindow("sync_docs", 10L * 1024 * 1024)
+                cursor.window = createLargeCursorWindow("sync_docs")
             }
             val docs = mutableListOf<PassageDocumentEntity>()
             cursor.use { c ->
@@ -627,7 +632,7 @@ class SyncManager @Inject constructor(
             )
             // CursorWindow par défaut = 2MB — insuffisant pour des photos base64.
             if (cursor is AbstractWindowedCursor) {
-                cursor.window = CursorWindow("sync_signalement_docs", 10L * 1024 * 1024)
+                cursor.window = createLargeCursorWindow("sync_signalement_docs")
             }
             val docs = mutableListOf<SignalementDocumentEntity>()
             cursor.use { c ->
@@ -653,4 +658,15 @@ class SyncManager @Inject constructor(
     fun clearSyncData() {
         _syncState.value = SyncState()
     }
+
+    /**
+     * CursorWindow agrandi (10 Mo) pour lire de gros base64 (photos). Le constructeur qui prend une
+     * taille est API 28+ ; en dessous (minSdk 24), on retombe sur le constructeur par défaut (~2 Mo).
+     */
+    private fun createLargeCursorWindow(name: String): CursorWindow =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            CursorWindow(name, 10L * 1024 * 1024)
+        } else {
+            CursorWindow(name)
+        }
 }

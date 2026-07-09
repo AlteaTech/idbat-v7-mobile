@@ -61,13 +61,13 @@ data class CreerRechargeCarteRequest (
     val identClient: kotlin.String,
 
     @Json(name = "ancienSolde")
-    val ancienSolde: kotlin.Int,
+    val ancienSolde: kotlin.Double,
 
     @Json(name = "pointsRecharges")
-    val pointsRecharges: kotlin.Int,
+    val pointsRecharges: kotlin.Double,
 
     @Json(name = "nouveauSolde")
-    val nouveauSolde: kotlin.Int,
+    val nouveauSolde: kotlin.Double,
 
     @Json(name = "dateRecharge")
     val dateRecharge: java.time.OffsetDateTime,

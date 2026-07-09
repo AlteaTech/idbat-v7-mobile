@@ -81,13 +81,15 @@ class TestVolumeViewModel @Inject constructor(
                             passageIds.chunked(200).forEach { idBatch ->
                                 val rows = idBatch.flatMap { pid ->
                                     matieres.map { m ->
+                                        val quantite = (1..100).random()
                                         PassageMatiereEntity(
                                             passageId    = pid,
                                             matiereId    = m.matiereId,
                                             siteId       = site.id,
                                             libelle      = m.libelle,
-                                            quantite     = (1..100).random().toString(),
+                                            quantite     = quantite.toString(),
                                             tarif        = m.tarif,
+                                            points       = quantite * m.tarif,
                                             unitesLibelle = m.unitesDesApportLibelle
                                         )
                                     }

@@ -32,7 +32,7 @@ import com.idbat.mobile.data.entities.*
         CarteCreeeEntity::class,
         RechargeCarteEntity::class
     ],
-    version = 37,
+    version = 40,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -88,8 +88,48 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
             MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
             MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
-            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37
+            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
+            MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40
         )
+
+        // Passe les soldes de rechargement en REAL (décimales). Recréation de table (SQLite ne
+        // sait pas ALTER COLUMN) en préservant les rechargements non encore envoyés.
+        private val MIGRATION_39_40 = object : Migration(39, 40) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `recharge_carte_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `uid` TEXT NOT NULL,
+                        `numeroIdentification` TEXT NOT NULL,
+                        `identClient` TEXT NOT NULL,
+                        `ancienSolde` REAL NOT NULL,
+                        `pointsRecharges` REAL NOT NULL,
+                        `nouveauSolde` REAL NOT NULL,
+                        `dateRecharge` INTEGER NOT NULL,
+                        `transactionId` TEXT NOT NULL DEFAULT '',
+                        `sentAt` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("INSERT INTO `recharge_carte_new` SELECT * FROM `recharge_carte`")
+                db.execSQL("DROP TABLE `recharge_carte`")
+                db.execSQL("ALTER TABLE `recharge_carte_new` RENAME TO `recharge_carte`")
+            }
+        }
+
+        private val MIGRATION_38_39 = object : Migration(38, 39) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN valeurPoints REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE passage ADD COLUMN nouveauSoldePoints REAL")
+            }
+        }
+
+        private val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage_matiere ADD COLUMN points REAL NOT NULL DEFAULT 0")
+            }
+        }
 
         private val MIGRATION_36_37 = object : Migration(36, 37) {
             override fun migrate(db: SupportSQLiteDatabase) {

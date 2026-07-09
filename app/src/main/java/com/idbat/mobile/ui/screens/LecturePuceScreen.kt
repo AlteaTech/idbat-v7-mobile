@@ -2,6 +2,7 @@ package com.idbat.mobile.ui.screens
 
 import android.nfc.NfcAdapter
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -70,6 +71,9 @@ fun LecturePuceScreen(
         )
         return
     }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
 
     val bgColor = MaterialTheme.colorScheme.background
     val onSurface = MaterialTheme.colorScheme.onSurface

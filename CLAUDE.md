@@ -82,7 +82,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 27
+**Nom :** `idbat_bdd` — **Version actuelle :** 40
 
 | Entité | Description |
 |---|---|
@@ -98,7 +98,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `UsagerCarteEntity` | Liaison usager↔carte (dates début/fin) |
 | `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*` |
 | `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID, `userTpId` (user connecté), `sentAt` (RG3) |
-| `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) |
+| `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) — `quantite`, `tarif`, **`points`** (= quantité×tarif, stocké à l'enregistrement) |
 | `PassageDocumentEntity` | Photos/signature d'un passage en base64 (FK passage CASCADE) |
 | `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) — `transactionId`, `agentId` (user connecté), `sentAt` (RG3) |
 | `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |
@@ -205,6 +205,7 @@ syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées),
 | `CarteActionSheet` | Bottom sheet Material3 avec 3 actions carte |
 | `PhotoPickerComponent` | Prise/sélection photos, thumbnails suppressibles + **visualisation plein écran au clic** (Dialog) — état **hoisted** (`photos`, `onPhotosChange`) |
 | `BarcodeScannerComponent` | Scan code-barres/QR via caméra + ML Kit. **Ne lance la caméra qu'au clic sur "Scanner"** ; params `title`/`subtitle` pour éviter le double-cadre ; callback `onBarcodeDetected(value, format)` |
+| `CodeBarreScannerComponent` | Scanner **dédié codes-barres 1D** restreint à **CODE 128 / 39 / 93** (formats qui conservent la chaîne littérale, zéros de tête inclus). **ITF et UPC/EAN volontairement exclus** (longueur par paires/fixe → ajoutaient/retiraient un `0`, ex. `000003576`). QR/DataMatrix/PDF417 exclus aussi. Fenêtre de visée **rectangulaire large** + ligne horizontale. **Anti-lecture-partielle** : une valeur n'est acceptée qu'après **3 frames identiques consécutives** (`StableBarcodeConfirmer`) — sinon des fragments parasites étaient renvoyés. Même API que `BarcodeScannerComponent`. Utilisé dans `AutresCartesScreen`. |
 | `MifareReaderComponent` | Lecture NFC Mifare Classic → callback `onCardRead: (CartePuce) -> Unit` |
 | `MifareWriterComponent` | Écriture NFC Mifare Classic → lambda `buildCarte: (uid, numSerie) -> CartePuce?` appelé au moment du tap |
 | `SignatureComponent` | Canvas de dessin (bezier quadratique) → callback `onValidate: ((ImageBitmap) -> Unit)?` |
@@ -328,6 +329,10 @@ Toutes les couleurs du projet sont centralisées dans `Color.kt`. **Ne jamais é
 - **URLs** : dans `ConfigSingleton` (`BASE_URL_DEV_EMULATOR`, `BASE_URL_DEV_DEVICE`, `BASE_URL_STAGING`). `baseUrl` est un getter auto émulateur/device. Test sur device → lancer `adb-reverse.ps1` (port-forward 8091, volatil : refait à chaque rebranchement/redémarrage adb).
 - **Formats de code-barres** : la fonction `Int.toFormatName()` est dans `data/model/BarcodeFormat.kt`. Ne pas la redéfinir localement dans les composants.
 - **Navigation** : `MainScreen` = NavHost (Login/Home/Poc). Navigations secondaires depuis `HomeScreen` = état local `var showXxx by remember { mutableStateOf(false) }` + `if (showXxx) { XxxScreen(onBack = { showXxx = false }) ; return }`.
+- **⚠️ Bouton back système = bouton back de l'écran (RÈGLE)** : **tout écran** possédant un bouton retour (flèche haut-gauche) doit déclarer un `BackHandler` (`androidx.activity.compose.BackHandler`) branché sur **exactement la même lambda** que le `IconButton` de retour. Sans ça, le back Android ignore la navigation locale (`showXxx`) et sort de l'écran Home / quitte l'app.
+  - Le placer **après les early-returns** (`if (showXxx) { XxxScreen(...); return }`) pour que seul l'écran réellement visible enregistre un handler.
+  - Écrans à **phases internes** (`RechargeCarteScreen`, `TerminerPassageScreen`) : reprendre la logique conditionnelle du bouton (`if (ecritureEnCours) { ecritureEnCours = false; viewModel.resetWrite() } else onBack()`), pas un `onBack()` brut.
+  - Écran où le retour doit être bloqué → `BackHandler(enabled = …)`.
 - **Contrat dans les écrans (jamais en paramètre figé)** : aucun écran ne reçoit un `ContratEntity` en paramètre. Les écrans qui ont besoin du contrat (`HomeScreen`, `DepotScreen`, `AutresCartesScreen`, `PassageInfoScreen`, `SaisieMatiereScreen`, `ConfirmationPassageScreen`) prennent un `contratId: Long` et l'observent via `ContratViewModel` (`hiltViewModel()` partagé sur le `ViewModelStoreOwner` de la route Home) : `LaunchedEffect(contratId) { contratVm.setContratId(contratId) }` + `val contrat by contratVm.contrat.collectAsStateWithLifecycle()`. `ContratViewModel.contrat` est un **flux live** issu de `ContratDao.getContratByIdFlow(id)` → le contrat est toujours rechargé/à jour depuis la BDD quand on (re)vient sur l'écran (utile après une synchro descendante qui change les flags). Ne jamais réintroduire un paramètre `contrat: ContratEntity?`.
 - **Synchro DMO→entité** : tout nouveau champ d'un DMO doit être mappé **dans les deux chemins** : `AuthManager.saveContractToDatabase` (1ère synchro) ET `SyncManager.applyDiff` (descendante).
 - **Photos** : redimensionnées avant stockage base64 (resize côté ViewModels passage/signalement). Stockées en base64 dans `*_document` ; lues en synchro via curseur `CursorWindow` 10 Mo.
