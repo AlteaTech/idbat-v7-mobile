@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.service.SyncService
 import com.idbat.mobile.singleton.AuthManager
-import com.idbat.mobile.singleton.ConfigSingleton
+import com.idbat.mobile.singleton.ParametreManager
 import com.idbat.mobile.singleton.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -27,6 +27,7 @@ class MainViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authManager: AuthManager,
     private val syncManager: SyncManager,
+    private val parametreManager: ParametreManager,
     private val database: AppDatabase // Injectez la base de données
 
 ) : ViewModel() {
@@ -64,13 +65,16 @@ class MainViewModel @Inject constructor(
             }
         }
 
-        // Auto-synchro périodique : déclenche un transfert toutes les X minutes
-        // (intervalle dans ConfigSingleton), uniquement si connecté et qu'aucun
-        // transfert n'est déjà en cours. La montante et la descendante restent
-        // indépendantes (cf. SyncManager : l'une s'exécute même si l'autre n'a rien à faire).
+        // Auto-synchro périodique : déclenche un transfert toutes les X minutes, uniquement si
+        // connecté et qu'aucun transfert n'est déjà en cours. L'intervalle vient du paramètre
+        // global TP_TRANSFERT_GPRS_MINUTES (table `parametre`), relu à chaque itération : une
+        // nouvelle valeur reçue en synchro descendante s'applique dès le tour suivant.
+        // La montante et la descendante restent indépendantes (cf. SyncManager).
         viewModelScope.launch {
+            // Valeurs initiales depuis la BDD (avant toute synchro descendante de cette session)
+            parametreManager.refreshAll()
             while (isActive) {
-                delay(ConfigSingleton.syncIntervalMinutes * 60_000L)
+                delay(parametreManager.syncIntervalMinutes.value * 60_000L)
                 val state = _uiState.value
                 if (state.isLoggedIn && !state.syncState.isTransferring) {
                     executeTransfer()

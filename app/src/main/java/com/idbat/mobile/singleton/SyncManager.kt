@@ -15,12 +15,15 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
 import com.idbat.mobile.generated.client.api.CarteCreationControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
+import com.idbat.mobile.generated.client.api.ParametreGlobalControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
 import com.idbat.mobile.generated.client.api.RechargesCarteControllerApi
 import com.idbat.mobile.generated.client.api.SignalementsControllerApi
 import com.idbat.mobile.generated.client.model.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
@@ -41,7 +44,9 @@ class SyncManager @Inject constructor(
     private val passagesApi: PassagesControllerApi,
     private val signalementsApi: SignalementsControllerApi,
     private val carteCreationApi: CarteCreationControllerApi,
-    private val rechargesCarteApi: RechargesCarteControllerApi
+    private val rechargesCarteApi: RechargesCarteControllerApi,
+    private val parametreGlobalApi: ParametreGlobalControllerApi,
+    private val parametreManager: ParametreManager
 ) {
     private val _syncState = MutableStateFlow(SyncState())
     val syncState: StateFlow<SyncState> = _syncState
@@ -102,11 +107,11 @@ class SyncManager @Inject constructor(
     /**
      * RG3 : supprime les données saisies (passages, signalements, cartes créées, rechargements)
      * qui ont été envoyées avec succès et dont l'horodatage de saisie dépasse la durée de rétention
-     * (ConfigSingleton.dataRetentionDays). Les lignes non envoyées ne sont jamais touchées.
+     * (paramètre global `TP_ARCHIVES_JOURS`). Les lignes non envoyées ne sont jamais touchées.
      */
     private suspend fun purgeOldSyncedData() {
         val threshold = System.currentTimeMillis() -
-                ConfigSingleton.dataRetentionDays * 24L * 60L * 60L * 1000L
+                parametreManager.dataRetentionDays.value * 24L * 60L * 60L * 1000L
         database.passageDao().deleteSentOlderThan(threshold)
         database.signalementDao().deleteSentOlderThan(threshold)
         database.carteCreeeDao().deleteSentOlderThan(threshold)
@@ -358,7 +363,13 @@ class SyncManager @Inject constructor(
             return
         }
 
-        val response = contratsApi.getByDevice()
+        // Les paramètres globaux sont indépendants du diff contrat → on les récupère en parallèle.
+        val (response, parametresResult) = coroutineScope {
+            val contratsDeferred   = async { contratsApi.getByDevice() }
+            val parametresDeferred = async { runCatching { parametreGlobalApi.getAllParametres() } }
+            contratsDeferred.await() to parametresDeferred.await()
+        }
+
         if (!response.isSuccessful) {
             _syncState.value = _syncState.value.copy(
                 syncError = "Erreur serveur lors de la synchronisation (code ${response.code()})"
@@ -372,6 +383,34 @@ class SyncManager @Inject constructor(
 
         // Transaction : tout le diff est atomique (rien n'est écrit si une étape échoue)
         database.withTransaction { applyDiff(dmo) }
+
+        // Paramètres globaux : remplacement complet de la table. Donnée auxiliaire — un échec ici
+        // ne doit pas invalider la réception du contrat, on se contente de logger.
+        parametresResult
+            .onSuccess { resp ->
+                val parametres = resp.body()
+                if (resp.isSuccessful && parametres != null) {
+                    database.parametreDao().replaceAll(
+                        parametres.map {
+                            ParametreEntity(
+                                id          = it.id,
+                                clef        = it.clef,
+                                valeur      = it.valeur,
+                                description = it.description
+                            )
+                        }
+                    )
+                    Log.d("SYNC_MANAGER", "Paramètres globaux : ${parametres.size} ligne(s) enregistrée(s)")
+                } else {
+                    Log.w("SYNC_MANAGER", "Paramètres globaux : réponse invalide (code ${resp.code()})")
+                }
+            }
+            .onFailure { Log.e("SYNC_MANAGER", "Erreur récupération des paramètres globaux", it) }
+
+        // Les paramètres applicatifs (intervalle d'auto-synchro, délai d'inactivité) dépendent de
+        // la table `parametre` → on les relit à chaque descendante (y compris si l'appel a échoué :
+        // on repart alors des valeurs déjà en base).
+        parametreManager.refreshAll()
 
         val totalRows = countDmoRows(dmo)
         val dateExec  = Date()

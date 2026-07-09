@@ -30,9 +30,10 @@ import com.idbat.mobile.data.entities.*
         SignalementDocumentEntity::class,
         SeuilEtatEntity::class,
         CarteCreeeEntity::class,
-        RechargeCarteEntity::class
+        RechargeCarteEntity::class,
+        ParametreEntity::class
     ],
-    version = 40,
+    version = 41,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -56,6 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun seuilEtatDao(): SeuilEtatDao
     abstract fun carteCreeeDao(): CarteCreeeDao
     abstract fun rechargeCarteDao(): RechargeCarteDao
+    abstract fun parametreDao(): ParametreDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -89,8 +91,24 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
             MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
             MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
-            MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40
+            MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41
         )
+
+        // Table des paramètres applicatifs (clef unique / valeur / description)
+        private val MIGRATION_40_41 = object : Migration(40, 41) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `parametre` (
+                        `id` INTEGER NOT NULL,
+                        `clef` TEXT NOT NULL,
+                        `valeur` TEXT NOT NULL,
+                        `description` TEXT,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_parametre_clef` ON `parametre` (`clef`)")
+            }
+        }
 
         // Passe les soldes de rechargement en REAL (décimales). Recréation de table (SQLite ne
         // sait pas ALTER COLUMN) en préservant les rechargements non encore envoyés.
