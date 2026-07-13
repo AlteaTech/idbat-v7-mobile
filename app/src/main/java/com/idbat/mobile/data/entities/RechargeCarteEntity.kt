@@ -17,6 +17,8 @@ data class RechargeCarteEntity(
     val uid: String,
     val numeroIdentification: String,
     val identClient: String,
+    // Usager associé à la carte au moment du rechargement (null si non trouvé)
+    val usagerId: Long? = null,
     val ancienSolde: Double,
     val pointsRecharges: Double,
     val nouveauSolde: Double,

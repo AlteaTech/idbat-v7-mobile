@@ -40,6 +40,7 @@ import com.squareup.moshi.Json
  * @param dateRecharge 
  * @param transactionId 
  * @param sentAt 
+ * @param usagerId 
  */
 
 
@@ -76,7 +77,10 @@ data class CreerRechargeCarteRequest (
     val transactionId: kotlin.String,
 
     @Json(name = "sentAt")
-    val sentAt: java.time.OffsetDateTime? = null
+    val sentAt: java.time.OffsetDateTime? = null,
+
+    @Json(name = "usagerId")
+    val usagerId: kotlin.Long? = null
 
 ) {
 

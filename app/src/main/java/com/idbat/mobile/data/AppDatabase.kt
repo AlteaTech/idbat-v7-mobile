@@ -34,7 +34,7 @@ import com.idbat.mobile.data.entities.*
         ParametreEntity::class,
         SuiviSynchroEntity::class
     ],
-    version = 43,
+    version = 44,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -94,8 +94,15 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
             MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
             MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
-            MIGRATION_41_42, MIGRATION_42_43
+            MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44
         )
+
+        // Usager associé à la carte au moment du rechargement
+        private val MIGRATION_43_44 = object : Migration(43, 44) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recharge_carte ADD COLUMN usagerId INTEGER")
+            }
+        }
 
         // Recrée `suivi_synchro` au schéma final (les devices déjà en v42 avaient une version
         // antérieure de la table, sans utilisateurTpId/sentAt1/sentAt2). Table d'audit récente

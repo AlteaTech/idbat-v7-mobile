@@ -75,16 +75,7 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
 
     val syncError = uiState.syncState.syncError
     if (syncError != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearSyncError() },
-            title = { Text("Synchronisation impossible") },
-            text = { Text(syncError) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearSyncError() }) {
-                    Text("OK")
-                }
-            }
-        )
+       // TODO que faire ?
     }
 
     NavHost(navController = navController, startDestination = startDestination) {

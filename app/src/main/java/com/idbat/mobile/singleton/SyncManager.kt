@@ -253,6 +253,7 @@ class SyncManager @Inject constructor(
                 uid                  = recharge.uid,
                 numeroIdentification = recharge.numeroIdentification,
                 identClient          = recharge.identClient,
+                usagerId             = recharge.usagerId,
                 ancienSolde          = recharge.ancienSolde,
                 pointsRecharges      = recharge.pointsRecharges,
                 nouveauSolde         = recharge.nouveauSolde,

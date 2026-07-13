@@ -26,8 +26,13 @@ class RechargeCarteViewModel @Inject constructor(
         data class Error(val message: String) : ReadState()
         // RG2c : carte non éligible au pré-paiement
         object NotEligible : ReadState()
-        // RG2a : carte lue + éligible → formulaire de rechargement (on conserve la CartePuce lue)
-        data class Ready(val info: RechargeCarteInfo, val carteLue: CartePuce) : ReadState()
+        // RG2a : carte lue + éligible → formulaire de rechargement (on conserve la CartePuce lue
+        // et l'usager associé, pour les journaliser au moment de l'écriture)
+        data class Ready(
+            val info: RechargeCarteInfo,
+            val carteLue: CartePuce,
+            val usagerId: Long? = null
+        ) : ReadState()
     }
 
     sealed class WriteState {
@@ -82,7 +87,8 @@ class RechargeCarteViewModel @Inject constructor(
                         soldePoints = carte.soldePoints,
                         typeApporteurIsPro = isPro
                     ),
-                    carteLue = carte
+                    carteLue = carte,
+                    usagerId = usager?.id
                 )
             } catch (e: Exception) {
                 _state.value = ReadState.Error(e.message ?: "Erreur de lecture")
@@ -124,6 +130,7 @@ class RechargeCarteViewModel @Inject constructor(
                         uid = carteLue.uid,
                         numeroIdentification = carteLue.numeroIdentification,
                         identClient = carteLue.identClient,
+                        usagerId = ready.usagerId,
                         ancienSolde = ancienSolde,
                         pointsRecharges = points,
                         nouveauSolde = nouveauSolde,
