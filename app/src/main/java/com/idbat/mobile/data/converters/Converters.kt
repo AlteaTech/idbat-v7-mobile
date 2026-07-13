@@ -1,6 +1,7 @@
 package com.idbat.mobile.data.converters
 
 import androidx.room.TypeConverter
+import com.idbat.mobile.data.entities.SensSynchro
 import com.idbat.mobile.data.entities.TypeSynchro
 import java.util.*
 
@@ -23,5 +24,15 @@ class Converters {
     @TypeConverter
     fun typeSynchroToString(type: TypeSynchro?): String? {
         return type?.name
+    }
+
+    @TypeConverter
+    fun fromSensSynchro(value: String?): SensSynchro? {
+        return value?.let { enumValueOf<SensSynchro>(it) }
+    }
+
+    @TypeConverter
+    fun sensSynchroToString(sens: SensSynchro?): String? {
+        return sens?.name
     }
 }

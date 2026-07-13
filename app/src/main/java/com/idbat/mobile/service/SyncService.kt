@@ -43,7 +43,8 @@ class SyncService : Service() {
             try {
                 val site = database.siteDao().getSiteById(siteId)
                 if (site != null) {
-                    syncManager.executeTransfer(site)
+                    val userTpId = authManager.authState.value.loggedInUtilisateurTp?.id
+                    syncManager.executeTransfer(site, userTpId)
                     authManager.refreshLoggedInContrat()
                 }
             } finally {

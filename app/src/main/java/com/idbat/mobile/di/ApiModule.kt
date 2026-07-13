@@ -122,4 +122,9 @@ object ApiModule {
     @Singleton
     fun provideParametreGlobalApi(retrofit: Retrofit): ParametreGlobalControllerApi =
         retrofit.create(ParametreGlobalControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSuiviSynchroApi(retrofit: Retrofit): SuiviSynchroControllerApi =
+        retrofit.create(SuiviSynchroControllerApi::class.java)
 }

@@ -19,6 +19,7 @@ import com.idbat.mobile.generated.client.api.ParametreGlobalControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
 import com.idbat.mobile.generated.client.api.RechargesCarteControllerApi
 import com.idbat.mobile.generated.client.api.SignalementsControllerApi
+import com.idbat.mobile.generated.client.api.SuiviSynchroControllerApi
 import com.idbat.mobile.generated.client.model.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ class SyncManager @Inject constructor(
     private val carteCreationApi: CarteCreationControllerApi,
     private val rechargesCarteApi: RechargesCarteControllerApi,
     private val parametreGlobalApi: ParametreGlobalControllerApi,
+    private val suiviSynchroApi: SuiviSynchroControllerApi,
     private val parametreManager: ParametreManager
 ) {
     private val _syncState = MutableStateFlow(SyncState())
@@ -75,7 +77,7 @@ class SyncManager @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun executeTransfer(site: SiteEntity) {
+    suspend fun executeTransfer(site: SiteEntity, utilisateurTpId: Long? = null) {
         _syncState.value = _syncState.value.copy(isTransferring = true)
 
         // Maintenir CPU + WiFi actifs pendant tout le transfert : sans ça, écran éteint =
@@ -89,8 +91,8 @@ class SyncManager @Inject constructor(
             wakeLock.acquire(2 *60 * 60 * 1000L /* timeout sécurité 2h */)
             wifiLock.acquire()
 
-            synchroMontante(site)
-            synchroDescendante()
+            synchroMontante(site, utilisateurTpId)
+            synchroDescendante(site, utilisateurTpId)
 
             // RG3 : à chaque synchro, purge des données envoyées et saisies il y a plus de X jours
             purgeOldSyncedData()
@@ -120,7 +122,7 @@ class SyncManager @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun synchroMontante(site: SiteEntity) {
+    private suspend fun synchroMontante(site: SiteEntity, utilisateurTpId: Long? = null) {
         val passageDao      = database.passageDao()
         val matiereDao      = database.passageMatiereDao()
         val usagerDao       = database.usagerDao()
@@ -128,6 +130,7 @@ class SyncManager @Inject constructor(
         val carteCreeeDao   = database.carteCreeeDao()
         val rechargeDao     = database.rechargeCarteDao()
         val histoDao        = database.lastSynchroHistoryDao()
+        val suiviDao        = database.suiviSynchroDao()
 
         // RG3 : on n'envoie que ce qui n'a pas encore été transmis avec succès.
         // Les lignes déjà envoyées restent en base et seront purgées après X jours.
@@ -138,9 +141,38 @@ class SyncManager @Inject constructor(
         val allRecharges    = rechargeDao.getUnsent()
         Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) + ${allRecharges.size} rechargement(s) à envoyer")
 
+        // Suivi : UNE ligne PAR SITE (chacune avec son propre idTransaction). Les listes `all*`
+        // couvrent tous les sites → on compte le nombre à envoyer par site. On trace tous les sites
+        // ayant des opérations, plus le site courant (même s'il n'a rien : contrôle d'envoi). Chaque
+        // ligne est clôturée en fin de traitement avec le nombre réellement envoyé pour ce site.
+        val nbAEnvoyerBySite: Map<Long, Int> =
+            (allPassages.map { it.siteId } +
+                    allSignalements.map { it.siteId } +
+                    allCartesCreees.map { it.siteId } +
+                    allRecharges.map { it.siteId })
+                .groupingBy { it }
+                .eachCount()
+
+        val debutSuivi = Date()
+        val suiviTxBySite = mutableMapOf<Long, String>()
+        for (siteId in nbAEnvoyerBySite.keys + site.id) {
+            val txId = UUID.randomUUID().toString()
+            suiviTxBySite[siteId] = txId
+            suiviDao.insert(
+                SuiviSynchroEntity(
+                    idTransaction   = txId,
+                    sens            = SensSynchro.MONTANT,
+                    siteId          = siteId,
+                    utilisateurTpId = utilisateurTpId,
+                    nbAEnvoyer      = nbAEnvoyerBySite[siteId] ?: 0,
+                    dateDebut       = debutSuivi
+                )
+            )
+        }
+
         // Note : même s'il n'y a rien à envoyer, on continue. Un contrôle « rien à envoyer »
         // compte comme un envoi réussi et doit rafraîchir l'horodatage (cf. statsBySite plus bas).
-
+        envoyerSuiviSentAt1()
         // Stats par siteId : Pair(tentées, réussies)
         val statsBySite = mutableMapOf<Long, Pair<Long, Long>>()
 
@@ -340,11 +372,17 @@ class SyncManager @Inject constructor(
             lastEnvoiSuccess = currentStats?.let { it.second == it.first } ?: true
         )
 
+        // Clôture du suivi : pour chaque site tracé, nombre d'opérations réellement transmises.
+        for ((siteId, txId) in suiviTxBySite) {
+            val nbEnvoye = statsBySite[siteId]?.second?.toInt() ?: 0
+            suiviDao.marquerFin(txId, nbEnvoye, dateExec)
+        }
+        envoyerSuiviSentAt2()
         Log.d("SYNC_MANAGER", "Synchro montante terminée — stats: $statsBySite")
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    public suspend fun synchroDescendante() {
+    public suspend fun synchroDescendante(site: SiteEntity? = null, utilisateurTpId: Long? = null) {
         // Bloquer si des passages non transférés existent après la montante
         // RG3 : on ne bloque que sur les lignes encore à envoyer (les lignes déjà
         // transmises restent en base le temps de la rétention, mais n'empêchent pas la réception).
@@ -361,6 +399,24 @@ class SyncManager @Inject constructor(
                 syncError = "Impossible de synchroniser : $signalementCount signalement(s) en attente de transfert.\nVeuillez d'abord envoyer les signalements."
             )
             return
+        }
+
+        // Suivi : une ligne par descendante (nbAEnvoyer = 0 pour une descendante), clôturée en fin
+        // de traitement avec le nombre de lignes insérées/modifiées en base (marquerFin).
+        // Uniquement quand un site courant est connu (le chemin d'init device n'en a pas).
+        val idTransactionSuivi = site?.let {
+            val txId = UUID.randomUUID().toString()
+            database.suiviSynchroDao().insert(
+                SuiviSynchroEntity(
+                    idTransaction   = txId,
+                    sens            = SensSynchro.DESCENDANT,
+                    siteId          = it.id,
+                    utilisateurTpId = utilisateurTpId,
+                    nbAEnvoyer      = 0,
+                    dateDebut       = Date()
+                )
+            )
+            txId
         }
 
         // Les paramètres globaux sont indépendants du diff contrat → on les récupère en parallèle.
@@ -428,6 +484,11 @@ class SyncManager @Inject constructor(
                     operationsReussies = totalRows
                 )
             )
+        }
+
+        // Clôture du suivi : nombre de lignes insérées/modifiées en base + date de fin.
+        idTransactionSuivi?.let {
+            database.suiviSynchroDao().marquerFin(it, totalRows.toInt(), dateExec)
         }
 
         _syncState.value = _syncState.value.copy(lastSynchroDateReception = dateExec)
@@ -697,6 +758,56 @@ class SyncManager @Inject constructor(
     fun clearSyncData() {
         _syncState.value = SyncState()
     }
+
+    /**
+     * Envoi #1 des lignes de suivi : transmet au back toutes les lignes dont `sentAt1` est null
+     * (une par une, `POST api/suivi-synchro`), puis marque `sentAt1` = now sur les envois réussis.
+     */
+    suspend fun envoyerSuiviSentAt1() {
+        val dao = database.suiviSynchroDao()
+        envoyerSuivi(dao.getUnsent1()) { id, date -> dao.markSent1(id, date) }
+    }
+
+    /**
+     * Envoi #2 des lignes de suivi : idem [envoyerSuiviSentAt1] mais sur la colonne `sentAt2`.
+     */
+    suspend fun envoyerSuiviSentAt2() {
+        val dao = database.suiviSynchroDao()
+        envoyerSuivi(dao.getUnsent2()) { id, date -> dao.markSent2(id, date) }
+    }
+
+    /** Envoie les lignes de suivi une par une ; marque l'horodatage fourni sur chaque 200 OK. */
+    private suspend fun envoyerSuivi(
+        aEnvoyer: List<SuiviSynchroEntity>,
+        marquer: suspend (id: Long, date: Date) -> Unit
+    ) {
+        for (suivi in aEnvoyer) {
+            val request = SuiviSynchroRequest(
+                idTransaction   = suivi.idTransaction,
+                sens            = suivi.sens.name,
+                siteId          = suivi.siteId,
+                nbAEnvoyer      = suivi.nbAEnvoyer,
+                dateDebut       = suivi.dateDebut.toOffsetDateTime(),
+                nbEnvoye        = suivi.nbEnvoye,
+                dateFin         = suivi.dateFin?.toOffsetDateTime(),
+                utilisateurTpId = suivi.utilisateurTpId
+            )
+            try {
+                val response = suiviSynchroApi.creerOuMettreAJourSuiviSynchro(request)
+                if (response.isSuccessful) {
+                    marquer(suivi.id, Date())
+                    Log.d("SYNC_MANAGER", "Suivi ${suivi.id} (${suivi.idTransaction}) envoyé")
+                } else {
+                    Log.w("SYNC_MANAGER", "Suivi ${suivi.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("SYNC_MANAGER", "Erreur envoi suivi ${suivi.id}", e)
+            }
+        }
+    }
+
+    private fun Date.toOffsetDateTime(): OffsetDateTime =
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(this.time), ZoneId.systemDefault())
 
     /**
      * CursorWindow agrandi (10 Mo) pour lire de gros base64 (photos). Le constructeur qui prend une

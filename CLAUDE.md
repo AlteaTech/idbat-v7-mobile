@@ -82,7 +82,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 41
+**Nom :** `idbat_bdd` — **Version actuelle :** 43
 
 | Entité | Description |
 |---|---|

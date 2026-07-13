@@ -31,9 +31,10 @@ import com.idbat.mobile.data.entities.*
         SeuilEtatEntity::class,
         CarteCreeeEntity::class,
         RechargeCarteEntity::class,
-        ParametreEntity::class
+        ParametreEntity::class,
+        SuiviSynchroEntity::class
     ],
-    version = 41,
+    version = 43,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -58,6 +59,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun carteCreeeDao(): CarteCreeeDao
     abstract fun rechargeCarteDao(): RechargeCarteDao
     abstract fun parametreDao(): ParametreDao
+    abstract fun suiviSynchroDao(): SuiviSynchroDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -91,8 +93,58 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
             MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
             MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
-            MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41
+            MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
+            MIGRATION_41_42, MIGRATION_42_43
         )
+
+        // Recrée `suivi_synchro` au schéma final (les devices déjà en v42 avaient une version
+        // antérieure de la table, sans utilisateurTpId/sentAt1/sentAt2). Table d'audit récente
+        // sans données critiques → DROP + CREATE.
+        private val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `suivi_synchro`")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `suivi_synchro` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `idTransaction` TEXT NOT NULL,
+                        `sens` TEXT NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `utilisateurTpId` INTEGER,
+                        `nbAEnvoyer` INTEGER NOT NULL,
+                        `nbEnvoye` INTEGER,
+                        `dateDebut` INTEGER NOT NULL,
+                        `dateFin` INTEGER,
+                        `sentAt1` INTEGER,
+                        `sentAt2` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_suivi_synchro_idTransaction` ON `suivi_synchro` (`idTransaction`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_suivi_synchro_siteId` ON `suivi_synchro` (`siteId`)")
+            }
+        }
+
+        // Table d'audit des synchronisations (suivi_synchro)
+        private val MIGRATION_41_42 = object : Migration(41, 42) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `suivi_synchro` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `idTransaction` TEXT NOT NULL,
+                        `sens` TEXT NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `utilisateurTpId` INTEGER,
+                        `nbAEnvoyer` INTEGER NOT NULL,
+                        `nbEnvoye` INTEGER,
+                        `dateDebut` INTEGER NOT NULL,
+                        `dateFin` INTEGER,
+                        `sentAt1` INTEGER,
+                        `sentAt2` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_suivi_synchro_idTransaction` ON `suivi_synchro` (`idTransaction`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_suivi_synchro_siteId` ON `suivi_synchro` (`siteId`)")
+            }
+        }
 
         // Table des paramètres applicatifs (clef unique / valeur / description)
         private val MIGRATION_40_41 = object : Migration(40, 41) {
