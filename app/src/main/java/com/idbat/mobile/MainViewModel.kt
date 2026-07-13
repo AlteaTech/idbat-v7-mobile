@@ -15,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -67,17 +68,21 @@ class MainViewModel @Inject constructor(
 
         // Auto-synchro périodique : déclenche un transfert toutes les X minutes, uniquement si
         // connecté et qu'aucun transfert n'est déjà en cours. L'intervalle vient du paramètre
-        // global TP_TRANSFERT_GPRS_MINUTES (table `parametre`), relu à chaque itération : une
-        // nouvelle valeur reçue en synchro descendante s'applique dès le tour suivant.
-        // La montante et la descendante restent indépendantes (cf. SyncManager).
+        // global TP_TRANSFERT_GPRS_MINUTES (table `parametre`). On **observe** le StateFlow via
+        // collectLatest : dès qu'une synchro descendante change la valeur, le delay en cours est
+        // annulé et la boucle redémarre avec le nouvel intervalle (sinon un delay déjà lancé avec
+        // l'ancienne valeur devrait d'abord s'écouler). La montante et la descendante restent
+        // indépendantes (cf. SyncManager).
         viewModelScope.launch {
-            // Valeurs initiales depuis la BDD (avant toute synchro descendante de cette session)
+            // Valeur initiale depuis la BDD (avant toute synchro descendante de cette session)
             parametreManager.refreshAll()
-            while (isActive) {
-                delay(parametreManager.syncIntervalMinutes.value * 60_000L)
-                val state = _uiState.value
-                if (state.isLoggedIn && !state.syncState.isTransferring) {
-                    executeTransfer()
+            parametreManager.syncIntervalMinutes.collectLatest { minutes ->
+                while (isActive) {
+                    delay(minutes * 60_000L)
+                    val state = _uiState.value
+                    if (state.isLoggedIn && !state.syncState.isTransferring) {
+                        executeTransfer()
+                    }
                 }
             }
         }
