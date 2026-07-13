@@ -166,25 +166,11 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("id") }
-                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)) { append("bat") }
-                    },
-                    color = Color.White,
-                    fontSize = 34.sp
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "idbat by Veolia",
+                modifier = Modifier.height(48.dp)
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
