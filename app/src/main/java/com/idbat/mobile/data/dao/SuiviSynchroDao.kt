@@ -39,4 +39,8 @@ interface SuiviSynchroDao {
 
     @Query("UPDATE suivi_synchro SET sentAt2 = :sentAt2 WHERE id = :id")
     suspend fun markSent2(id: Long, sentAt2: Date)
+
+    // Purge : lignes de suivi dont le 2ᵉ envoi (sentAt2) est fait et date de plus de X (millis).
+    @Query("DELETE FROM suivi_synchro WHERE sentAt2 IS NOT NULL AND sentAt2 < :threshold")
+    suspend fun deleteSentOlderThan(threshold: Long)
 }

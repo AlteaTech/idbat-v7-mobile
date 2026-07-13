@@ -358,9 +358,11 @@ private fun SeuilRow(seuil: SeuilEtatEntity) {
             modifier = Modifier.size(20.dp)
         )
         Text(
+            // RG1 : texte du seuil en orange (couleur du picto) + gras, comme la liste noire (rouge gras)
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            fontWeight = FontWeight.Bold,
+            color = VeoliaAlertOrange
         )
     }
 }

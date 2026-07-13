@@ -118,6 +118,8 @@ class SyncManager @Inject constructor(
         database.signalementDao().deleteSentOlderThan(threshold)
         database.carteCreeeDao().deleteSentOlderThan(threshold)
         database.rechargeCarteDao().deleteSentOlderThan(threshold)
+        // Suivi de synchro : purge basée sur le 2ᵉ envoi (sentAt2)
+        database.suiviSynchroDao().deleteSentOlderThan(threshold)
         Log.d("SYNC_MANAGER", "Purge RG3 effectuée (seuil = $threshold)")
     }
 
