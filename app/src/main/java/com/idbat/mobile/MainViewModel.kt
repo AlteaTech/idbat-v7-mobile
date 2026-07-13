@@ -8,13 +8,14 @@ import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.service.SyncService
 import com.idbat.mobile.singleton.AuthManager
-import com.idbat.mobile.singleton.ConfigSingleton
+import com.idbat.mobile.singleton.ParametreManager
 import com.idbat.mobile.singleton.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -27,6 +28,7 @@ class MainViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authManager: AuthManager,
     private val syncManager: SyncManager,
+    private val parametreManager: ParametreManager,
     private val database: AppDatabase // Injectez la base de données
 
 ) : ViewModel() {
@@ -64,16 +66,23 @@ class MainViewModel @Inject constructor(
             }
         }
 
-        // Auto-synchro périodique : déclenche un transfert toutes les X minutes
-        // (intervalle dans ConfigSingleton), uniquement si connecté et qu'aucun
-        // transfert n'est déjà en cours. La montante et la descendante restent
-        // indépendantes (cf. SyncManager : l'une s'exécute même si l'autre n'a rien à faire).
+        // Auto-synchro périodique : déclenche un transfert toutes les X minutes, uniquement si
+        // connecté et qu'aucun transfert n'est déjà en cours. L'intervalle vient du paramètre
+        // global TP_TRANSFERT_GPRS_MINUTES (table `parametre`). On **observe** le StateFlow via
+        // collectLatest : dès qu'une synchro descendante change la valeur, le delay en cours est
+        // annulé et la boucle redémarre avec le nouvel intervalle (sinon un delay déjà lancé avec
+        // l'ancienne valeur devrait d'abord s'écouler). La montante et la descendante restent
+        // indépendantes (cf. SyncManager).
         viewModelScope.launch {
-            while (isActive) {
-                delay(ConfigSingleton.syncIntervalMinutes * 60_000L)
-                val state = _uiState.value
-                if (state.isLoggedIn && !state.syncState.isTransferring) {
-                    executeTransfer()
+            // Valeur initiale depuis la BDD (avant toute synchro descendante de cette session)
+            parametreManager.refreshAll()
+            parametreManager.syncIntervalMinutes.collectLatest { minutes ->
+                while (isActive) {
+                    delay(minutes * 60_000L)
+                    val state = _uiState.value
+                    if (state.isLoggedIn && !state.syncState.isTransferring) {
+                        executeTransfer()
+                    }
                 }
             }
         }

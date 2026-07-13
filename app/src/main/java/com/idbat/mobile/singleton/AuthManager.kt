@@ -38,7 +38,8 @@ class AuthManager @Inject constructor(
     private val smartphonesApi: SmartphonesMobileControllerApi,
     private val tokenStore: TokenStore,
     @ApplicationContext private val context: Context,
-    val syncManager: SyncManager
+    val syncManager: SyncManager,
+    private val parametreManager: ParametreManager
 ) {
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState
@@ -618,7 +619,8 @@ class AuthManager @Inject constructor(
     /**
      * À appeler au retour au premier plan. Force la reconnexion (retour écran de login) si :
      *  1. premier accès de la journée (jour calendaire différent de la mise en veille), ou
-     *  2. délai d'inactivité [ConfigSingleton.sessionTimeoutMinutes] dépassé.
+     *  2. délai d'inactivité dépassé (paramètre global `FRONT_DELAI_INACTIVITE_MINUTES`,
+     *     cf. [ParametreManager.sessionTimeoutMinutes]).
      */
     fun onAppForegrounded() {
         val backgroundedElapsed = backgroundedAtElapsed
@@ -639,7 +641,7 @@ class AuthManager @Inject constructor(
         // 2. Délai d'inactivité dépassé.
         if (backgroundedElapsed != null) {
             val elapsedMs = SystemClock.elapsedRealtime() - backgroundedElapsed
-            val timeoutMs = ConfigSingleton.sessionTimeoutMinutes * 60_000L
+            val timeoutMs = parametreManager.sessionTimeoutMinutes.value * 60_000L
             if (elapsedMs >= timeoutMs) {
                 Log.d("AUTH_MANAGER", "Délai d'inactivité dépassé (${elapsedMs}ms) → reconnexion obligatoire")
                 logout()

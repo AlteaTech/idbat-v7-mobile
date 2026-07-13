@@ -117,4 +117,9 @@ object ApiModule {
     @Singleton
     fun provideRechargesCarteApi(retrofit: Retrofit): RechargesCarteControllerApi =
         retrofit.create(RechargesCarteControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideParametreGlobalApi(retrofit: Retrofit): ParametreGlobalControllerApi =
+        retrofit.create(ParametreGlobalControllerApi::class.java)
 }

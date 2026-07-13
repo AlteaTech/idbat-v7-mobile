@@ -82,7 +82,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 40
+**Nom :** `idbat_bdd` — **Version actuelle :** 41
 
 | Entité | Description |
 |---|---|
@@ -103,6 +103,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) — `transactionId`, `agentId` (user connecté), `sentAt` (RG3) |
 | `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |
 | `CarteCreeeEntity` | Journal des cartes créées (outbox, **sans FK**) — `userTpId` (user connecté), `sentAt` (RG3) |
+| `ParametreEntity` | Paramètres globaux (`id` back, `clef` **unique**, `valeur`, `description`) — rafraîchis à chaque synchro descendante (remplacement complet via `ParametreDao.replaceAll`) |
 
 **Migrations :** trajet complet (**version actuelle : 31**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
 **Init :** un utilisateur admin par défaut (login `admin`, PIN `1234`) est créé au premier accès.
@@ -134,6 +135,7 @@ Les colonnes `base64` (photos) dépassent le `CursorWindow` SQLite par défaut (
 | `PassagesControllerApi` | `creer(CreerPassageRequest)` — envoi passage (matières + documents + `transactionId`) |
 | `SignalementsControllerApi` | `creerSignalement(CreerSignalementRequest)` — envoi signalement + photos (`FileData`) |
 | `CarteCreationControllerApi` | `marquerCarteCreationParQrCode(MarquerCarteQrCodeRequest)` — `POST api/carte-creation` (uid, numeroIdentification, `userTpId`, dateCreationMobile) |
+| `ParametreGlobalControllerApi` | `getAllParametres()` — `GET api/parametres-globaux` → `List<ParametreGlobalDmo>` (appelé **en parallèle** de `getByDevice()` dans la descendante) |
 
 **Adapters Moshi (`ApiModule`)** : `LocalDate`, `OffsetDateTime` (sérialisé **sans offset** → `LocalDateTime` attendu par le back .NET), `BigDecimal` (via `toPlainString()`, pas de notation scientifique).
 
@@ -175,6 +177,7 @@ syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées),
 
 1. **Synchro montante (`synchroMontante`)** : envoie un par un les **passages**, **signalements** puis **cartes créées** qui restent à transmettre (`sentAt IS NULL` via `getUnsentXxx()`). Après `200 OK`, la ligne n'est **pas supprimée** mais **marquée** `markSent(id, now)` (RG3, cf. ci-dessous). Stats `(tentées, réussies)` cumulées **par site** → `LastSynchroHistoryEntity` type `ENVOI`. Badge "Envoi" vert si `réussies == tentées`. **« Rien à envoyer » = contrôle d'envoi réussi** : l'horodatage `ENVOI` du site courant est quand même rafraîchi (compteur d'opérations conservé) — sinon la date paraît périmée.
 2. **Synchro descendante (`synchroDescendante`)** : bloquée si des passages/signalements restent **à envoyer** (`countUnsent() > 0`, pas `count()` — les lignes en rétention ne bloquent pas). Sinon `getByDevice()` → `applyDiff(dmo)` dans une **transaction Room**. La date `RECEPTION` est rafraîchie à **chaque** réception réussie (pas de court-circuit « rien à recevoir »).
+   **Paramètres globaux** : `getAllParametres()` est lancé **en parallèle** de `getByDevice()` (`coroutineScope` + `async`), puis la table `parametre` est **entièrement remplacée** (`ParametreDao.replaceAll`). C'est une donnée **auxiliaire** : un échec est loggé mais n'invalide **pas** la réception du contrat (enveloppé dans un `runCatching`).
 
 **RG3 — rétention locale (`ConfigSingleton.dataRetentionDays`, défaut 2 j)** : les données saisies ne sont supprimées que **X jours après leur saisie ET une fois envoyées**. Mécanique : `sentAt` (horodatage d'envoi, `null` = non envoyé) sur `passage`/`signalement`/`carte_creee` ; `purgeOldSyncedData()` (appelée à chaque transfert) fait `deleteSentOlderThan(now − X j)` sur les 3 tables (`WHERE sentAt IS NOT NULL AND <horodatage saisie> < seuil`). Sert au petit reporting / réédition de bons (hors MVP). ⚠️ `PassageEntity` a des **FK CASCADE** vers Site/Contrat : un passage en rétention peut être supprimé prématurément si la descendante retire son site/contrat (`signalement`/`carte_creee` sont sans FK, donc protégés).
 
@@ -315,7 +318,16 @@ Toutes les couleurs du projet sont centralisées dans `Color.kt`. **Ne jamais é
 
 - **Migrations Room** : toute modification de schéma doit s'accompagner d'une migration incrémentale dans `AppDatabase.kt` et d'un bump de version. Ne pas utiliser `fallbackToDestructiveMigration` en prod.
 - **Client API généré** : le dossier `generated/client/` ne se modifie pas à la main — regénérer depuis la spec OpenAPI.
-- **ConfigSingleton** : contient l'URL de base, le flag `webEnabled`, les intervalles (`syncIntervalMinutes`, `dataRetentionDays`) et le **délai d'inactivité avant reconnexion** `sessionTimeoutMinutes` (défaut 10 min, cf. State management). Changer l'URL ici pour switcher d'environnement.
+- **ConfigSingleton** : contient l'URL de base et les **valeurs de repli** des paramètres (`defaultSyncIntervalMinutes`, `defaultSessionTimeoutMinutes`, `defaultDataRetentionDays`). Changer l'URL ici pour switcher d'environnement.
+- **⚠️ Paramètres applicatifs = BDD, pas ConfigSingleton (RÈGLE)** : les valeurs effectives sont lues dans la table `parametre` via **`ParametreManager`** (`StateFlow` mis en cache, car `AuthManager.onAppForegrounded()` n'est pas `suspend`). `refreshAll()` est appelé au démarrage (`MainViewModel.init`) **et après chaque synchro descendante**. Une clef absente / non numérique / `<= 0` retombe sur le défaut de `ConfigSingleton`.
+
+| Clef `parametre` | Exposé par | Défaut | Consommateur |
+|---|---|---|---|
+| `TP_TRANSFERT_GPRS_MINUTES` | `syncIntervalMinutes` | 10 min | `MainViewModel` (boucle auto-synchro) |
+| `FRONT_DELAI_INACTIVITE_MINUTES` | `sessionTimeoutMinutes` | 60 min | `AuthManager.onAppForegrounded()` |
+| `TP_ARCHIVES_JOURS` | `dataRetentionDays` | 4 j | `SyncManager.purgeOldSyncedData()` (RG3) |
+
+  Pour ajouter une clef : constante dans `ParametreManager.Companion`, `StateFlow` + lecture dans `refreshAll()`, défaut dans `ConfigSingleton`.
 - **Imports en batch** : `UsagerEntity` est inséré par tranches de 2000 ; ne pas casser cette logique lors de refactorisations.
 - **Permissions Android** : `INTERNET` + localisation + `CAMERA` déclarées dans `AndroidManifest.xml` ; la localisation est utilisée à l'enregistrement du device uniquement ; la caméra est demandée à la volée (runtime permission) dans `PhotoPickerComponent` et `CardScanComponent`.
 - **FileProvider** : toute nouvelle fonctionnalité utilisant `TakePicture()` doit passer par `createCameraUri()` (`CameraUtils.kt`) — ne pas créer de URI caméra directement.
