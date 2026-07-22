@@ -184,7 +184,7 @@ fun HomeScreen(
                     ) {
                         // 4 clics rapides (< 1,2 s glissant) → export des logs par e-mail
                         val now = System.currentTimeMillis()
-                        logoClicks = (logoClicks + now).filter { now - it <= 1200 }
+                        logoClicks = (logoClicks + now).filter { now - it <= 2000 }
                         if (logoClicks.size >= 4) {
                             logoClicks = emptyList()
                             if (!FileLogger.shareLogsByEmail(context)) {

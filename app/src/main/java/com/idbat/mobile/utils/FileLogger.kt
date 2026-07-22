@@ -1,5 +1,6 @@
 package com.idbat.mobile.utils
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -34,6 +35,16 @@ object FileLogger {
         logFile = file
 
         purgeToToday(file)
+
+        // Garantit l'existence du fichier (sinon shareLogsByEmail échoue tant qu'aucune ligne n'a
+        // encore été capturée) et marque le démarrage de session.
+        try {
+            val now = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
+            synchronized(lock) { file.appendText("$now I/$TAG: === Démarrage session (pid ${android.os.Process.myPid()}) ===\n") }
+        } catch (e: Exception) {
+            Log.e(TAG, "Création du fichier de log impossible", e)
+        }
+
         startCapture(file)
     }
 
@@ -57,10 +68,11 @@ object FileLogger {
         started = true
         thread(isDaemon = true, name = "file-logger") {
             try {
+                // --pid ne voit que le process courant (PID unique par lancement) → pas de doublon
+                // inter-session, donc pas besoin de filtre -T (fragile selon les OEM).
                 val pid = android.os.Process.myPid()
-                val since = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
                 val process = Runtime.getRuntime().exec(
-                    arrayOf("logcat", "-v", "time", "-T", since, "--pid=$pid")
+                    arrayOf("logcat", "-v", "time", "--pid=$pid")
                 )
                 process.inputStream.bufferedReader().useLines { lines ->
                     lines.forEach { line ->
@@ -89,9 +101,13 @@ object FileLogger {
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, "Logs idbat — $dateJour")
             putExtra(Intent.EXTRA_TEXT, "Journal applicatif idbat du $dateJour en pièce jointe.")
+            // ClipData + flag : le grant de lecture couvre aussi l'aperçu du share sheet (uid système),
+            // sinon SecurityException « requires grantUriPermission() » quand l'URI n'est que dans EXTRA_STREAM.
+            clipData = ClipData.newRawUri(file.name, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         val chooser = Intent.createChooser(intent, "Envoyer les logs").apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         return try {
