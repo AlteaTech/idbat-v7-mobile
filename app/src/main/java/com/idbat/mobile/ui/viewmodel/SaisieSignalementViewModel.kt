@@ -130,8 +130,8 @@ class SaisieSignalementViewModel @Inject constructor(
     private fun resizeToMax(bytes: ByteArray, mimeType: String): ByteArray {
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return bytes
         val maxSide = maxOf(bitmap.width, bitmap.height)
-        if (maxSide <= 4000) { bitmap.recycle(); return bytes }
-        val scale = 4000f / maxSide
+        if (maxSide <= 1080) { bitmap.recycle(); return bytes }
+        val scale = 1080f / maxSide
         val resized = Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
         bitmap.recycle()
         val out = ByteArrayOutputStream()
