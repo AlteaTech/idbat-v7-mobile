@@ -247,7 +247,10 @@ Permissions déclarées dans `AndroidManifest.xml` :
 
 Service déclaré : `.service.SyncService` (`foregroundServiceType="dataSync"`, `exported=false`).
 
-FileProvider configuré : autorité `${applicationId}.fileprovider`, chemins dans `res/xml/file_paths.xml` (cache `images/`). Utilisé par `createCameraUri()` pour les photos caméra.
+FileProvider configuré : autorité `${applicationId}.fileprovider`, chemins dans `res/xml/file_paths.xml` (cache `images/` pour les photos caméra via `createCameraUri()` ; `files-path logs/` pour l'export des logs).
+
+### Journalisation fichier (`utils/FileLogger.kt`)
+`FileLogger.init(context)` est appelé tôt dans `IdbatApplication.onCreate` : il **purge** le fichier `filesDir/logs/idbat_logs.txt` pour ne garder que les lignes **du jour courant** (préfixe `MM-DD` du format logcat `-v time`), puis lance un thread daemon qui capture le **logcat du process** (`logcat -v time -T <now> --pid=<pid>`) — donc tous les `Log.*` existants sont enregistrés **sans réécrire les appels** (aucune permission spéciale : un process lit ses propres logs). `shareLogsByEmail(context)` propose l'envoi du fichier par e-mail (Intent `ACTION_SEND` + pièce jointe FileProvider). **Déclencheur** : **4 clics rapides** (< 1,2 s glissant) sur le **logo du `HomeScreen`**.
 
 ---
 

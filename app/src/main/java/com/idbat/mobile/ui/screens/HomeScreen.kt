@@ -2,6 +2,8 @@ package com.idbat.mobile.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -9,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -22,6 +25,7 @@ import com.idbat.mobile.R
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.ui.components.*
 import com.idbat.mobile.ui.theme.VeoliaCoral
+import com.idbat.mobile.utils.FileLogger
 import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import com.idbat.mobile.ui.viewmodel.TestVolumeViewModel
 import kotlinx.coroutines.launch
@@ -47,6 +51,9 @@ fun HomeScreen(
 
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    // Horodatages des derniers clics sur le logo (easter egg export logs)
+    var logoClicks by remember { mutableStateOf<List<Long>>(emptyList()) }
     var showCarteSheet by remember { mutableStateOf(false) }
     var showDepotScreen by remember { mutableStateOf(false) }
     var showSignalementScreen by remember { mutableStateOf(false) }
@@ -169,7 +176,22 @@ fun HomeScreen(
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = "idbat by Veolia",
-                modifier = Modifier.height(48.dp)
+                modifier = Modifier
+                    .height(48.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        // 4 clics rapides (< 1,2 s glissant) → export des logs par e-mail
+                        val now = System.currentTimeMillis()
+                        logoClicks = (logoClicks + now).filter { now - it <= 1200 }
+                        if (logoClicks.size >= 4) {
+                            logoClicks = emptyList()
+                            if (!FileLogger.shareLogsByEmail(context)) {
+                                toastState.showToast("Logs", "Aucun log à envoyer")
+                            }
+                        }
+                    }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
