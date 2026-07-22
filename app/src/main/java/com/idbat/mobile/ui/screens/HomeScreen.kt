@@ -180,24 +180,24 @@ fun HomeScreen(
                 Image(
                     painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp)
-                )
-                Spacer(modifier = Modifier
-                    .height(48.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        // 4 clics rapides (< 1,2 s glissant) → export des logs par e-mail
-                        val now = System.currentTimeMillis()
-                        logoClicks = (logoClicks + now).filter { now - it <= 1200 }
-                        if (logoClicks.size >= 4) {
-                            logoClicks = emptyList()
-                            if (!FileLogger.shareLogsByEmail(context)) {
-                                toastState.showToast("Logs", "Aucun log à envoyer")
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            // 4 clics rapides (< 1,2 s glissant) → export des logs par e-mail
+                            val now = System.currentTimeMillis()
+                            logoClicks = (logoClicks + now).filter { now - it <= 2000 }
+                            if (logoClicks.size >= 4) {
+                                logoClicks = emptyList()
+                                if (!FileLogger.shareLogsByEmail(context)) {
+                                    toastState.showToast("Logs", "Aucun log à envoyer")
+                                }
                             }
                         }
-                    })
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("id") }
