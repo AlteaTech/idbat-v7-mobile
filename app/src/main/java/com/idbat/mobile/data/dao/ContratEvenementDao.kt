@@ -14,7 +14,8 @@ interface ContratEvenementDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEvenement(evenement: ContratEvenementEntity)
 
-    @Query("SELECT * FROM contrat_evenements WHERE contratId = :contratId")
+    // Saisie signalement : seuls les événements actifs (isEnable = 1) sont proposés
+    @Query("SELECT * FROM contrat_evenements WHERE contratId = :contratId AND isEnable = 1")
     fun getEvenementsByContratFlow(contratId: Long): Flow<List<ContratEvenementEntity>>
 
     @Query("DELETE FROM contrat_evenements")

@@ -1,10 +1,6 @@
 package com.idbat.mobile.ui.viewmodel
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
+import android.graphics.*
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
-import java.util.UUID
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -85,13 +81,15 @@ class TestVolumeViewModel @Inject constructor(
                             passageIds.chunked(200).forEach { idBatch ->
                                 val rows = idBatch.flatMap { pid ->
                                     matieres.map { m ->
+                                        val quantite = (1..100).random()
                                         PassageMatiereEntity(
                                             passageId    = pid,
                                             matiereId    = m.matiereId,
                                             siteId       = site.id,
                                             libelle      = m.libelle,
-                                            quantite     = (1..100).random().toString(),
+                                            quantite     = quantite.toString(),
                                             tarif        = m.tarif,
+                                            points       = quantite * m.tarif,
                                             unitesLibelle = m.unitesDesApportLibelle
                                         )
                                     }

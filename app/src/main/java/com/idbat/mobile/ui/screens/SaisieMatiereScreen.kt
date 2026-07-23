@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,42 +25,58 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.MatiereSiteEntity
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.SaisieMatiereLigne
 import com.idbat.mobile.ui.theme.*
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import com.idbat.mobile.ui.viewmodel.SaisieMatiereViewModel
+
+/** Points d'une ligne = quantité × tarif (même calcul que le total affiché en confirmation). */
+private fun SaisieMatiereLigne.points(): Double =
+    (quantite.toDoubleOrNull() ?: 0.0) * matiere.tarif
 
 @Composable
 fun SaisieMatiereScreen(
     siteName: String,
     siteId: Long,
     contratId: Long,
-    contrat: ContratEntity?,
     info: InfoCartePassage,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit = {},
-    viewModel: SaisieMatiereViewModel = hiltViewModel()
+    viewModel: SaisieMatiereViewModel = hiltViewModel(),
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
     LaunchedEffect(siteId) { viewModel.setSiteId(siteId) }
     LaunchedEffect(Unit) { viewModel.resetLignes() }
+    LaunchedEffect(contratId) { contratViewModel.setContratId(contratId) }
 
     val matieres by viewModel.matieres.collectAsStateWithLifecycle()
     val lignes by viewModel.lignes.collectAsStateWithLifecycle()
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
+    // RG2.1 (#238) : contrôle du solde seulement en dépôt puce pré-paiement (le solde n'est
+    // débité de la carte que dans ce cas). Le solde de référence est celui lu au début du process.
+    val soldeCarte = info.soldePoints
+    val controleSolde = soldeCarte != null && when (info.typeApporteurIsPro) {
+        true  -> contrat?.hasPrepaiementProfessionnels == true
+        false -> contrat?.hasPrepaiementParticuliers == true
+        null  -> false
+    }
 
     var showValidation by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     // RG4 : index de la ligne en attente de confirmation de suppression
     var deletingIndex by remember { mutableStateOf<Int?>(null) }
+    // RG2.1 : message de solde insuffisant après refus d'ajout/modif
+    var showSoldeInsuffisant by remember { mutableStateOf(false) }
 
     if (showValidation) {
         ConfirmationPassageScreen(
             siteName = siteName,
             siteId = siteId,
             contratId = contratId,
-            contrat = contrat,
             info = info,
             lignes = lignes,
             onBack = { showValidation = false },
@@ -67,6 +84,9 @@ fun SaisieMatiereScreen(
         )
         return
     }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
 
     val bgColor = MaterialTheme.colorScheme.background
 
@@ -97,6 +117,20 @@ fun SaisieMatiereScreen(
         )
     }
 
+    // RG2.1 : solde insuffisant → la matière n'a pas été ajoutée
+    if (showSoldeInsuffisant) {
+        AlertDialog(
+            onDismissRequest = { showSoldeInsuffisant = false },
+            title = { Text("Solde insuffisant sur la carte") },
+            text = {
+                Text("Le total du dépôt dépasse le solde de la carte. La dernière matière n'a pas été ajoutée.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showSoldeInsuffisant = false }) { Text("OK") }
+            }
+        )
+    }
+
     if (showDialog) {
         AjouterMatiereDialog(
             matieres = matieres,
@@ -105,8 +139,19 @@ fun SaisieMatiereScreen(
             isEditing = editingIndex != null,
             onValidate = { ligne ->
                 val idx = editingIndex
-                if (idx != null) viewModel.modifierLigne(idx, ligne)
-                else viewModel.ajouterLigne(ligne)
+                // RG2.1 : total prospectif (après ajout/modif) — si > solde lu, on refuse et alerte
+                val prospectiveLignes = if (idx != null)
+                    lignes.mapIndexed { i, l -> if (i == idx) ligne else l }
+                else lignes + ligne
+                val prospectiveTotal = prospectiveLignes.sumOf { it.points() }
+
+                if (controleSolde && soldeCarte != null && prospectiveTotal > soldeCarte + 1e-9) {
+                    // La dernière ligne ajoutée/modifiée n'est pas conservée
+                    showSoldeInsuffisant = true
+                } else {
+                    if (idx != null) viewModel.modifierLigne(idx, ligne)
+                    else viewModel.ajouterLigne(ligne)
+                }
                 editingIndex = null
                 showDialog = false
             },
@@ -294,23 +339,16 @@ private fun MatiereLigneRow(
                 .size(20.dp)
                 .clickable { onDelete() }
         )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = ligne.matiere.libelle,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            if (!ligne.usagerNom.isNullOrBlank()) {
-                Text(
-                    text = ligne.usagerNom,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
         Text(
-            text = "${ligne.quantite} ${ligne.matiere.unitesDesApportLibelle}",
+            text = ligne.matiere.libelle,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            // affichage : le point décimal est remplacé par une virgule
+            text = "${ligne.quantite.replace('.', ',')} ${ligne.matiere.unitesDesApportLibelle}",
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
@@ -324,6 +362,27 @@ private fun MatiereLigneRow(
                 .clickable { onEdit() }
         )
     }
+}
+
+/**
+ * Filtre la saisie de quantité : ne conserve que les chiffres et un unique séparateur
+ * décimal (point ou virgule). Le séparateur ne peut pas être en première position.
+ * Un séparateur en fin est toléré pendant la frappe (ex. "12,") puis nettoyé à la validation.
+ */
+private fun sanitizeQuantiteInput(input: String): String {
+    val sb = StringBuilder()
+    var separatorUsed = false
+    for (c in input) {
+        when {
+            c.isDigit() -> sb.append(c)
+            c == '.' || c == ',' -> {
+                if (sb.isEmpty() || separatorUsed) continue
+                separatorUsed = true
+                sb.append(c)
+            }
+        }
+    }
+    return sb.toString()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -351,7 +410,8 @@ private fun AjouterMatiereDialog(
         mutableStateOf(initialLigne?.matiere ?: availableMatieres.firstOrNull())
     }
     var quantite by remember(initialLigne) {
-        mutableStateOf(initialLigne?.quantite ?: "")
+        // pré-remplissage en édition : on ré-affiche le séparateur en virgule
+        mutableStateOf(initialLigne?.quantite?.replace('.', ',') ?: "")
     }
     // RG2 : erreur si quantité vide au moment de valider
     var quantiteError by remember { mutableStateOf(false) }
@@ -454,8 +514,9 @@ private fun AjouterMatiereDialog(
                     OutlinedTextField(
                         value = quantite,
                         onValueChange = {
-                            quantite = it
-                            if (it.isNotBlank()) quantiteError = false
+                            // RG : chiffres + un seul séparateur (point ou virgule), pas en début
+                            quantite = sanitizeQuantiteInput(it)
+                            if (quantite.isNotBlank()) quantiteError = false
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
@@ -486,10 +547,17 @@ private fun AjouterMatiereDialog(
                     enabled = quantite.isNotBlank() && quantite.toDoubleOrNull() != null,
                     onClick = {
                         val matiere = selectedMatiere ?: return@Button
+                        // format numérique stocké : séparateur final supprimé, virgule → point
+                        val quantiteNormalisee = quantite.trimEnd('.', ',').replace(',', '.')
+                        // RG2 : quantité obligatoire (0 est autorisé, blanc ne l'est pas)
+                        if (quantiteNormalisee.isBlank()) {
+                            quantiteError = true
+                            return@Button
+                        }
                         onValidate(
                             SaisieMatiereLigne(
                                 matiere = matiere,
-                                quantite = quantite,
+                                quantite = quantiteNormalisee,
                                 usagerNom = usagerNom,
                                 numeroCarte = numeroCarte,
                                 date = System.currentTimeMillis(),

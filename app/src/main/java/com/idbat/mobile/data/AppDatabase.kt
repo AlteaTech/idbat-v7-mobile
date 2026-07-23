@@ -28,9 +28,13 @@ import com.idbat.mobile.data.entities.*
         PassageDocumentEntity::class,
         SignalementEntity::class,
         SignalementDocumentEntity::class,
-        SeuilEtatEntity::class
+        SeuilEtatEntity::class,
+        CarteCreeeEntity::class,
+        RechargeCarteEntity::class,
+        ParametreEntity::class,
+        SuiviSynchroEntity::class
     ],
-    version = 26,
+    version = 44,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -52,6 +56,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun signalementDao(): SignalementDao
     abstract fun signalementDocumentDao(): SignalementDocumentDao
     abstract fun seuilEtatDao(): SeuilEtatDao
+    abstract fun carteCreeeDao(): CarteCreeeDao
+    abstract fun rechargeCarteDao(): RechargeCarteDao
+    abstract fun parametreDao(): ParametreDao
+    abstract fun suiviSynchroDao(): SuiviSynchroDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -82,8 +90,171 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22,
-            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26
+            MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27,
+            MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
+            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
+            MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
+            MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44
         )
+
+        // Usager associé à la carte au moment du rechargement
+        private val MIGRATION_43_44 = object : Migration(43, 44) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recharge_carte ADD COLUMN usagerId INTEGER")
+            }
+        }
+
+        // Recrée `suivi_synchro` au schéma final (les devices déjà en v42 avaient une version
+        // antérieure de la table, sans utilisateurTpId/sentAt1/sentAt2). Table d'audit récente
+        // sans données critiques → DROP + CREATE.
+        private val MIGRATION_42_43 = object : Migration(42, 43) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `suivi_synchro`")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `suivi_synchro` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `idTransaction` TEXT NOT NULL,
+                        `sens` TEXT NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `utilisateurTpId` INTEGER,
+                        `nbAEnvoyer` INTEGER NOT NULL,
+                        `nbEnvoye` INTEGER,
+                        `dateDebut` INTEGER NOT NULL,
+                        `dateFin` INTEGER,
+                        `sentAt1` INTEGER,
+                        `sentAt2` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_suivi_synchro_idTransaction` ON `suivi_synchro` (`idTransaction`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_suivi_synchro_siteId` ON `suivi_synchro` (`siteId`)")
+            }
+        }
+
+        // Table d'audit des synchronisations (suivi_synchro)
+        private val MIGRATION_41_42 = object : Migration(41, 42) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `suivi_synchro` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `idTransaction` TEXT NOT NULL,
+                        `sens` TEXT NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `utilisateurTpId` INTEGER,
+                        `nbAEnvoyer` INTEGER NOT NULL,
+                        `nbEnvoye` INTEGER,
+                        `dateDebut` INTEGER NOT NULL,
+                        `dateFin` INTEGER,
+                        `sentAt1` INTEGER,
+                        `sentAt2` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_suivi_synchro_idTransaction` ON `suivi_synchro` (`idTransaction`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_suivi_synchro_siteId` ON `suivi_synchro` (`siteId`)")
+            }
+        }
+
+        // Table des paramètres applicatifs (clef unique / valeur / description)
+        private val MIGRATION_40_41 = object : Migration(40, 41) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `parametre` (
+                        `id` INTEGER NOT NULL,
+                        `clef` TEXT NOT NULL,
+                        `valeur` TEXT NOT NULL,
+                        `description` TEXT,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_parametre_clef` ON `parametre` (`clef`)")
+            }
+        }
+
+        // Passe les soldes de rechargement en REAL (décimales). Recréation de table (SQLite ne
+        // sait pas ALTER COLUMN) en préservant les rechargements non encore envoyés.
+        private val MIGRATION_39_40 = object : Migration(39, 40) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `recharge_carte_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `uid` TEXT NOT NULL,
+                        `numeroIdentification` TEXT NOT NULL,
+                        `identClient` TEXT NOT NULL,
+                        `ancienSolde` REAL NOT NULL,
+                        `pointsRecharges` REAL NOT NULL,
+                        `nouveauSolde` REAL NOT NULL,
+                        `dateRecharge` INTEGER NOT NULL,
+                        `transactionId` TEXT NOT NULL DEFAULT '',
+                        `sentAt` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("INSERT INTO `recharge_carte_new` SELECT * FROM `recharge_carte`")
+                db.execSQL("DROP TABLE `recharge_carte`")
+                db.execSQL("ALTER TABLE `recharge_carte_new` RENAME TO `recharge_carte`")
+            }
+        }
+
+        private val MIGRATION_38_39 = object : Migration(38, 39) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN valeurPoints REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE passage ADD COLUMN nouveauSoldePoints REAL")
+            }
+        }
+
+        private val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage_matiere ADD COLUMN points REAL NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_36_37 = object : Migration(36, 37) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasGratuitParticuliers INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN uidCarte TEXT")
+                db.execSQL("ALTER TABLE passage ADD COLUMN soldePointsAvant REAL")
+            }
+        }
+
+        private val MIGRATION_34_35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `recharge_carte` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `uid` TEXT NOT NULL,
+                        `numeroIdentification` TEXT NOT NULL,
+                        `identClient` TEXT NOT NULL,
+                        `ancienSolde` INTEGER NOT NULL,
+                        `pointsRecharges` INTEGER NOT NULL,
+                        `nouveauSolde` INTEGER NOT NULL,
+                        `dateRecharge` INTEGER NOT NULL,
+                        `transactionId` TEXT NOT NULL DEFAULT '',
+                        `sentAt` INTEGER
+                    )
+                """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasPrepaiementParticuliers INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasPrepaiementProfessionnels INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_32_33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE matieres_site ADD COLUMN isEnable INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE contrat_evenements ADD COLUMN isEnable INTEGER NOT NULL DEFAULT 1")
+            }
+        }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -334,6 +505,71 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_22_23 = object : Migration(22, 23) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE passage ADD COLUMN transactionId TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_28_29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE carte_creee ADD COLUMN siteId INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_29_30 = object : Migration(29, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE carte_creee ADD COLUMN userTpId INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // RG3 : colonne d'horodatage d'envoi (null = non envoyé) pour différer la purge
+        private val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN sentAt INTEGER")
+                db.execSQL("ALTER TABLE signalement ADD COLUMN sentAt INTEGER")
+                db.execSQL("ALTER TABLE carte_creee ADD COLUMN sentAt INTEGER")
+            }
+        }
+
+        private val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasAccessSimpleParticuliers INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasAccessSimpleProfessionnels INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `carte_creee` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `succes` INTEGER NOT NULL DEFAULT 1,
+                        `uid` TEXT NOT NULL,
+                        `numeroSerie` TEXT NOT NULL,
+                        `numeroIdentification` TEXT NOT NULL,
+                        `motDePasse` TEXT NOT NULL,
+                        `societe` TEXT NOT NULL,
+                        `interne` INTEGER NOT NULL DEFAULT 0,
+                        `prepaiement` INTEGER NOT NULL DEFAULT 0,
+                        `facturation` INTEGER NOT NULL DEFAULT 0,
+                        `gratuit` INTEGER NOT NULL DEFAULT 0,
+                        `nomPrenom` TEXT NOT NULL,
+                        `identClient` TEXT NOT NULL,
+                        `soldePoints` TEXT NOT NULL,
+                        `cumulPoints` TEXT NOT NULL,
+                        `dateCreation` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE carte_contrat ADD COLUMN isEnListeNoire INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE carte_contrat ADD COLUMN dtEntreeListeNoire INTEGER")
+                db.execSQL("ALTER TABLE carte_contrat ADD COLUMN dtSortieListeNoire INTEGER")
+                db.execSQL("ALTER TABLE carte_contrat ADD COLUMN motifListeNoireContratId INTEGER")
+                db.execSQL("ALTER TABLE carte_contrat ADD COLUMN motifListeNoireLibelle TEXT")
             }
         }
 

@@ -1,7 +1,7 @@
 package com.idbat.mobile.ui.screens
 
 import android.net.Uri
-import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -34,7 +34,6 @@ fun SaisieSignalementScreen(
     siteName: String,
     siteId: Long,
     contratId: Long,
-    agentId: Long,
     onBack: () -> Unit,
     viewModel: SaisieSignalementViewModel = hiltViewModel()
 ) {
@@ -45,9 +44,15 @@ fun SaisieSignalementScreen(
 
     LaunchedEffect(contratId) { viewModel.loadEvenements(contratId) }
 
-    // Navigation retour automatique après succès
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
+
+    // Navigation retour automatique après succès (puis reset pour le prochain signalement)
     LaunchedEffect(uiState.submitSuccess) {
-        if (uiState.submitSuccess) onBack()
+        if (uiState.submitSuccess) {
+            viewModel.consumeSuccess()
+            onBack()
+        }
     }
 
     // Dialog erreur
@@ -271,7 +276,7 @@ fun SaisieSignalementScreen(
 
             // ── Soumettre ──────────────────────────────────────────────────
             Button(
-                onClick = { viewModel.soumettre(siteId, contratId, agentId, photos, context) },
+                onClick = { viewModel.soumettre(siteId, contratId, photos, context) },
                 enabled = uiState.selectedEvenement != null && !uiState.isSubmitting,
                 modifier = Modifier
                     .fillMaxWidth()

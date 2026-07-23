@@ -13,6 +13,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,14 +22,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -51,7 +50,9 @@ import java.util.concurrent.Executors
 fun BarcodeScannerComponent(
     scannedValue: String?,
     onBarcodeDetected: (value: String, format: String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    title: String = "Code-barres / QR Code",
+    subtitle: String? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -63,6 +64,8 @@ fun BarcodeScannerComponent(
         )
     }
     var isActive by remember { mutableStateOf(true) }
+    // La caméra ne démarre qu'au clic sur "Scanner"
+    var isScanning by remember { mutableStateOf(false) }
 
     LaunchedEffect(scannedValue) {
         if (scannedValue == null) isActive = true
@@ -70,7 +73,10 @@ fun BarcodeScannerComponent(
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { hasPermission = it }
+    ) { granted ->
+        hasPermission = granted
+        if (granted) { isActive = true; isScanning = true }
+    }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -81,13 +87,43 @@ fun BarcodeScannerComponent(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.QrCodeScanner, null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Code-barres / QR Code", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+
+            if (subtitle != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             Spacer(Modifier.height(12.dp))
 
-            if (!hasPermission) {
-                PermissionRequest { permissionLauncher.launch(Manifest.permission.CAMERA) }
+            if (!isScanning) {
+                // Bouton de lancement : la caméra ne s'ouvre qu'ici
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(VeoliaCoral, VeoliaPrincipal))
+                        )
+                        .clickable {
+                            if (hasPermission) { isActive = true; isScanning = true }
+                            else permissionLauncher.launch(Manifest.permission.CAMERA)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Scanner",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
             } else {
                 // Preview caméra avec analyse en temps réel
                 Box(
@@ -97,7 +133,15 @@ fun BarcodeScannerComponent(
                         .background(Color.Black, RoundedCornerShape(12.dp))
                 ) {
                     val executor = remember { Executors.newSingleThreadExecutor() }
-                    DisposableEffect(Unit) { onDispose { executor.shutdown() } }
+                    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+                    // Libère la caméra quand on quitte le scan (sinon elle reste liée au lifecycle
+                    // de la route et tourne en arrière-plan — peut gêner d'autres usages matériels).
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            try { cameraProvider?.unbindAll() } catch (_: Exception) {}
+                            executor.shutdown()
+                        }
+                    }
 
                     AndroidView(
                         factory = { ctx ->
@@ -105,6 +149,7 @@ fun BarcodeScannerComponent(
                             val future = ProcessCameraProvider.getInstance(ctx)
                             future.addListener({
                                 val provider = future.get()
+                                cameraProvider = provider
                                 val preview = Preview.Builder().build()
                                     .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
@@ -115,6 +160,7 @@ fun BarcodeScannerComponent(
                                         analysis.setAnalyzer(executor) { proxy ->
                                             if (isActive) analyzeFrame(proxy) { value, format ->
                                                 isActive = false
+                                                isScanning = false
                                                 onBarcodeDetected(value, format)
                                             } else proxy.close()
                                         }

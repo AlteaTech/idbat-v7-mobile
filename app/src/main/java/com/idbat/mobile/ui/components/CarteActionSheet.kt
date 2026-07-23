@@ -3,11 +3,7 @@ package com.idbat.mobile.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AddCircle
-import androidx.compose.material.icons.outlined.ArrowCircleDown
-import androidx.compose.material.icons.outlined.Cancel
-import androidx.compose.material.icons.outlined.Science
-import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,7 +21,8 @@ fun CarteActionSheet(
     onCreerCarte: () -> Unit = {},
     onRechargerCarte: () -> Unit = {},
     onPocClick: () -> Unit = {},
-    onTestVolumeClick: () -> Unit = {}
+    onTestVolumeClick: () -> Unit = {},
+    showRecharger: Boolean = true
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -82,29 +79,31 @@ fun CarteActionSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (showRecharger) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Button(
-                onClick = { onRechargerCarte(); onDismiss() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ArrowCircleDown,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Recharger une carte",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Button(
+                    onClick = { onRechargerCarte(); onDismiss() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ArrowCircleDown,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Recharger une carte",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))

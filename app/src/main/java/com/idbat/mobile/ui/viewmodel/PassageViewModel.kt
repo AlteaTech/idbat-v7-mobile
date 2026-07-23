@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageEntity
 import com.idbat.mobile.data.entities.SeuilEtatEntity
+import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,13 +15,6 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-
-sealed class PassageSaveState {
-    object Idle    : PassageSaveState()
-    object Saving  : PassageSaveState()
-    object Success : PassageSaveState()
-    data class Error(val message: String) : PassageSaveState()
-}
 
 @HiltViewModel
 class PassageViewModel @Inject constructor(
@@ -34,6 +28,11 @@ class PassageViewModel @Inject constructor(
     private val _seuils = MutableStateFlow<List<SeuilEtatEntity>>(emptyList())
     val seuils: StateFlow<List<SeuilEtatEntity>> = _seuils.asStateFlow()
 
+    // Liste noire de la carte présentée (null = pas en liste noire / carte inconnue)
+    data class ListeNoireInfo(val libelle: String?)
+    private val _listeNoire = MutableStateFlow<ListeNoireInfo?>(null)
+    val listeNoire: StateFlow<ListeNoireInfo?> = _listeNoire.asStateFlow()
+
     fun loadSeuils(usagerId: Long?) {
         if (usagerId == null) {
             _seuils.value = emptyList()
@@ -44,7 +43,28 @@ class PassageViewModel @Inject constructor(
         }
     }
 
-    fun enregistrerPassage(contratId: Long, siteId: Long, carteId: Long?) {
+    fun loadListeNoire(carteId: Long?) {
+        if (carteId == null) {
+            _listeNoire.value = null
+            return
+        }
+        viewModelScope.launch {
+            val carte = database.carteContratDao().getCarteById(carteId)
+            _listeNoire.value = if (carte?.isEnListeNoire == true) {
+                ListeNoireInfo(libelle = carte.motifListeNoireLibelle)
+            } else {
+                null
+            }
+        }
+    }
+
+    fun enregistrerPassage(
+        contratId: Long,
+        siteId: Long,
+        carteId: Long?,
+        uidCarte: String? = null,
+        soldePointsAvant: Double? = null
+    ) {
         if (_saveState.value == PassageSaveState.Saving) return
         viewModelScope.launch {
             _saveState.value = PassageSaveState.Saving
@@ -70,6 +90,11 @@ class PassageViewModel @Inject constructor(
                         carteId = carteId,
                         userTpId = userTp.id,
                         numeroBonPassage = numeroBonPassage,
+                        uidCarte = uidCarte,
+                        soldePointsAvant = soldePointsAvant,
+                        // Accès simple : aucune matière → valeur 0, solde inchangé
+                        valeurPoints = 0.0,
+                        nouveauSoldePoints = soldePointsAvant,
                         transactionId = java.util.UUID.randomUUID().toString()
                     )
                 )

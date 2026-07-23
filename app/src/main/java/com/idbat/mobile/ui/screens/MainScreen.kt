@@ -75,16 +75,7 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
 
     val syncError = uiState.syncState.syncError
     if (syncError != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearSyncError() },
-            title = { Text("Synchronisation impossible") },
-            text = { Text(syncError) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearSyncError() }) {
-                    Text("OK")
-                }
-            }
-        )
+       // TODO que faire ?
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -94,11 +85,10 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
         composable(AppDestination.Home.route) {
             HomeScreen(
                 selectedSite = uiState.authState.loggedInSite,
-                contrat = uiState.authState.loggedInContrat,
+                contratId = uiState.authState.loggedInContrat?.id ?: 0L,
                 lastSynchroDateEnvoi = uiState.syncState.lastSynchroDateEnvoi,
                 lastSynchroDateReception = uiState.syncState.lastSynchroDateReception,
                 lastEnvoiSuccess = uiState.syncState.lastEnvoiSuccess,
-                agentId = uiState.authState.loggedInUtilisateurTp?.id ?: 0L,
                 onTransferClick = { viewModel.executeTransfer() },
                 isTransferring = uiState.syncState.isTransferring,
                 getSuiviContent = { siteId -> viewModel.getSuiviContentAsync(siteId) },

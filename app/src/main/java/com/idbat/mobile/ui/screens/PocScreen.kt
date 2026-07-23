@@ -1,5 +1,7 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,15 +24,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.model.CartePuce
-import com.idbat.mobile.ui.components.BarcodeScannerComponent
-import com.idbat.mobile.ui.components.MifareReaderComponent
-import com.idbat.mobile.ui.components.MifareWriterComponent
-import com.idbat.mobile.ui.components.PhotoPickerComponent
-import com.idbat.mobile.ui.components.SignatureComponent
+import com.idbat.mobile.ui.components.*
 import com.idbat.mobile.ui.theme.VeoliaCoral
 import com.idbat.mobile.ui.theme.VeoliaPrincipal
 import com.idbat.mobile.ui.viewmodel.PocViewModel
-import androidx.compose.foundation.Image
 
 
 private val tabs = listOf("PHOTO", "CB", "RFID Lecture", "RFID Écriture", "Signature")
@@ -40,6 +37,9 @@ fun PocScreen(
     onBack: () -> Unit,
     viewModel: PocViewModel = hiltViewModel()
 ) {
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(

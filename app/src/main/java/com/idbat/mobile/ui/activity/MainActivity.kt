@@ -48,4 +48,16 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        // App en arrière-plan/veille : démarre le décompte d'inactivité si une session est ouverte.
+        authManager.onAppBackgrounded()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Retour au premier plan : force la reconnexion si le délai d'inactivité est dépassé.
+        authManager.onAppForegrounded()
+    }
 }

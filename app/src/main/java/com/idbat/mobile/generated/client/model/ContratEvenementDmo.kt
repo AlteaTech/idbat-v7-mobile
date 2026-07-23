@@ -32,6 +32,7 @@ import com.squareup.moshi.Json
  * @param evenementId 
  * @param libelle 
  * @param jointureId 
+ * @param isEnable 
  */
 
 
@@ -44,7 +45,10 @@ data class ContratEvenementDmo (
     val libelle: kotlin.String,
 
     @Json(name = "jointureId")
-    val jointureId: kotlin.Long
+    val jointureId: kotlin.Long,
+
+    @Json(name = "isEnable")
+    val isEnable: kotlin.Boolean
 
 ) {
 

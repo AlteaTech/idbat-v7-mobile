@@ -1,10 +1,6 @@
 package com.idbat.mobile.di
 
-import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
-import com.idbat.mobile.generated.client.api.ContratsControllerApi
-import com.idbat.mobile.generated.client.api.PassagesControllerApi
-import com.idbat.mobile.generated.client.api.SignalementsControllerApi
-import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
+import com.idbat.mobile.generated.client.api.*
 import com.idbat.mobile.singleton.ConfigSingleton
 import com.idbat.mobile.singleton.TokenStore
 import com.squareup.moshi.FromJson
@@ -17,6 +13,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -73,6 +70,11 @@ object ApiModule {
             level = HttpLoggingInterceptor.Level.BASIC
         }
         return OkHttpClient.Builder()
+            // Timeouts à 3 min : envoi de photos (gros base64) sur réseau lent
+            .connectTimeout(3, TimeUnit.MINUTES)
+            .readTimeout(3, TimeUnit.MINUTES)
+            .writeTimeout(3, TimeUnit.MINUTES)
+            .callTimeout(3, TimeUnit.MINUTES)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .build()
@@ -111,4 +113,24 @@ object ApiModule {
     @Singleton
     fun provideSignalementsApi(retrofit: Retrofit): SignalementsControllerApi =
         retrofit.create(SignalementsControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCarteCreationApi(retrofit: Retrofit): CarteCreationControllerApi =
+        retrofit.create(CarteCreationControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideRechargesCarteApi(retrofit: Retrofit): RechargesCarteControllerApi =
+        retrofit.create(RechargesCarteControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideParametreGlobalApi(retrofit: Retrofit): ParametreGlobalControllerApi =
+        retrofit.create(ParametreGlobalControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSuiviSynchroApi(retrofit: Retrofit): SuiviSynchroControllerApi =
+        retrofit.create(SuiviSynchroControllerApi::class.java)
 }

@@ -11,6 +11,7 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.ContratEvenementEntity
 import com.idbat.mobile.data.entities.SignalementDocumentEntity
 import com.idbat.mobile.data.entities.SignalementEntity
+import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SaisieSignalementViewModel @Inject constructor(
-    private val database: AppDatabase
+    private val database: AppDatabase,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     data class UiState(
@@ -58,8 +60,14 @@ class SaisieSignalementViewModel @Inject constructor(
         if (text.length <= 50) _uiState.value = _uiState.value.copy(commentaire = text)
     }
 
-    fun soumettre(siteId: Long, contratId: Long, agentId: Long, photos: List<Uri>, context: Context) {
+    fun soumettre(siteId: Long, contratId: Long, photos: List<Uri>, context: Context) {
         val event = _uiState.value.selectedEvenement ?: return
+        // L'utilisateur connecté (TP) est lu à la source pour être persisté de façon fiable
+        val userTp = authManager.authState.value.loggedInUtilisateurTp
+        if (userTp == null) {
+            _uiState.value = _uiState.value.copy(submitError = "Utilisateur non connecté")
+            return
+        }
         _uiState.value = _uiState.value.copy(isSubmitting = true, submitError = null)
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -70,7 +78,7 @@ class SaisieSignalementViewModel @Inject constructor(
                         siteId             = siteId,
                         contratId          = contratId,
                         evenementContratId = event.jointureId,
-                        agentId            = agentId,
+                        agentId            = userTp.id,
                         dateSignalement    = System.currentTimeMillis(),
                         commentaire        = _uiState.value.commentaire.takeIf { it.isNotBlank() }
                     )
@@ -110,11 +118,20 @@ class SaisieSignalementViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(submitError = null)
     }
 
+    /** Réinitialise le formulaire après un envoi réussi (le VM est scopé à la route Home). */
+    fun consumeSuccess() {
+        _uiState.value = _uiState.value.copy(
+            submitSuccess = false,
+            commentaire = "",
+            selectedEvenement = null
+        )
+    }
+
     private fun resizeToMax(bytes: ByteArray, mimeType: String): ByteArray {
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return bytes
         val maxSide = maxOf(bitmap.width, bitmap.height)
-        if (maxSide <= 4000) { bitmap.recycle(); return bytes }
-        val scale = 4000f / maxSide
+        if (maxSide <= 1080) { bitmap.recycle(); return bytes }
+        val scale = 1080f / maxSide
         val resized = Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
         bitmap.recycle()
         val out = ByteArrayOutputStream()

@@ -1,5 +1,6 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,7 +13,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -24,11 +27,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.data.entities.SeuilEtatEntity
 import com.idbat.mobile.data.model.InfoCartePassage
+import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.ui.theme.VeoliaAlertOrange
+import com.idbat.mobile.ui.theme.VeoliaErrorDark
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
 import com.idbat.mobile.ui.theme.VeoliaLightGray
 import com.idbat.mobile.ui.theme.White
-import com.idbat.mobile.ui.viewmodel.PassageSaveState
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 import com.idbat.mobile.ui.viewmodel.PassageViewModel
 
 @Composable
@@ -40,13 +45,32 @@ fun PassageInfoScreen(
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit = {},
     onSaisirMatieres: () -> Unit = {},
-    viewModel: PassageViewModel = hiltViewModel()
+    viewModel: PassageViewModel = hiltViewModel(),
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(contratId) { contratViewModel.setContratId(contratId) }
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     val isSaving = saveState == PassageSaveState.Saving
     val seuils by viewModel.seuils.collectAsStateWithLifecycle()
+    val listeNoire by viewModel.listeNoire.collectAsStateWithLifecycle()
 
     LaunchedEffect(info.usagerId) { viewModel.loadSeuils(info.usagerId) }
+    LaunchedEffect(info.carteId) { viewModel.loadListeNoire(info.carteId) }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
+
+    // RG1 : un seul bouton selon le flag « accès simple » du contrat correspondant
+    // au type d'apporteur de l'usager sélectionné. accessSimple == true → « Enregistrer
+    // le passage » ; false → « Saisir les matières ». (isPro/contrat nuls = particulier/false.)
+    val isPro = info.typeApporteurIsPro == true
+    val accessSimple = if (isPro) {
+        contrat?.hasAccessSimpleProfessionnels == true
+    } else {
+        contrat?.hasAccessSimpleParticuliers == true
+    }
 
     LaunchedEffect(saveState) {
         if (saveState == PassageSaveState.Success) {
@@ -104,7 +128,9 @@ fun PassageInfoScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
+            val isListeNoire = listeNoire != null;
+            // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
+            val usagerBloque = isListeNoire || seuils.any { !it.isAlerte }
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -146,14 +172,19 @@ fun PassageInfoScreen(
                         InfoRow(label = "N° de carte", value = info.numeroCarte)
                         InfoRow(label = "Type d'apporteur", value = info.typeApporteur)
                         InfoRow(label = "Contact", value = info.contact)
+                        // Solde de points : uniquement pour une carte à puce (valeur lue sur la carte)
+                        info.soldePoints?.let {
+                            InfoRow(label = "Solde de points", value = "%.2f points".format(it))
+                        }
                     }
                 }
 
-                SeuilsCard(seuils = seuils)
+                // Liste noire : affichée au-dessus des seuils si la carte est blacklistée
+                listeNoire?.let { ListeNoireCard(libelle = it.libelle) }
+
+                SeuilsCard(seuils = seuils, isListeNoire)
             }
 
-            // Usager bloqué : au moins un seuil atteint (isAlerte == false)
-            val usagerBloque = seuils.any { !it.isAlerte }
 
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
@@ -176,63 +207,72 @@ fun PassageInfoScreen(
                         )
                     }
                 } else {
-                    Button(
-                        onClick = {
-                            if (!isSaving) viewModel.enregistrerPassage(contratId, siteId, info.carteId)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(50.dp),
-                        enabled = !isSaving,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = VeoliaLightGray,
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        if (isSaving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.Black
+                    if(accessSimple){
+                        Button(
+                            onClick = {
+                                if (!isSaving) viewModel.enregistrerPassage(
+                                    contratId, siteId, info.carteId,
+                                    uidCarte = info.uid,
+                                    soldePointsAvant = info.soldePoints
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(50.dp),
+                            enabled = !isSaving,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Black,
+                                contentColor = White
                             )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
+                        ) {
+                            if (isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = White
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isSaving) "Enregistrement…" else "Enregistrer le passage",
+                                color = White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isSaving) "Enregistrement…" else "Enregistrer le passage",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp
-                        )
+                    }else{
+                        Button(
+                            onClick = onSaisirMatieres,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(50.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Inventory2,
+                                contentDescription = null,
+                                tint = White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Saisir les matières",
+                                color = White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
 
-                    Button(
-                        onClick = onSaisirMatieres,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Inventory2,
-                            contentDescription = null,
-                            tint = White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Saisir les matières",
-                            color = White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp
-                        )
-                    }
                 }
             }
         }
@@ -240,25 +280,59 @@ fun PassageInfoScreen(
 }
 
 @Composable
-private fun SeuilsCard(seuils: List<SeuilEtatEntity>) {
+private fun ListeNoireCard(libelle: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (seuils.isEmpty()) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = VeoliaErrorDark,
+                modifier = Modifier.size(20.dp)
+            )
+            Column {
                 Text(
-                    text = "Aucune alerte",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Cette carte est en liste noire",
+                    fontWeight = FontWeight.Bold,
+                    color = VeoliaErrorDark,
+                    style = MaterialTheme.typography.bodyMedium
                 )
-            } else {
-                seuils.forEach { seuil -> SeuilRow(seuil) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+
+        if (!usagerListeNoire) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (!usagerListeNoire && seuils.isEmpty()) {
+                    Text(
+                        text = "Aucune alerte",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    seuils.forEach { seuil -> SeuilRow(seuil) }
+                }
             }
         }
     }
@@ -284,9 +358,11 @@ private fun SeuilRow(seuil: SeuilEtatEntity) {
             modifier = Modifier.size(20.dp)
         )
         Text(
+            // RG1 : texte du seuil en orange (couleur du picto) + gras, comme la liste noire (rouge gras)
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            fontWeight = FontWeight.Bold,
+            color = VeoliaAlertOrange
         )
     }
 }

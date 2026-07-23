@@ -15,11 +15,7 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.singleton.AuthManager
 import com.idbat.mobile.singleton.SyncManager
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import javax.inject.Inject
 
 /**
@@ -47,7 +43,8 @@ class SyncService : Service() {
             try {
                 val site = database.siteDao().getSiteById(siteId)
                 if (site != null) {
-                    syncManager.executeTransfer(site)
+                    val userTpId = authManager.authState.value.loggedInUtilisateurTp?.id
+                    syncManager.executeTransfer(site, userTpId)
                     authManager.refreshLoggedInContrat()
                 }
             } finally {

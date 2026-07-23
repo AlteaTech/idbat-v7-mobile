@@ -31,6 +31,7 @@ import com.squareup.moshi.Json
  *
  * @param matieresSiteId 
  * @param quantite 
+ * @param points 
  */
 
 
@@ -40,7 +41,10 @@ data class PassageMatiereRequest (
     val matieresSiteId: kotlin.Long,
 
     @Json(name = "quantite")
-    val quantite: java.math.BigDecimal
+    val quantite: java.math.BigDecimal,
+
+    @Json(name = "points")
+    val points: java.math.BigDecimal
 
 ) {
 

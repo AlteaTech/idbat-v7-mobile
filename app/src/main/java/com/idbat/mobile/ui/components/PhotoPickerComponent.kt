@@ -112,7 +112,8 @@ fun PhotoPickerComponent(
                                 modifier = Modifier
                                     .size(20.dp)
                                     .align(Alignment.TopEnd)
-                                    .offset(x = 6.dp, y = (-6).dp)
+                                    // décalée vers la gauche pour rester entièrement visible dans la vignette
+                                    .offset(x = (-2).dp, y = (-6).dp)
                                     .clip(RoundedCornerShape(50))
                                     .background(VeoliaInk.copy(alpha = 0.6f))
                                     .clickable { onPhotosChange(photos - uri) },

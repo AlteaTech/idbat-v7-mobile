@@ -2,16 +2,16 @@ package com.idbat.mobile.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.idbat.mobile.ui.viewmodel.TestVolumeViewModel
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -19,11 +19,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.R
-import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.ui.components.*
 import com.idbat.mobile.ui.theme.VeoliaCoral
+import com.idbat.mobile.utils.FileLogger
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
+import com.idbat.mobile.ui.viewmodel.TestVolumeViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,22 +35,30 @@ import java.util.*
 @Composable
 fun HomeScreen(
     selectedSite: SiteEntity?,
-    contrat: ContratEntity?,
+    contratId: Long,
     lastSynchroDateReception: Date?,
     lastSynchroDateEnvoi: Date?,
     lastEnvoiSuccess: Boolean?,
-    agentId: Long,
     onTransferClick: () -> Unit,
     onNavigateToPoc: () -> Unit,
     isTransferring: Boolean = false,
     getSuiviContent: suspend (Long) -> CharSequence = { "" },
-    testVolumeViewModel: TestVolumeViewModel = hiltViewModel()
+    testVolumeViewModel: TestVolumeViewModel = hiltViewModel(),
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(contratId) { contratViewModel.setContratId(contratId) }
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
     val toastState = rememberToastState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    // Horodatages des derniers clics sur le logo (easter egg export logs)
+    var logoClicks by remember { mutableStateOf<List<Long>>(emptyList()) }
     var showCarteSheet by remember { mutableStateOf(false) }
     var showDepotScreen by remember { mutableStateOf(false) }
     var showSignalementScreen by remember { mutableStateOf(false) }
+    var showCreationCarteScreen by remember { mutableStateOf(false) }
+    var showRechargeCarteScreen by remember { mutableStateOf(false) }
 
     val testVolumeState by testVolumeViewModel.state.collectAsStateWithLifecycle()
 
@@ -93,7 +105,7 @@ fun HomeScreen(
         DepotScreen(
             siteName = selectedSite?.nom ?: "",
             siteId = selectedSite?.id ?: 0L,
-            contrat = contrat,
+            contratId = contratId,
             onBack = { showDepotScreen = false },
             onNavigateToHome = { showDepotScreen = false }
         )
@@ -104,9 +116,28 @@ fun HomeScreen(
         SaisieSignalementScreen(
             siteName = selectedSite?.nom ?: "",
             siteId = selectedSite?.id ?: 0L,
-            contratId = contrat?.id ?: 0L,
-            agentId = agentId,
+            contratId = contratId,
             onBack = { showSignalementScreen = false }
+        )
+        return
+    }
+
+    if (showCreationCarteScreen) {
+        CreationCarteScreen(
+            siteName = selectedSite?.nom ?: "",
+            contratId = contratId,
+            siteId = selectedSite?.id ?: 0L,
+            onBack = { showCreationCarteScreen = false }
+        )
+        return
+    }
+
+    if (showRechargeCarteScreen) {
+        RechargeCarteScreen(
+            siteName = selectedSite?.nom ?: "",
+            contratId = contratId,
+            siteId = selectedSite?.id ?: 0L,
+            onBack = { showRechargeCarteScreen = false }
         )
         return
     }
@@ -142,25 +173,26 @@ fun HomeScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Light)) { append("id") }
-                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)) { append("bat") }
-                    },
-                    color = Color.White,
-                    fontSize = 34.sp
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "idbat by Veolia",
+                modifier = Modifier
+                    .height(48.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        // 4 clics rapides (< 1,2 s glissant) → export des logs par e-mail
+                        val now = System.currentTimeMillis()
+                        logoClicks = (logoClicks + now).filter { now - it <= 2000 }
+                        if (logoClicks.size >= 4) {
+                            logoClicks = emptyList()
+                            if (!FileLogger.shareLogsByEmail(context)) {
+                                toastState.showToast("Logs", "Aucun log à envoyer")
+                            }
+                        }
+                    }
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -191,13 +223,15 @@ fun HomeScreen(
                 onClick = { showSignalementScreen = true }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (contrat?.hasPuce == true) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            ActionRowButton(
-                title = "Gestion des cartes",
-                iconResId = R.drawable.carte_a_puce,
-                onClick = { showCarteSheet = true }
-            )
+                ActionRowButton(
+                    title = "Gestion des cartes",
+                    iconResId = R.drawable.carte_a_puce,
+                    onClick = { showCarteSheet = true }
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -214,11 +248,22 @@ fun HomeScreen(
         if (showCarteSheet) {
             CarteActionSheet(
                 onDismiss = { showCarteSheet = false },
+                onCreerCarte = {
+                    showCarteSheet = false
+                    showCreationCarteScreen = true
+                },
+                onRechargerCarte = {
+                    showCarteSheet = false
+                    showRechargeCarteScreen = true
+                },
                 onPocClick = {
                     showCarteSheet = false
                     onNavigateToPoc()
                 },
-                onTestVolumeClick = { testVolumeViewModel.generer() }
+                onTestVolumeClick = { testVolumeViewModel.generer() },
+                // RG0 : "Recharger" visible si puce + (prépaiement particuliers OU professionnels)
+                showRecharger = contrat?.hasPuce == true &&
+                        (contrat?.hasPrepaiementParticuliers ?: false || contrat?.hasPrepaiementProfessionnels ?: false)
             )
         }
     }

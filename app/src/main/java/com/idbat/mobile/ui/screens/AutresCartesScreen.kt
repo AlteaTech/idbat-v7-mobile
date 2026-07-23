@@ -1,14 +1,15 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -26,28 +27,32 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.idbat.mobile.data.entities.ContratEntity
 import com.idbat.mobile.data.entities.UsagerEntity
+import com.idbat.mobile.ui.components.CodeBarreScannerComponent
 import com.idbat.mobile.ui.theme.*
 import com.idbat.mobile.ui.viewmodel.AutresCartesViewModel
+import com.idbat.mobile.ui.viewmodel.ContratViewModel
 
 @Composable
 fun AutresCartesScreen(
     siteName: String,
     siteId: Long,
-    contrat: ContratEntity?,
+    contratId: Long,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit = {},
-    viewModel: AutresCartesViewModel = hiltViewModel()
+    viewModel: AutresCartesViewModel = hiltViewModel(),
+    contratViewModel: ContratViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(contratId) {
+        viewModel.setContratId(contratId)
+        contratViewModel.setContratId(contratId)
+    }
+    val contrat by contratViewModel.contrat.collectAsStateWithLifecycle()
+
     val bgColor = MaterialTheme.colorScheme.background
     val showCodebarres = contrat?.hasCodebarres == true
     val showImmatriculation = contrat?.hasImmatriculation == true
     val showSelectionUsager = contrat?.hasSelectionusager == true
-
-    LaunchedEffect(contrat?.id) {
-        contrat?.id?.let { viewModel.setContratId(it) }
-    }
 
     val usagers by viewModel.usagers.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -70,8 +75,7 @@ fun AutresCartesScreen(
         SaisieMatiereScreen(
             siteName = siteName,
             siteId = siteId,
-            contratId = contrat?.id ?: 0L,
-            contrat = contrat,
+            contratId = contratId,
             info = passageInfo!!,
             onBack = { showSaisieMatiere = false },
             onNavigateToHome = {
@@ -88,7 +92,7 @@ fun AutresCartesScreen(
         PassageInfoScreen(
             siteName = siteName,
             siteId = siteId,
-            contratId = contrat?.id ?: 0L,
+            contratId = contratId,
             info = passageInfo!!,
             onBack = { viewModel.clearPassageInfo() },
             onNavigateToHome = {
@@ -100,6 +104,9 @@ fun AutresCartesScreen(
         )
         return
     }
+
+    // Back système = back de l'écran (bouton haut-gauche)
+    BackHandler { onBack() }
 
     if (showUsagerDialog) {
         UsagerSelectionDialog(
@@ -195,71 +202,39 @@ fun AutresCartesScreen(
             ) {
                 if (showCodebarres) {
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = White),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.QrCode,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "Code-barres ou QR code",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Bouton "Scanner" → lance le module de lecture code-barres 1D dédié
+                            // et remplit l'input en dessous (l'affectation remplace l'ancienne valeur).
+                            CodeBarreScannerComponent(
+                                scannedValue = codebarresValue.takeIf { it.isNotBlank() },
+                                title = "Code-barres",
+                                subtitle = "Scannez la carte ou tapez le code",
+                                onBarcodeDetected = { value, _ ->
+                                    codebarresValue = value
+                                    immatriculationValue = ""
+                                    selectedUsager = null
                                 }
-                                Text(
-                                    text = "Scannez la carte ou tapez le code",
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedTextField(
+                                value = codebarresValue,
+                                onValueChange = {
+                                    codebarresValue = it
+                                    immatriculationValue = ""
+                                    selectedUsager = null
+                                },
+                                placeholder = {
+                                    Text(text = "Taper le code", color = VeoliaPlaceholder)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedContainerColor = White,
+                                    focusedContainerColor = White,
+                                    unfocusedBorderColor = VeoliaSubtle,
+                                    focusedBorderColor = VeoliaPrincipal
                                 )
-                                Button(
-                                    onClick = { },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(50.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = VeoliaPrincipal
-                                    )
-                                ) {
-                                    Text(
-                                        text = "Scanner",
-                                        color = White,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                                OutlinedTextField(
-                                    value = codebarresValue,
-                                    onValueChange = {
-                                        codebarresValue = it
-                                        immatriculationValue = ""
-                                        selectedUsager = null
-                                    },
-                                    placeholder = {
-                                        Text(text = "Taper le code", color = VeoliaPlaceholder)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    singleLine = true,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        unfocusedBorderColor = VeoliaSubtle,
-                                        focusedBorderColor = VeoliaPrincipal
-                                    )
-                                )
-                            }
+                            )
                         }
                     }
                 }

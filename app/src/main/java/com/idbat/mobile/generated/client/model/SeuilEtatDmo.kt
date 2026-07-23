@@ -39,6 +39,7 @@ import com.squareup.moshi.Json
  * @param seuilDetailPeriode 
  * @param seuilDetailSeuilPrevention 
  * @param seuilDetailContratId 
+ * @param message 
  * @param seuilDetailNbPassage 
  */
 
@@ -74,6 +75,9 @@ data class SeuilEtatDmo (
 
     @Json(name = "seuilDetailContratId")
     val seuilDetailContratId: kotlin.Long,
+
+    @Json(name = "message")
+    val message: kotlin.String,
 
     @Json(name = "seuilDetailNbPassage")
     val seuilDetailNbPassage: kotlin.Int? = null

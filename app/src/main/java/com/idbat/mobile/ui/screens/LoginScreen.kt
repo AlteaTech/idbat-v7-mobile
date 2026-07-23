@@ -1,8 +1,10 @@
 package com.idbat.mobile.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
@@ -12,14 +14,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.idbat.mobile.R
 import com.idbat.mobile.ui.theme.VeoliaCoralText
 import com.idbat.mobile.ui.theme.VeoliaGradientBot
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
@@ -50,18 +53,10 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
 
             Spacer(modifier = Modifier.height(60.dp))
 
-            Text(
-                text = "idbat",
-                color = Color.White,
-                fontSize = 56.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-1).sp
-            )
-            Text(
-                text = "by VEOLIA",
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "idbat by Veolia",
+                modifier = Modifier.height(72.dp)
             )
 
             Spacer(modifier = Modifier.height(60.dp))

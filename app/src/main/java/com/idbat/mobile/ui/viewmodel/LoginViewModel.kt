@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.entities.SiteEntity
 import com.idbat.mobile.data.entities.UtilisateurTPEntity
+import com.idbat.mobile.data.model.LoginFormState
 import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,14 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class LoginFormState(
-    val selectedSite: SiteEntity? = null,
-    val selectedUser: UtilisateurTPEntity? = null,
-    val password: String = "",
-    val expandedSite: Boolean = false,
-    val expandedUser: Boolean = false,
-)
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(

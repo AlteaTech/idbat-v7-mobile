@@ -35,6 +35,8 @@ import com.squareup.moshi.Json
  * @param unitesDesApportId 
  * @param unitesDesApportLibelle 
  * @param tarif 
+ * @param isEnable 
+ * @param enable 
  */
 
 
@@ -56,7 +58,13 @@ data class MatieresSiteDmo (
     val unitesDesApportLibelle: kotlin.String,
 
     @Json(name = "tarif")
-    val tarif: kotlin.Float
+    val tarif: kotlin.Float,
+
+    @Json(name = "isEnable")
+    val isEnable: kotlin.Boolean,
+
+    @Json(name = "enable")
+    val enable: kotlin.Boolean? = null
 
 ) {
 

@@ -36,6 +36,9 @@ import com.squareup.moshi.Json
  * @param numeroBonPassage 
  * @param matieres 
  * @param documents 
+ * @param valeurPoints 
+ * @param ancienSoldePoints 
+ * @param nouveauSoldePoints 
  * @param usagerId 
  * @param carteId 
  * @param commentaire 
@@ -68,6 +71,15 @@ data class CreerPassageRequest (
 
     @Json(name = "documents")
     val documents: kotlin.collections.List<PassageDocumentRequest>,
+
+    @Json(name = "valeurPoints")
+    val valeurPoints: java.math.BigDecimal,
+
+    @Json(name = "ancienSoldePoints")
+    val ancienSoldePoints: java.math.BigDecimal,
+
+    @Json(name = "nouveauSoldePoints")
+    val nouveauSoldePoints: java.math.BigDecimal,
 
     @Json(name = "usagerId")
     val usagerId: kotlin.Long? = null,

@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "PowerShell(.\\\\gradlew :app:compileDebugKotlin -q 2>&1 | Select-Object -Last 40)",
+      "Bash(./gradlew projects *)",
+      "Bash(./gradlew :app:compileDebugKotlin --offline)"
     ]
   }
 }

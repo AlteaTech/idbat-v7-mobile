@@ -54,6 +54,26 @@ interface CarteContratDao {
     @Query("SELECT * FROM carte_contrat WHERE contratId = :contratId")
     suspend fun getCartesByContrat(contratId: Long): List<CarteContratEntity>
 
+    @Query("SELECT * FROM carte_contrat WHERE id = :id LIMIT 1")
+    suspend fun getCarteById(id: Long): CarteContratEntity?
+
+    // UID normalisé : la carte est stockée avec espaces ("C6 BA E7 2B") alors que le lecteur
+    // fournit "C6BAE72B" → on compare sans espaces et sans distinction de casse.
+    @Query("SELECT * FROM carte_contrat WHERE UPPER(REPLACE(uidRfid, ' ', '')) = :uidRfid LIMIT 1")
+    suspend fun getCarteByUidRfid(uidRfid: String): CarteContratEntity?
+
+    // Carte à puce active (type 'P') rattachée à un usager, retrouvée par l'UID lu du tag
+    @Query("""
+        SELECT cc.* FROM carte_contrat cc
+        INNER JOIN usager_cartes uc ON uc.carteId = cc.id
+        WHERE UPPER(REPLACE(cc.uidRfid, ' ', '')) = :uidRfid
+          AND cc.type = 'P'
+          AND (uc.dateDebut IS NULL OR uc.dateDebut <= :now)
+          AND (uc.dateFin IS NULL OR uc.dateFin >= :now)
+        LIMIT 1
+    """)
+    suspend fun getActiveCartePByUid(uidRfid: String, now: Long): CarteContratEntity?
+
     @Query("DELETE FROM carte_contrat")
     suspend fun clearCartes()
 

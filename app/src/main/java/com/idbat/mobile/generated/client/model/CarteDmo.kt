@@ -34,10 +34,15 @@ import com.squareup.moshi.Json
  * @param valeur 
  * @param isCreationByQRCode 
  * @param dateDebutAffectation 
+ * @param isEnListeNoire 
  * @param uidRfid 
  * @param carteGriseJ1 
  * @param carteGriseF3 
  * @param dateFinAffectation 
+ * @param dtEntreeListeNoire 
+ * @param dtSortieListeNoire 
+ * @param motifslistenoireContratId 
+ * @param motifslistenoireLibelle 
  */
 
 
@@ -58,6 +63,9 @@ data class CarteDmo (
     @Json(name = "dateDebutAffectation")
     val dateDebutAffectation: java.time.LocalDate,
 
+    @Json(name = "isEnListeNoire")
+    val isEnListeNoire: kotlin.Boolean,
+
     @Json(name = "uidRfid")
     val uidRfid: kotlin.String? = null,
 
@@ -68,7 +76,19 @@ data class CarteDmo (
     val carteGriseF3: kotlin.Int? = null,
 
     @Json(name = "dateFinAffectation")
-    val dateFinAffectation: java.time.LocalDate? = null
+    val dateFinAffectation: java.time.LocalDate? = null,
+
+    @Json(name = "dtEntreeListeNoire")
+    val dtEntreeListeNoire: java.time.LocalDate? = null,
+
+    @Json(name = "dtSortieListeNoire")
+    val dtSortieListeNoire: java.time.LocalDate? = null,
+
+    @Json(name = "motifslistenoireContratId")
+    val motifslistenoireContratId: kotlin.Long? = null,
+
+    @Json(name = "motifslistenoireLibelle")
+    val motifslistenoireLibelle: kotlin.String? = null
 
 ) {
 

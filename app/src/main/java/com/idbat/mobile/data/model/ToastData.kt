@@ -1,4 +1,4 @@
-package com.idbat.mobile.ui.components
+package com.idbat.mobile.data.model
 
 data class ToastData(
     val title: String,

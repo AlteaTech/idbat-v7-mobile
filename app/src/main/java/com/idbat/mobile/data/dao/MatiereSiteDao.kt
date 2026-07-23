@@ -15,7 +15,8 @@ interface MatiereSiteDao {
     @Query("SELECT * FROM matieres_site")
     fun getAllMatieresFlow(): Flow<List<MatiereSiteEntity>>
 
-    @Query("SELECT * FROM matieres_site WHERE siteId = :siteId")
+    // Saisie : seules les matières actives (isEnable = 1) sont proposées
+    @Query("SELECT * FROM matieres_site WHERE siteId = :siteId AND isEnable = 1")
     fun getMatieresBySiteFlow(siteId: Long): Flow<List<MatiereSiteEntity>>
     
     @Query("SELECT * FROM matieres_site WHERE siteId = :siteId")
