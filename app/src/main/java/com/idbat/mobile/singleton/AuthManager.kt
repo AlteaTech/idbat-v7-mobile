@@ -190,7 +190,8 @@ class AuthManager @Inject constructor(
                         Log.d("AUTH_MANAGER", "Token récupéré avec succès: ${tokenStore.token}")
 
                         val contratDao = database.contratDao()
-                        if (contratDao.count() != 1L) {
+                        val utilisateurTPDao = database.utilisateurTPDao()
+                        if (contratDao.count() != 1L ||utilisateurTPDao.count() <= 0) {
                             contratDao.purge()
                             loadContractsFromApi()
                         }

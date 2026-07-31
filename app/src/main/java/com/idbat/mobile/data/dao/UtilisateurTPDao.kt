@@ -12,6 +12,9 @@ interface UtilisateurTPDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUtilisateur(utilisateur: UtilisateurTPEntity)
 
+    @Query("SELECT count(1) FROM utilisateurs_tp")
+    suspend fun count(): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUtilisateurs(utilisateurs: List<UtilisateurTPEntity>)
 
@@ -30,11 +33,8 @@ interface UtilisateurTPDao {
     @Query("DELETE FROM utilisateurs_tp")
     suspend fun clearUtilisateurs()
 
-    @Query("DELETE FROM utilisateurs_tp WHERE login != 'admin' AND id NOT IN (:ids)")
+    @Query("DELETE FROM utilisateurs_tp WHERE id NOT IN (:ids)")
     suspend fun deleteUtilisateursNotIn(ids: List<Long>)
-
-    @Query("DELETE FROM utilisateurs_tp WHERE login != 'admin'")
-    suspend fun clearUtilisateursExcludingAdmin()
 
     @Query("SELECT * FROM utilisateurs_tp")
     suspend fun getAllUtilisateurs(): List<UtilisateurTPEntity>

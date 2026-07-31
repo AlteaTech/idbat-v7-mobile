@@ -106,7 +106,6 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `ParametreEntity` | Paramètres globaux (`id` back, `clef` **unique**, `valeur`, `description`) — rafraîchis à chaque synchro descendante (remplacement complet via `ParametreDao.replaceAll`) |
 
 **Migrations :** trajet complet (**version actuelle : 31**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
-**Init :** un utilisateur admin par défaut (login `admin`, PIN `1234`) est créé au premier accès.
 
 > **Piège cascade Room** : `ContratDao`/`SiteDao` utilisent `@Upsert` (et non `@Insert(REPLACE)`). `REPLACE` fait DELETE+INSERT → déclenche `ON DELETE CASCADE` et efface l'historique de synchro / sous-entités. `@Upsert` met à jour en place sans cascade.
 

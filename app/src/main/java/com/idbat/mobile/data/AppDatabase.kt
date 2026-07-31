@@ -710,30 +710,10 @@ abstract class AppDatabase : RoomDatabase() {
         private class DatabaseCallback : Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                insertDefaultUser(db)
             }
 
             override fun onOpen(db: SupportSQLiteDatabase) {
                 super.onOpen(db)
-                ensureDefaultUserExists(db)
-            }
-
-            private fun insertDefaultUser(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    """
-                    INSERT INTO utilisateurs_tp (login, pin, lastLoginDate) 
-                    VALUES ('admin', '1234', 0)
-                """.trimIndent()
-                )
-            }
-
-            private fun ensureDefaultUserExists(db: SupportSQLiteDatabase) {
-                val cursor = db.query("SELECT COUNT(*) FROM utilisateurs_tp WHERE login = 'admin'")
-                cursor.use {
-                    if (it.moveToFirst() && it.getInt(0) == 0) {
-                        insertDefaultUser(db)
-                    }
-                }
             }
         }
     }

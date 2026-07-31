@@ -677,7 +677,7 @@ class SyncManager @Inject constructor(
 
         val newUtpIds = utilisateurEntities.mapNotNull { if (it.id != 0L) it.id else null }
         if (newUtpIds.isNotEmpty()) utilisateurTPDao.deleteUtilisateursNotIn(newUtpIds)
-        else utilisateurTPDao.clearUtilisateursExcludingAdmin()
+        else utilisateurTPDao.clearUtilisateurs()
 
         Log.d("SYNC_MANAGER", "Diff appliqué : ${siteEntities.size} sites, ${usagerEntities.size} usagers, ${allCartes.size} cartes")
     }
