@@ -18,6 +18,9 @@ data class ContratEntity(
     val hasAccessSimpleParticuliers: Boolean = false,
     val hasAccessSimpleProfessionnels: Boolean = false,
     val hasPrepaiementParticuliers: Boolean = false,
+    val hasPaimentComptantParticuliers: Boolean = false,
     val hasPrepaiementProfessionnels: Boolean = false,
-    val hasGratuitParticuliers: Boolean = false
+    val hasGratuitParticuliers: Boolean = false,
+    val hasGratuitProfessionels: Boolean = false,
+    val hasPaimentComptantProfessionels: Boolean = false
 )

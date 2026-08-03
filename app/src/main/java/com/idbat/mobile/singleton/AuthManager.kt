@@ -297,7 +297,10 @@ class AuthManager @Inject constructor(
                 hasAccessSimpleProfessionnels = contratDmo.hasAccessimpleprofessionels,
                 hasPrepaiementParticuliers = contratDmo.hasPrepaiementParticuliers,
                 hasPrepaiementProfessionnels = contratDmo.hasPrepaiementProfessionnels,
-                hasGratuitParticuliers = contratDmo.hasGratuitParticuliers
+                hasGratuitParticuliers = contratDmo.hasGratuitParticuliers,
+                hasGratuitProfessionels = contratDmo.hasGratuitProfessionels,
+                hasPaimentComptantParticuliers = contratDmo.hasPaimentComptantParticuliers,
+                hasPaimentComptantProfessionels = contratDmo.hasPaimentComptantProfessionels
             )
 
             contratDao.insertContrat(contratEntity)

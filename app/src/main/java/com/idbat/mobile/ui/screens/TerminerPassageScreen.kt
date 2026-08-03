@@ -127,7 +127,8 @@ fun TerminerPassageScreen(
                 signatureImage = signatureImage,
                 uidCarteAttendu = info.uid ?: "",
                 soldePointsAvant = info.soldePoints ?: 0.0,
-                nouveauSolde = nouveauSolde
+                nouveauSolde = nouveauSolde,
+                typeApporteurIsPro = info.typeApporteurIsPro
             )
         }
         nfcAdapter.enableReaderMode(
@@ -299,7 +300,8 @@ fun TerminerPassageScreen(
                                 photos = photos,
                                 signatureImage = signatureImage,
                                 uidCarte = info.uid,
-                                soldePointsAvant = info.soldePoints
+                                soldePointsAvant = info.soldePoints,
+                                typeApporteurIsPro = info.typeApporteurIsPro
                             )
                         }
                     },

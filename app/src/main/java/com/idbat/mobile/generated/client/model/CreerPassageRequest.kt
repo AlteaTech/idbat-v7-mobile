@@ -43,6 +43,7 @@ import com.squareup.moshi.Json
  * @param carteId 
  * @param commentaire 
  * @param emailUsager 
+ * @param modePaiementId 
  */
 
 
@@ -91,7 +92,10 @@ data class CreerPassageRequest (
     val commentaire: kotlin.String? = null,
 
     @Json(name = "emailUsager")
-    val emailUsager: kotlin.String? = null
+    val emailUsager: kotlin.String? = null,
+
+    @Json(name = "modePaiementId")
+    val modePaiementId: kotlin.Int? = null
 
 ) {
 

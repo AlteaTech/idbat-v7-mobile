@@ -316,6 +316,7 @@ class SyncManager @Inject constructor(
                 valeurPoints = BigDecimal(passage.valeurPoints),
                 ancienSoldePoints = BigDecimal(passage.soldePointsAvant ?: 0.0),
                 nouveauSoldePoints = BigDecimal(passage.nouveauSoldePoints ?: 0.0),
+                modePaiementId = passage.modePaiement
 
             )
 

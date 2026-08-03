@@ -74,7 +74,8 @@ class TerminerPassageViewModel @Inject constructor(
         photos: List<Uri>,
         signatureImage: ImageBitmap?,
         uidCarte: String? = null,
-        soldePointsAvant: Double? = null
+        soldePointsAvant: Double? = null,
+        typeApporteurIsPro: Boolean? = null
     ) {
         if (_saveState.value == TerminerSaveState.Saving) return
         viewModelScope.launch {
@@ -83,7 +84,8 @@ class TerminerPassageViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     persistPassage(
                         contratId, siteId, carteId, commentaire, lignes,
-                        emailSaisi, usagerId, photos, signatureImage, uidCarte, soldePointsAvant
+                        emailSaisi, usagerId, photos, signatureImage, uidCarte, soldePointsAvant,
+                        typeApporteurIsPro
                     )
                 }
                 _saveState.value = TerminerSaveState.Success
@@ -112,7 +114,8 @@ class TerminerPassageViewModel @Inject constructor(
         signatureImage: ImageBitmap?,
         uidCarteAttendu: String,
         soldePointsAvant: Double,
-        nouveauSolde: Double
+        nouveauSolde: Double,
+        typeApporteurIsPro: Boolean? = null
     ) {
         if (_writeState.value == TerminerWriteState.Writing ||
             _writeState.value == TerminerWriteState.Success
@@ -141,7 +144,8 @@ class TerminerPassageViewModel @Inject constructor(
                     // RG3.2 : enregistrement du passage seulement après écriture réussie
                     persistPassage(
                         contratId, siteId, carteId, commentaire, lignes,
-                        emailSaisi, usagerId, photos, signatureImage, uidCarteAttendu, soldePointsAvant
+                        emailSaisi, usagerId, photos, signatureImage, uidCarteAttendu, soldePointsAvant,
+                        typeApporteurIsPro
                     )
                 }
 
@@ -164,13 +168,27 @@ class TerminerPassageViewModel @Inject constructor(
         photos: List<Uri>,
         signatureImage: ImageBitmap?,
         uidCarte: String?,
-        soldePointsAvant: Double?
+        soldePointsAvant: Double?,
+        typeApporteurIsPro: Boolean?
     ) {
         val userTp = authManager.authState.value.loggedInUtilisateurTp
             ?: throw IllegalStateException("Utilisateur non connecté")
 
         val contrat = database.contratDao().getContratById(contratId)
             ?: throw IllegalStateException("Contrat introuvable")
+
+        // RG1.2 : mode de paiement déduit du type d'apporteur + des flags du contrat
+        // (0=Accès simple, 1=Gratuit, 2=Facturation différée, 3=Pré-paiement)
+        val isPro = typeApporteurIsPro == true
+        val modePaiement = when {
+            isPro  && contrat.hasGratuitProfessionels           -> 1
+            isPro  && contrat.hasPaimentComptantProfessionels   -> 2
+            isPro  && contrat.hasPrepaiementProfessionnels      -> 3
+            !isPro && contrat.hasGratuitParticuliers            -> 1
+            !isPro && contrat.hasPaimentComptantParticuliers    -> 2
+            !isPro && contrat.hasPrepaiementParticuliers        -> 3
+            else -> 0
+        }
 
         val site = database.siteDao().getSiteById(siteId)
             ?: throw IllegalStateException("Site introuvable")
@@ -199,6 +217,7 @@ class TerminerPassageViewModel @Inject constructor(
                 soldePointsAvant = soldePointsAvant,
                 valeurPoints = valeurPoints,
                 nouveauSoldePoints = nouveauSoldePoints,
+                modePaiement = modePaiement,
                 transactionId = java.util.UUID.randomUUID().toString()
             )
         )

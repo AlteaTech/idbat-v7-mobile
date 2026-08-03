@@ -95,6 +95,8 @@ class PassageViewModel @Inject constructor(
                         // Accès simple : aucune matière → valeur 0, solde inchangé
                         valeurPoints = 0.0,
                         nouveauSoldePoints = soldePointsAvant,
+                        // RG1.1 : passage accès simple → mode de paiement 0 (Accès simple)
+                        modePaiement = 0,
                         transactionId = java.util.UUID.randomUUID().toString()
                     )
                 )

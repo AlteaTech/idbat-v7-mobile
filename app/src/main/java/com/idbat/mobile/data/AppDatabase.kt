@@ -34,7 +34,7 @@ import com.idbat.mobile.data.entities.*
         ParametreEntity::class,
         SuiviSynchroEntity::class
     ],
-    version = 44,
+    version = 45,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -94,8 +94,18 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
             MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
             MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
-            MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44
+            MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44, MIGRATION_44_45
         )
+
+        // RG1 : mode de paiement du passage + flags de mode de paiement manquants du contrat
+        private val MIGRATION_44_45 = object : Migration(44, 45) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage ADD COLUMN modePaiement INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasGratuitProfessionels INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasPaimentComptantParticuliers INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE contrats ADD COLUMN hasPaimentComptantProfessionels INTEGER NOT NULL DEFAULT 0")
+            }
+        }
 
         // Usager associé à la carte au moment du rechargement
         private val MIGRATION_43_44 = object : Migration(43, 44) {

@@ -47,6 +47,8 @@ data class PassageEntity(
     val valeurPoints: Double = 0.0,
     // Nouveau solde après passage = soldePointsAvant − valeurPoints (null si pas de solde carte)
     val nouveauSoldePoints: Double? = null,
+    // RG1 : mode de paiement — 0=Accès simple, 1=Gratuit, 2=Facturation différée, 3=Pré-paiement
+    val modePaiement: Int = 0,
     val transactionId: String = java.util.UUID.randomUUID().toString(),
     // RG3 : horodatage de l'envoi réussi au BO (null = non envoyé). Sert à différer la purge.
     val sentAt: Long? = null
