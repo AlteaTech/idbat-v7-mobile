@@ -22,6 +22,7 @@ import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
 import com.idbat.mobile.generated.client.model.LoginMobileRequest
+import com.idbat.mobile.generated.client.model.UpdateSmartphoneLocationRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,6 +137,39 @@ class AuthManager @Inject constructor(
         }
     }
 
+    /**
+     * Met à jour la position (lat/long) du device en attente d'affectation, via son identifiant
+     * (le même qu'à la connexion, `ANDROID_ID`). **Best-effort** : un échec (réseau, position
+     * indisponible, HTTP KO) reste **invisible pour l'utilisateur** et n'est **que loggé**.
+     */
+    private suspend fun updateDeviceLocationSilently(identifiantDevice: String) {
+        try {
+            val (lat, lng) = getCurrentLocation()
+            // Position indisponible (services de localisation désactivés) → on envoie quand même
+            // l'appel avec 0.0 en repli, pour que le device soit tracé côté back.
+            if (lat == null || lng == null) {
+                Log.w("AUTH_MANAGER", "Position indisponible → MAJ position device envoyée avec 0.0")
+            }
+            val latitude = lat ?: 0.0
+            val longitude = lng ?: 0.0
+
+            val response = smartphonesApi.updateSmartphoneLocation(
+                UpdateSmartphoneLocationRequest(
+                    identifiantDevice = identifiantDevice,
+                    latitude = latitude,
+                    longitude = longitude
+                )
+            )
+            if (response.isSuccessful) {
+                Log.d("AUTH_MANAGER", "Position device mise à jour (lat: $latitude, lng: $longitude)")
+            } else {
+                Log.e("AUTH_MANAGER", "Échec MAJ position device : code ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("AUTH_MANAGER", "Échec MAJ position device", e)
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun initializeApp() {
         try {
@@ -197,6 +231,9 @@ class AuthManager @Inject constructor(
                         }
                     } else {
                         Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
+                        // Device en attente d'affectation : on rafraîchit sa position (best-effort,
+                        // invisible pour l'utilisateur — toute erreur est seulement loggée).
+                        updateDeviceLocationSilently(identifiantDevice)
                         // Afficher le message de validation
                         _authState.value = _authState.value.copy(
                             isInitialized = true,

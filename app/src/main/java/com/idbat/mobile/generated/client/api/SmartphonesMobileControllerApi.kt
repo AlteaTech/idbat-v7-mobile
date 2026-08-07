@@ -1,11 +1,9 @@
 package com.idbat.mobile.generated.client.api
 
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
+import com.idbat.mobile.generated.client.model.UpdateSmartphoneLocationRequest
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Query
+import retrofit2.http.*
 
 interface SmartphonesMobileControllerApi {
     /**
@@ -33,5 +31,18 @@ interface SmartphonesMobileControllerApi {
      */
     @POST("api/smartphones")
     suspend fun creerSmartphone(@Body creerSmartphoneMobileRequest: CreerSmartphoneMobileRequest): Response<kotlin.Any>
+
+    /**
+     * PUT api/smartphones/location
+     * 
+     * 
+     * Responses:
+     *  - 200: OK
+     *
+     * @param updateSmartphoneLocationRequest 
+     * @return [Unit]
+     */
+    @PUT("api/smartphones/location")
+    suspend fun updateSmartphoneLocation(@Body updateSmartphoneLocationRequest: UpdateSmartphoneLocationRequest): Response<Unit>
 
 }
