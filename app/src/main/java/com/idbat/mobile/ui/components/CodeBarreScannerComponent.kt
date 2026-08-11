@@ -135,7 +135,7 @@ fun CodeBarreScannerComponent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .height(280.dp)
                         .background(Color.Black, RoundedCornerShape(12.dp))
                 ) {
                     val executor = remember { Executors.newSingleThreadExecutor() }
@@ -195,7 +195,7 @@ fun CodeBarreScannerComponent(
 
                     if (isActive) {
                         Text(
-                            text = "Alignez le code-barres dans le cadre",
+                            text = "Alignez le code-barres ou le QR dans le cadre",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,
@@ -217,11 +217,10 @@ private fun BarcodeOverlay(found: Boolean) {
             .fillMaxSize()
             .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
     ) {
-        // Fenêtre rectangulaire large (ratio ~3.2:1) centrée
-        val boxWidth = size.width * 0.82f
-        val boxHeight = boxWidth / 3.2f
-        val left = (size.width - boxWidth) / 2f
-        val top = (size.height - boxHeight) / 2f
+        // RG1 : fenêtre carrée centrée — lit le QR IDemat comme les CB simples (dans tous les sens)
+        val side = size.width * 0.7f
+        val left = (size.width - side) / 2f
+        val top = (size.height - side) / 2f
         val corner = CornerRadius(12.dp.toPx())
         val accentColor = if (found) VeoliaSuccess else VeoliaCoral
 
@@ -229,24 +228,16 @@ private fun BarcodeOverlay(found: Boolean) {
         drawRoundRect(
             Color.Transparent,
             topLeft = Offset(left, top),
-            size = Size(boxWidth, boxHeight),
+            size = Size(side, side),
             cornerRadius = corner,
             blendMode = BlendMode.Clear
         )
         drawRoundRect(
             accentColor,
             topLeft = Offset(left, top),
-            size = Size(boxWidth, boxHeight),
+            size = Size(side, side),
             cornerRadius = corner,
             style = Stroke(width = 2.5.dp.toPx())
-        )
-
-        // Ligne de visée horizontale au centre
-        drawLine(
-            color = accentColor.copy(alpha = 0.9f),
-            start = Offset(left + 12.dp.toPx(), top + boxHeight / 2f),
-            end = Offset(left + boxWidth - 12.dp.toPx(), top + boxHeight / 2f),
-            strokeWidth = 2.dp.toPx()
         )
     }
 }
@@ -296,8 +287,9 @@ private class StableBarcodeConfirmer(
 }
 
 /**
- * Client ML Kit restreint aux codes-barres 1D qui **conservent la chaîne littérale** (zéros de
- * tête inclus) : CODE 128 / 39 / 93.
+ * Client ML Kit pour l'écran de dépôt : codes-barres 1D **CODE 128 / 39 / 93** (qui conservent la
+ * chaîne littérale, zéros de tête inclus) **+ QR code** (RG1 : les CB peuvent inclure le QR généré
+ * par IDemat).
  *
  * ⚠️ On exclut volontairement `ITF` et la famille `UPC`/`EAN` : ce sont des symbologies à
  * longueur contrainte (ITF = chiffres par **paires**, UPC/EAN = longueur fixe avec chiffre de
@@ -310,7 +302,8 @@ private val linearBarcodeScanner by lazy {
             .setBarcodeFormats(
                 Barcode.FORMAT_CODE_128,
                 Barcode.FORMAT_CODE_39,
-                Barcode.FORMAT_CODE_93
+                Barcode.FORMAT_CODE_93,
+                Barcode.FORMAT_QR_CODE
             )
             .build()
     )
