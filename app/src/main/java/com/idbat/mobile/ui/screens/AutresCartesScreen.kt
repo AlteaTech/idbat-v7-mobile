@@ -207,8 +207,8 @@ fun AutresCartesScreen(
                             // et remplit l'input en dessous (l'affectation remplace l'ancienne valeur).
                             CodeBarreScannerComponent(
                                 scannedValue = codebarresValue.takeIf { it.isNotBlank() },
-                                title = "Code-barres",
-                                subtitle = "Scannez la carte ou tapez le code",
+                                title = "Code-barres ou QR code",
+                                subtitle = "Scannez ou tapez le code",
                                 onBarcodeDetected = { value, _ ->
                                     codebarresValue = value
                                     immatriculationValue = ""
