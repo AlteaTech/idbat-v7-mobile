@@ -17,6 +17,7 @@ import com.idbat.mobile.generated.client.api.CarteCreationControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.ParametreGlobalControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
+import com.idbat.mobile.generated.client.api.PassagesRefusesControllerApi
 import com.idbat.mobile.generated.client.api.RechargesCarteControllerApi
 import com.idbat.mobile.generated.client.api.SignalementsControllerApi
 import com.idbat.mobile.generated.client.api.SuiviSynchroControllerApi
@@ -46,6 +47,7 @@ class SyncManager @Inject constructor(
     private val signalementsApi: SignalementsControllerApi,
     private val carteCreationApi: CarteCreationControllerApi,
     private val rechargesCarteApi: RechargesCarteControllerApi,
+    private val passagesRefusesApi: PassagesRefusesControllerApi,
     private val parametreGlobalApi: ParametreGlobalControllerApi,
     private val suiviSynchroApi: SuiviSynchroControllerApi,
     private val parametreManager: ParametreManager
@@ -115,6 +117,7 @@ class SyncManager @Inject constructor(
         val threshold = System.currentTimeMillis() -
                 parametreManager.dataRetentionDays.value * 24L * 60L * 60L * 1000L
         database.passageDao().deleteSentOlderThan(threshold)
+        database.passageRefuseDao().deleteSentOlderThan(threshold)
         database.signalementDao().deleteSentOlderThan(threshold)
         database.carteCreeeDao().deleteSentOlderThan(threshold)
         database.rechargeCarteDao().deleteSentOlderThan(threshold)
@@ -131,6 +134,7 @@ class SyncManager @Inject constructor(
         val signalementDao  = database.signalementDao()
         val carteCreeeDao   = database.carteCreeeDao()
         val rechargeDao     = database.rechargeCarteDao()
+        val passageRefuseDao = database.passageRefuseDao()
         val histoDao        = database.lastSynchroHistoryDao()
         val suiviDao        = database.suiviSynchroDao()
 
@@ -141,7 +145,8 @@ class SyncManager @Inject constructor(
         val allSignalements = signalementDao.getUnsent()
         val allCartesCreees = carteCreeeDao.getUnsent()
         val allRecharges    = rechargeDao.getUnsent()
-        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) + ${allRecharges.size} rechargement(s) à envoyer")
+        val allRefuses      = passageRefuseDao.getUnsent()
+        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) + ${allRecharges.size} rechargement(s) + ${allRefuses.size} passage(s) refusé(s) à envoyer")
 
         // Suivi : UNE ligne PAR SITE (chacune avec son propre idTransaction). Les listes `all*`
         // couvrent tous les sites → on compte le nombre à envoyer par site. On trace tous les sites
@@ -151,7 +156,8 @@ class SyncManager @Inject constructor(
             (allPassages.map { it.siteId } +
                     allSignalements.map { it.siteId } +
                     allCartesCreees.map { it.siteId } +
-                    allRecharges.map { it.siteId })
+                    allRecharges.map { it.siteId } +
+                    allRefuses.map { it.siteId })
                 .groupingBy { it }
                 .eachCount()
 
@@ -277,6 +283,38 @@ class SyncManager @Inject constructor(
             } catch (e: Exception) {
                 statsBySite[recharge.siteId] = (prev.first + 1) to prev.second
                 Log.e("SYNC_MANAGER", "Erreur envoi rechargement ${recharge.id}", e)
+            }
+        }
+
+        // ── Passages refusés (RG4) ──────────────────────────────────────────────
+        for (refuse in allRefuses) {
+            val request = CreerPassageRefuseRequest(
+                contratId     = refuse.contratId,
+                siteId        = refuse.siteId,
+                userTpId      = refuse.userTpId,
+                datePassage   = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(refuse.dateHeure), ZoneId.systemDefault()
+                ),
+                transactionId = refuse.transactionId,
+                usagerId      = refuse.usagerId,
+                carteId       = refuse.carteId,
+                commentaire   = refuse.commentaire
+            )
+
+            val prev = statsBySite.getOrDefault(refuse.siteId, 0L to 0L)
+            try {
+                val response = passagesRefusesApi.creerPassageRefuse(request)
+                if (response.isSuccessful) {
+                    passageRefuseDao.markSent(refuse.id, nowMillis)
+                    statsBySite[refuse.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Passage refusé ${refuse.id} envoyé (site ${refuse.siteId})")
+                } else {
+                    statsBySite[refuse.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Passage refusé ${refuse.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[refuse.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi passage refusé ${refuse.id}", e)
             }
         }
 

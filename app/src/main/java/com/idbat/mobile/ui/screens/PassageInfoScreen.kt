@@ -16,6 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -131,6 +134,24 @@ fun PassageInfoScreen(
             val isListeNoire = listeNoire != null;
             // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
             val usagerBloque = isListeNoire || seuils.any { !it.isAlerte }
+
+            // RG1/RG3 : dès que le refus s'affiche, on enregistre le passage refusé (une seule fois),
+            // pour que l'info survive même si l'utilisateur kill l'app avant de fermer l'écran.
+            var refusEnregistre by remember(info.carteId, info.usagerId) { mutableStateOf(false) }
+            LaunchedEffect(usagerBloque) {
+                if (usagerBloque && !refusEnregistre) {
+                    refusEnregistre = true
+                    viewModel.enregistrerPassageRefuse(
+                        contratId = contratId,
+                        siteId = siteId,
+                        carteId = info.carteId,
+                        commentaire = buildRefusComment(isListeNoire, seuils),
+                        usagerId = info.usagerId,
+                        uidCarte = info.uid,
+                        emailUsager = info.contact
+                    )
+                }
+            }
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -338,15 +359,30 @@ private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean)
     }
 }
 
-@Composable
-private fun SeuilRow(seuil: SeuilEtatEntity) {
+private fun seuilMessage(seuil: SeuilEtatEntity): String {
     val periode = if (seuil.seuilDetailPeriode.equals("annuel", ignoreCase = true)) " sur l'année" else ""
     val nbAutorises = seuil.seuilDetailNbPassage ?: seuil.nbPassagesAutorises
-    val message = if (!seuil.isAlerte) {
+    return if (!seuil.isAlerte) {
         "Seuil ${seuil.nom} atteint, vous avez ${seuil.nbPassagesEffectues} passages$periode pour $nbAutorises autorisés"
     } else {
         "Le seuil ${seuil.nom} vous autorise $nbAutorises passages$periode, vous en avez déjà effectué ${seuil.nbPassagesEffectues}"
     }
+}
+
+/**
+ * RG3 : commentaire justifiant un passage refusé — reprend le(s) message(s) d'alerte affiché(s)
+ * (liste noire + seuils bloquants isAlerte == false).
+ */
+private fun buildRefusComment(isListeNoire: Boolean, seuils: List<SeuilEtatEntity>): String {
+    val lignes = mutableListOf<String>()
+    if (isListeNoire) lignes.add("Cette carte est en liste noire")
+    seuils.filter { !it.isAlerte }.forEach { lignes.add(seuilMessage(it)) }
+    return lignes.joinToString("\n")
+}
+
+@Composable
+private fun SeuilRow(seuil: SeuilEtatEntity) {
+    val message = seuilMessage(seuil)
     Row(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp)

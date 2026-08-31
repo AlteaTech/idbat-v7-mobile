@@ -126,6 +126,11 @@ object ApiModule {
 
     @Provides
     @Singleton
+    fun providePassagesRefusesApi(retrofit: Retrofit): PassagesRefusesControllerApi =
+        retrofit.create(PassagesRefusesControllerApi::class.java)
+
+    @Provides
+    @Singleton
     fun provideParametreGlobalApi(retrofit: Retrofit): ParametreGlobalControllerApi =
         retrofit.create(ParametreGlobalControllerApi::class.java)
 

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageEntity
+import com.idbat.mobile.data.entities.PassageRefuseEntity
 import com.idbat.mobile.data.entities.SeuilEtatEntity
 import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.singleton.AuthManager
@@ -103,6 +104,43 @@ class PassageViewModel @Inject constructor(
                 _saveState.value = PassageSaveState.Success
             } catch (e: Exception) {
                 _saveState.value = PassageSaveState.Error(e.message ?: "Erreur inconnue")
+            }
+        }
+    }
+
+    /**
+     * RG1/RG2/RG3 : enregistre un **passage refusé** (outbox). Appelé au clic sur « Fermer » quand
+     * l'usager est bloqué (liste noire / seuil). `commentaire` = message d'alerte justifiant le refus.
+     * Best-effort en arrière-plan (pas d'état exposé à l'UI, qui navigue immédiatement).
+     */
+    fun enregistrerPassageRefuse(
+        contratId: Long,
+        siteId: Long,
+        carteId: Long?,
+        commentaire: String,
+        usagerId: Long? = null,
+        uidCarte: String? = null,
+        emailUsager: String? = null
+    ) {
+        viewModelScope.launch {
+            try {
+                val userTp = authManager.authState.value.loggedInUtilisateurTp ?: return@launch
+                database.passageRefuseDao().insert(
+                    PassageRefuseEntity(
+                        dateHeure = System.currentTimeMillis(),
+                        contratId = contratId,
+                        siteId = siteId,
+                        carteId = carteId,
+                        usagerId = usagerId,
+                        userTpId = userTp.id,
+                        commentaire = commentaire,
+                        uidCarte = uidCarte,
+                        emailUsager = emailUsager,
+                        transactionId = java.util.UUID.randomUUID().toString()
+                    )
+                )
+            } catch (_: Exception) {
+                // best-effort : un échec d'enregistrement ne doit pas bloquer la fermeture de l'écran
             }
         }
     }

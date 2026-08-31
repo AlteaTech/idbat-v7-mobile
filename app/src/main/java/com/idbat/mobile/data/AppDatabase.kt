@@ -32,9 +32,10 @@ import com.idbat.mobile.data.entities.*
         CarteCreeeEntity::class,
         RechargeCarteEntity::class,
         ParametreEntity::class,
-        SuiviSynchroEntity::class
+        SuiviSynchroEntity::class,
+        PassageRefuseEntity::class
     ],
-    version = 45,
+    version = 47,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -60,6 +61,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun rechargeCarteDao(): RechargeCarteDao
     abstract fun parametreDao(): ParametreDao
     abstract fun suiviSynchroDao(): SuiviSynchroDao
+    abstract fun passageRefuseDao(): PassageRefuseDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -94,8 +96,40 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
             MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
             MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
-            MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44, MIGRATION_44_45
+            MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44, MIGRATION_44_45,
+            MIGRATION_45_46, MIGRATION_46_47
         )
+
+        // RG4 : usager associé au passage refusé (pour la remontée BO)
+        private val MIGRATION_46_47 = object : Migration(46, 47) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE passage_refuse ADD COLUMN usagerId INTEGER")
+            }
+        }
+
+        // RG1 : table de stockage local des passages refusés (outbox, sans FK)
+        private val MIGRATION_45_46 = object : Migration(45, 46) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `passage_refuse` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `dateHeure` INTEGER NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `carteId` INTEGER,
+                        `userTpId` INTEGER NOT NULL,
+                        `commentaire` TEXT NOT NULL,
+                        `emailUsager` TEXT,
+                        `uidCarte` TEXT,
+                        `transactionId` TEXT NOT NULL DEFAULT '',
+                        `sentAt` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_refuse_contratId` ON `passage_refuse` (`contratId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_refuse_siteId` ON `passage_refuse` (`siteId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_refuse_userTpId` ON `passage_refuse` (`userTpId`)")
+            }
+        }
 
         // RG1 : mode de paiement du passage + flags de mode de paiement manquants du contrat
         private val MIGRATION_44_45 = object : Migration(44, 45) {

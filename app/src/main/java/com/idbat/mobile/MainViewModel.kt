@@ -97,7 +97,8 @@ class MainViewModel @Inject constructor(
             database.passageDao().count() +
             database.signalementDao().count() +
             database.carteCreeeDao().count() +
-            database.rechargeCarteDao().count()
+            database.rechargeCarteDao().count() +
+            database.passageRefuseDao().count()
 
         // "Opérations non transférées" = uniquement les lignes pas encore montées vers le BO
         // (sentAt IS NULL). En théorie 0 juste après une synchro réussie.
@@ -105,7 +106,8 @@ class MainViewModel @Inject constructor(
             database.passageDao().countUnsent() +
             database.signalementDao().countUnsent() +
             database.carteCreeeDao().countUnsent() +
-            database.rechargeCarteDao().countUnsent()
+            database.rechargeCarteDao().countUnsent() +
+            database.passageRefuseDao().countUnsent()
 
         return buildSuiviContent(
             _uiState.value.syncState.lastSynchroDateEnvoi,
