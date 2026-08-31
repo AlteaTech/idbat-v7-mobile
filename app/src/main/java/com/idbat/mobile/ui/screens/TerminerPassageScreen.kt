@@ -236,9 +236,9 @@ fun TerminerPassageScreen(
                         // RG5.1 / RG5.3
                         Text(
                             text = if (hasExistingEmail)
-                                "Adresse e-mail pour envoyer le bon de dépôt"
+                                "Adresse mail pour envoyer le bon de dépôt"
                             else
-                                "Pas d'adresse e-mail connue pour envoyer le bon de dépôt",
+                                "Pas d'adresse mail connue pour envoyer le bon de dépôt",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
