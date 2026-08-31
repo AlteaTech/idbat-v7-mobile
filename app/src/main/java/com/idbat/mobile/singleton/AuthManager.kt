@@ -226,8 +226,12 @@ class AuthManager @Inject constructor(
                         val contratDao = database.contratDao()
                         val utilisateurTPDao = database.utilisateurTPDao()
                         if (contratDao.count() != 1L ||utilisateurTPDao.count() <= 0) {
+                            // RG4 : premier lancement / base incomplète → chargement initial
                             contratDao.purge()
                             loadContractsFromApi()
+                        } else {
+                            // Contrat déjà présent → détecter un changement de contrat côté back (RG1/RG2)
+                            detecterChangementContratEtRecharger(contratDao.getFirstContrat())
                         }
                     } else {
                         Log.e("AUTH_MANAGER", "Erreur HTTP API Init: ${reponse.code()}")
@@ -279,6 +283,41 @@ class AuthManager @Inject constructor(
             _authState.value = _authState.value.copy(
                 isInitialized = true,
             )
+        }
+    }
+
+    /**
+     * RG1/RG2 : au lancement, si le device n'est plus sur le **même contrat** qu'en base, on repart
+     * d'un état ~primo-lancement (**purge totale**) puis on resynchronise (sites + utilisateurs du
+     * nouveau contrat). Comparaison sur l'`id` du contrat renvoyé par `getByDevice()`.
+     *
+     * RG3 : **hors ligne / erreur réseau → on ne touche à rien** (jamais de purge sur échec).
+     * RG4 : premier lancement → cette méthode n'est pas appelée (branche de chargement initial).
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun detecterChangementContratEtRecharger(contratLocal: ContratEntity?) {
+        if (contratLocal == null) return
+
+        val dmo = try {
+            val response = contratsApi.getByDevice()
+            if (!response.isSuccessful) {
+                // Réponse KO (device peut-être en ré-affectation) → on préfère garder l'existant
+                Log.w("AUTH_MANAGER", "Vérification contrat : code ${response.code()} → données conservées")
+                return
+            }
+            response.body()
+        } catch (e: Exception) {
+            // RG3 : pas de réseau → on ne change rien
+            Log.w("AUTH_MANAGER", "Vérification contrat impossible (hors ligne ?) → données conservées", e)
+            return
+        } ?: return
+
+        if (dmo.id != contratLocal.id) {
+            Log.i("AUTH_MANAGER", "Changement de contrat détecté (${contratLocal.id} → ${dmo.id}) : purge totale + resynchro")
+            withContext(Dispatchers.IO) { database.clearAllTables() }
+            loadContractsFromApi()
+        } else {
+            Log.d("AUTH_MANAGER", "Contrat inchangé (${contratLocal.id})")
         }
     }
 
