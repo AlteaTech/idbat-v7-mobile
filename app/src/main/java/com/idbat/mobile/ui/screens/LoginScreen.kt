@@ -72,7 +72,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = formState.selectedSite?.nom ?: "Selectionner un site",
+                        value = formState.selectedSite?.nom ?: "Sélectionner un site",
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = {

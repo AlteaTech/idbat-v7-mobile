@@ -219,7 +219,7 @@ fun SaisieSignalementScreen(
                         OutlinedTextField(
                             value = uiState.commentaire,
                             onValueChange = { viewModel.setCommentaire(it) },
-                            placeholder = { Text("Ecrivez votre commentaire ici", color = VeoliaPlaceholder) },
+                            placeholder = { Text("Écrivez votre commentaire ici", color = VeoliaPlaceholder) },
                             minLines = 3,
                             maxLines = 4,
                             colors = OutlinedTextFieldDefaults.colors(
