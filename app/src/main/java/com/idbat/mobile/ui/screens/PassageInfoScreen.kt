@@ -345,7 +345,7 @@ private fun SeuilRow(seuil: SeuilEtatEntity) {
     val message = if (!seuil.isAlerte) {
         "Seuil ${seuil.nom} atteint, ${seuil.nbPassagesEffectues} passages ${periode} pour ${nbAutorises} autorisés"
     } else {
-        "Le seuil ${seuil.nom} autorise ${nbAutorises} passages ${periode}, vous en avez déjà effectué ${seuil.nbPassagesEffectues}"
+        "Le seuil ${seuil.nom} autorise ${nbAutorises} passages ${periode}, ${seuil.nbPassagesEffectues} déjà effectués"
     }
     Row(
         verticalAlignment = Alignment.Top,
