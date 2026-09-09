@@ -340,12 +340,12 @@ private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean)
 
 @Composable
 private fun SeuilRow(seuil: SeuilEtatEntity) {
-    val periode = if (seuil.seuilDetailPeriode.equals("annuel", ignoreCase = true)) " sur l'année" else ""
+    val periode = if (seuil.seuilDetailPeriode.equals("annuel", ignoreCase = true)) "sur l'année" else ""
     val nbAutorises = seuil.seuilDetailNbPassage ?: seuil.nbPassagesAutorises
     val message = if (!seuil.isAlerte) {
         "Seuil ${seuil.nom} atteint, ${seuil.nbPassagesEffectues} passages ${periode} pour ${nbAutorises} autorisés"
     } else {
-        "Le seuil ${seuil.nom} ${nbAutorises} passages ${periode}, vous en avez déjà effectué ${seuil.nbPassagesEffectues}"
+        "Le seuil ${seuil.nom} autorise ${nbAutorises} passages ${periode}, vous en avez déjà effectué ${seuil.nbPassagesEffectues}"
     }
     Row(
         verticalAlignment = Alignment.Top,
