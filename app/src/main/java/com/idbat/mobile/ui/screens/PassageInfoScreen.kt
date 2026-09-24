@@ -362,7 +362,7 @@ private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean)
 private fun seuilMessage(seuil: SeuilEtatEntity): String {
     val periode = if (seuil.seuilDetailPeriode.equals("annuel", ignoreCase = true)) "sur l'année" else ""
     val nbAutorises = seuil.seuilDetailNbPassage ?: seuil.nbPassagesAutorises
-    val message = if (!seuil.isAlerte) {
+    return if (!seuil.isAlerte) {
         "Seuil ${seuil.nom} atteint, ${seuil.nbPassagesEffectues} passages ${periode} pour ${nbAutorises} autorisés"
     } else {
         "Le seuil ${seuil.nom} autorise ${nbAutorises} passages ${periode}, ${seuil.nbPassagesEffectues} déjà effectués"
