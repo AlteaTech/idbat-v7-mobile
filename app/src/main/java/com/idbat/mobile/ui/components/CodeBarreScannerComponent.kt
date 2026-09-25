@@ -153,7 +153,12 @@ fun CodeBarreScannerComponent(
 
                     AndroidView(
                         factory = { ctx ->
-                            val previewView = PreviewView(ctx)
+                            val previewView = PreviewView(ctx).apply {
+                                // Mode COMPATIBLE (TextureView) : le mode PERFORMANCE (SurfaceView)
+                                // par défaut utilise une surface matérielle séparée qui, sur certains
+                                // OEM, déborde de sa Box (bandes claires masquant l'écran / le titre).
+                                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                            }
                             val future = ProcessCameraProvider.getInstance(ctx)
                             future.addListener({
                                 val provider = future.get()
