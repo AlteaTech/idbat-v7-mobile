@@ -136,7 +136,10 @@ fun CodeBarreScannerComponent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(280.dp)
-                        .background(Color.Black, RoundedCornerShape(12.dp))
+                        // clip AVANT le background : sinon le PreviewView (enfant) n'est pas
+                        // contraint aux bornes et déborde en bandes une fois la caméra en stream.
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black)
                 ) {
                     val executor = remember { Executors.newSingleThreadExecutor() }
                     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }

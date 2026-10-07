@@ -7,9 +7,10 @@ object ConfigSingleton {
 
     const val BASE_URL_DEV_EMULATOR = "http://10.0.2.2:8091/"
     const val BASE_URL_DEV_DEVICE   = "http://localhost:8091/"   // nécessite : adb reverse tcp:8091 tcp:8091
-    const val BASE_URL_STAGING      = "https://idbat-mobile-rec.recyclage.veolia.fr/"
+    const val BASE_URL_REC      = "https://idbat-mobile-rec.recyclage.veolia.fr/"
+    const val BASE_URL_INT      = "https://idbat-portail-int.recyclage.veolia.fr/mobile/"
 
-    val baseUrl = BASE_URL_STAGING
+    val baseUrl = BASE_URL_REC
 
     // Feature flags : affichage des boutons de dev dans CarteActionSheet
     val pocEnable = false          // bouton "POC"
