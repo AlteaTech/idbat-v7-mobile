@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.idbat.mobile.R
 import com.idbat.mobile.data.entities.SiteEntity
+import com.idbat.mobile.singleton.ConfigSingleton
 import com.idbat.mobile.ui.components.*
 import com.idbat.mobile.ui.theme.VeoliaCoral
 import com.idbat.mobile.utils.FileLogger
@@ -197,7 +198,9 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             MainSiteCard(
-                siteName = selectedSite?.nom ?: "",
+                // Plateforme (si non vide) préfixée au nom de la déchetterie, suivie d'un espace
+                siteName = (if (ConfigSingleton.plateforme.isNotEmpty()) "${ConfigSingleton.plateforme} " else "") +
+                        (selectedSite?.nom ?: ""),
                 lastTransfer = lastTransferText,
                 lastSynchroDateReception = lastSynchroDateReception,
                 lastSynchroDateEnvoi = lastSynchroDateEnvoi,
