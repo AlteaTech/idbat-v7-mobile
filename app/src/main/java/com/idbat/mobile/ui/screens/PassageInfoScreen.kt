@@ -133,7 +133,9 @@ fun PassageInfoScreen(
             Spacer(modifier = Modifier.height(16.dp))
             val isListeNoire = listeNoire != null;
             // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
-            val usagerBloque = isListeNoire || seuils.any { !it.isAlerte }
+            // #487 : blocage = carte en liste noire OU au moins un seuil bloquant (isBloquant,
+            // calculé par le back rechargements inclus). isAlerte = simple avertissement.
+            val usagerBloque = isListeNoire || seuils.any { it.isBloquant }
 
             // RG1/RG3 : dès que le refus s'affiche, on enregistre le passage refusé (une seule fois),
             // pour que l'info survive même si l'utilisateur kill l'app avant de fermer l'écran.
@@ -361,8 +363,9 @@ private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean)
 
 private fun seuilMessage(seuil: SeuilEtatEntity): String {
     val periode = if (seuil.seuilDetailPeriode.equals("annuel", ignoreCase = true)) "sur l'année" else ""
-    val nbAutorises = seuil.seuilDetailNbPassage ?: seuil.nbPassagesAutorises
-    return if (!seuil.isAlerte) {
+    // #487 : nombre autorisé = valeur calculée par le back (rechargements inclus)
+    val nbAutorises = seuil.nbPassagesAutorises
+    return if (seuil.isBloquant) {
         "Seuil ${seuil.nom} atteint, ${seuil.nbPassagesEffectues} passages ${periode} pour ${nbAutorises} autorisés"
     } else {
         "Le seuil ${seuil.nom} autorise ${nbAutorises} passages ${periode}, ${seuil.nbPassagesEffectues} déjà effectués"
@@ -376,7 +379,7 @@ private fun seuilMessage(seuil: SeuilEtatEntity): String {
 private fun buildRefusComment(isListeNoire: Boolean, seuils: List<SeuilEtatEntity>): String {
     val lignes = mutableListOf<String>()
     if (isListeNoire) lignes.add("Cette carte est en liste noire")
-    seuils.filter { !it.isAlerte }.forEach { lignes.add(seuilMessage(it)) }
+    seuils.filter { it.isBloquant }.forEach { lignes.add(seuilMessage(it)) }
     return lignes.joinToString("\n")
 }
 

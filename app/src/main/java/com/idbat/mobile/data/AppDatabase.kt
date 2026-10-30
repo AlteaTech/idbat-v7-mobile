@@ -26,6 +26,7 @@ import com.idbat.mobile.data.entities.*
         PassageEntity::class,
         PassageMatiereEntity::class,
         PassageDocumentEntity::class,
+        PassageSeuilEntity::class,
         SignalementEntity::class,
         SignalementDocumentEntity::class,
         SeuilEtatEntity::class,
@@ -35,7 +36,7 @@ import com.idbat.mobile.data.entities.*
         SuiviSynchroEntity::class,
         PassageRefuseEntity::class
     ],
-    version = 47,
+    version = 49,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -53,6 +54,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun usagerCarteDao(): UsagerCarteDao
     abstract fun passageDao(): PassageDao
     abstract fun passageMatiereDao(): PassageMatiereDao
+    abstract fun passageSeuilDao(): PassageSeuilDao
     abstract fun passageDocumentDao(): PassageDocumentDao
     abstract fun signalementDao(): SignalementDao
     abstract fun signalementDocumentDao(): SignalementDocumentDao
@@ -97,8 +99,33 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37,
             MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
             MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44, MIGRATION_44_45,
-            MIGRATION_45_46, MIGRATION_46_47
+            MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48, MIGRATION_48_49
         )
+
+        // #487/#484 : seuils avertis/bloquants capturés sur le passage (remontés au BO)
+        private val MIGRATION_48_49 = object : Migration(48, 49) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `passage_seuil` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `passageId` INTEGER NOT NULL,
+                        `seuilId` INTEGER NOT NULL,
+                        `libelle` TEXT NOT NULL,
+                        `isAlerte` INTEGER NOT NULL,
+                        `isBloquant` INTEGER NOT NULL,
+                        FOREIGN KEY(`passageId`) REFERENCES `passage`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_seuil_passageId` ON `passage_seuil` (`passageId`)")
+            }
+        }
+
+        // #487 : flag de blocage du seuil (distinct de l'alerte), calculé par le back rechargements inclus
+        private val MIGRATION_47_48 = object : Migration(47, 48) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE seuil_etat ADD COLUMN isBloquant INTEGER NOT NULL DEFAULT 0")
+            }
+        }
 
         // RG4 : usager associé au passage refusé (pour la remontée BO)
         private val MIGRATION_46_47 = object : Migration(46, 47) {

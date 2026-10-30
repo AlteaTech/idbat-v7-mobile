@@ -25,6 +25,7 @@ package com.idbat.mobile.generated.client.model
 
 
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 /**
  * 
@@ -34,6 +35,7 @@ import com.squareup.moshi.Json
  * @param nbPassagesAutorises 
  * @param nbPassagesEffectues 
  * @param isAlerte 
+ * @param isBloquant 
  * @param seuilDetailNom 
  * @param seuilDetailType 
  * @param seuilDetailPeriode 
@@ -60,6 +62,9 @@ data class SeuilEtatDmo (
 
     @Json(name = "isAlerte")
     val isAlerte: kotlin.Boolean,
+
+    @Json(name = "isBloquant")
+    val isBloquant: kotlin.Boolean,
 
     @Json(name = "seuilDetailNom")
     val seuilDetailNom: kotlin.String,
