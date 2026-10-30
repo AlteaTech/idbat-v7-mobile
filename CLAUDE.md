@@ -53,7 +53,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `HomeScreen` | Tableau de bord : infos site, badges synchro, actions |
 | `DepotScreen` | Choix du type de carte (2 gros boutons empilés : Carte à puce / Autres) — fond blanc pur, affiché selon flags contrat |
 | `AutresCartesScreen` | Code-barres / Immatriculation (uppercase alphanumérique only) / Sélection usager |
-| `PassageInfoScreen` | Infos carte + **seuils/alertes** ; bouton "Fermer" si usager bloqué (seuil atteint) |
+| `PassageInfoScreen` | Infos carte + **seuils/alertes** ; bouton "Fermer" si usager bloqué. **#487** : blocage = liste noire **OU** `seuils.any { it.isBloquant }` (plus `!isAlerte`) ; le nombre autorisé affiché = `nbPassagesAutorises` (valeur back, rechargements inclus) |
 | `SaisieMatiereScreen` | Saisie des matières du passage (quantité obligatoire). **RG2.1 (#238)** : en dépôt puce **pré-paiement** (`info.soldePoints != null` + `hasPrepaiement{…}` selon apporteur), à chaque ajout/modif on calcule le total prospectif (Σ quantité×tarif) ; s'il dépasse le solde lu en début de process → dialog « Solde insuffisant sur la carte » et la ligne n'est **pas** conservée. |
 | `TerminerPassageScreen` | Email bon de dépôt → enregistrement passage en BDD. **RG1-RG3 dépôt puce pré-paiement** : si carte 'P' (`info.uid != null`) ET `hasPrepaiement{Particuliers,Professionnels}` selon le type d'apporteur, « Terminer » passe en **phase d'écriture NFC** (relit la carte, vérifie l'UID RG3.1, écrit le nouveau solde = solde de départ − total points, RG2) et n'enregistre le passage qu'après écriture réussie (RG3.2) → dialog « Dépôt enregistré » → accueil (RG3.3). Sinon enregistrement direct. |
 | `SaisieSignalementScreen` | Événement + commentaire (max 50) + photos → signalement en BDD (offline-first) |
@@ -82,7 +82,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 43
+**Nom :** `idbat_bdd` — **Version actuelle :** 49
 
 | Entité | Description |
 |---|---|
@@ -96,16 +96,17 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `ContratEvenementEntity` | Événements liés aux contrats |
 | `LastSynchroHistoryEntity` | Historique de synchronisation (ENVOI / RECEPTION), stats par site |
 | `UsagerCarteEntity` | Liaison usager↔carte (dates début/fin) |
-| `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*` |
+| `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*`. **#487** : `isAlerte` (avertissement) **et** `isBloquant` (blocage, **rechargements inclus**) — tout calculé par le back |
 | `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID, `userTpId` (user connecté), `sentAt` (RG3) |
 | `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) — `quantite`, `tarif`, **`points`** (= quantité×tarif, stocké à l'enregistrement) |
+| `PassageSeuilEntity` | **#487/#484** : seuils **avertis** (`isAlerte`) et/ou **bloquants** (`isBloquant`) au moment du passage (FK passage CASCADE). Capturés à l'enregistrement (état affiché au technicien, relu depuis `SeuilEtatEntity` par `usagerId`) → remontés dans `CreerPassageRequest.seuilsAvertis` |
 | `PassageDocumentEntity` | Photos/signature d'un passage en base64 (FK passage CASCADE) |
 | `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) — `transactionId`, `agentId` (user connecté), `sentAt` (RG3) |
 | `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |
 | `CarteCreeeEntity` | Journal des cartes créées (outbox, **sans FK**) — `userTpId` (user connecté), `sentAt` (RG3) |
 | `ParametreEntity` | Paramètres globaux (`id` back, `clef` **unique**, `valeur`, `description`) — rafraîchis à chaque synchro descendante (remplacement complet via `ParametreDao.replaceAll`) |
 
-**Migrations :** trajet complet (**version actuelle : 31**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
+**Migrations :** trajet complet (**version actuelle : 49**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
 
 > **Piège cascade Room** : `ContratDao`/`SiteDao` utilisent `@Upsert` (et non `@Insert(REPLACE)`). `REPLACE` fait DELETE+INSERT → déclenche `ON DELETE CASCADE` et efface l'historique de synchro / sous-entités. `@Upsert` met à jour en place sans cascade.
 

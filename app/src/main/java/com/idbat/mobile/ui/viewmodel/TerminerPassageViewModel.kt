@@ -14,6 +14,7 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageDocumentEntity
 import com.idbat.mobile.data.entities.PassageEntity
 import com.idbat.mobile.data.entities.PassageMatiereEntity
+import com.idbat.mobile.data.entities.PassageSeuilEntity
 import com.idbat.mobile.data.model.SaisieMatiereLigne
 import com.idbat.mobile.data.nfc.NfcRepository
 import com.idbat.mobile.singleton.AuthManager
@@ -237,6 +238,28 @@ class TerminerPassageViewModel @Inject constructor(
                 )
             }
         )
+
+        // 2bis. #487/#484 : seuils avertis (isAlerte) et/ou bloquants (isBloquant) au moment du
+        // passage — on remonte au BO exactement l'état affiché au technicien (SeuilEtatEntity,
+        // chargé par le même usagerId que PassageInfoScreen). Les seuils ne changent pas en local
+        // entre l'affichage et l'enregistrement (recalculés uniquement par la synchro descendante).
+        if (usagerId != null) {
+            val seuils = database.seuilEtatDao().getSeuilsByUsager(usagerId)
+                .filter { it.isAlerte || it.isBloquant }
+            if (seuils.isNotEmpty()) {
+                database.passageSeuilDao().insertSeuils(
+                    seuils.map { s ->
+                        PassageSeuilEntity(
+                            passageId = passageId,
+                            seuilId = s.seuilId,
+                            libelle = s.nom,
+                            isAlerte = s.isAlerte,
+                            isBloquant = s.isBloquant
+                        )
+                    }
+                )
+            }
+        }
 
         // 3. Documents (photos + signature) → base64
         val documents = mutableListOf<PassageDocumentEntity>()

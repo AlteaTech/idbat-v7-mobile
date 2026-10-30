@@ -322,6 +322,8 @@ class SyncManager @Inject constructor(
             val matieres  = matiereDao.getMatieresByPassage(passage.id)
             val documents = getDocumentsForSync(passage.id)
             val usagerId  = passage.carteId?.let { usagerDao.getUsagerByCarte(it)?.id }
+            // #487/#484 : seuils avertis/bloquants capturés à l'enregistrement du passage
+            val seuilsAvertisPassage = database.passageSeuilDao().getSeuilsByPassage(passage.id)
 
             val request = CreerPassageRequest(
                 contratId        = passage.contratId,
@@ -354,8 +356,11 @@ class SyncManager @Inject constructor(
                 valeurPoints = BigDecimal(passage.valeurPoints),
                 ancienSoldePoints = BigDecimal(passage.soldePointsAvant ?: 0.0),
                 nouveauSoldePoints = BigDecimal(passage.nouveauSoldePoints ?: 0.0),
-                modePaiementId = passage.modePaiement
-
+                modePaiementId = passage.modePaiement,
+                // #487/#484 : seuils avertis/bloquants au moment du passage
+                seuilsAvertis = seuilsAvertisPassage.map { s ->
+                    PassageSeuilRequest(seuilId = s.seuilId, libelle = s.libelle)
+                }
             )
 
             val prev = statsBySite.getOrDefault(passage.siteId, 0L to 0L)
@@ -683,6 +688,7 @@ class SyncManager @Inject constructor(
                     nbPassagesAutorises = seuilDmo.nbPassagesAutorises,
                     nbPassagesEffectues = seuilDmo.nbPassagesEffectues,
                     isAlerte = seuilDmo.isAlerte,
+                    isBloquant = seuilDmo.isBloquant,
                     seuilDetailNom = seuilDmo.seuilDetailNom,
                     seuilDetailType = seuilDmo.seuilDetailType,
                     seuilDetailPeriode = seuilDmo.seuilDetailPeriode,

@@ -24,6 +24,8 @@ data class SeuilEtatEntity(
     val nbPassagesAutorises: Int,
     val nbPassagesEffectues: Int,
     val isAlerte: Boolean,
+    // #487 : le back distingue l'avertissement (isAlerte) du blocage (isBloquant, rechargements inclus)
+    val isBloquant: Boolean = false,
     val seuilDetailNom: String,
     val seuilDetailType: String,
     val seuilDetailPeriode: String,

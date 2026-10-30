@@ -563,6 +563,7 @@ class AuthManager @Inject constructor(
                                     nbPassagesAutorises = seuilDmo.nbPassagesAutorises,
                                     nbPassagesEffectues = seuilDmo.nbPassagesEffectues,
                                     isAlerte = seuilDmo.isAlerte,
+                                    isBloquant = seuilDmo.isBloquant,
                                     seuilDetailNom = seuilDmo.seuilDetailNom,
                                     seuilDetailType = seuilDmo.seuilDetailType,
                                     seuilDetailPeriode = seuilDmo.seuilDetailPeriode,
