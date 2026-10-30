@@ -53,7 +53,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `HomeScreen` | Tableau de bord : infos site, badges synchro, actions |
 | `DepotScreen` | Choix du type de carte (2 gros boutons empilés : Carte à puce / Autres) — fond blanc pur, affiché selon flags contrat |
 | `AutresCartesScreen` | Code-barres / Immatriculation (uppercase alphanumérique only) / Sélection usager |
-| `PassageInfoScreen` | Infos carte + **seuils/alertes** ; bouton "Fermer" si usager bloqué. **#487** : blocage = liste noire **OU** `seuils.any { it.isBloquant }` (plus `!isAlerte`) ; le nombre autorisé affiché = `nbPassagesAutorises` (valeur back, rechargements inclus) |
+| `PassageInfoScreen` | Infos carte + **seuils/alertes** ; bouton "Fermer" si usager bloqué. **#487** : blocage = liste noire **OU** `seuils.any { !it.isAlerte && it.isBloquant }` (plafond atteint ET seuil bloquant) ; le nombre autorisé affiché = `nbPassagesAutorises` (valeur back, rechargements inclus) |
 | `SaisieMatiereScreen` | Saisie des matières du passage (quantité obligatoire). **RG2.1 (#238)** : en dépôt puce **pré-paiement** (`info.soldePoints != null` + `hasPrepaiement{…}` selon apporteur), à chaque ajout/modif on calcule le total prospectif (Σ quantité×tarif) ; s'il dépasse le solde lu en début de process → dialog « Solde insuffisant sur la carte » et la ligne n'est **pas** conservée. |
 | `TerminerPassageScreen` | Email bon de dépôt → enregistrement passage en BDD. **RG1-RG3 dépôt puce pré-paiement** : si carte 'P' (`info.uid != null`) ET `hasPrepaiement{Particuliers,Professionnels}` selon le type d'apporteur, « Terminer » passe en **phase d'écriture NFC** (relit la carte, vérifie l'UID RG3.1, écrit le nouveau solde = solde de départ − total points, RG2) et n'enregistre le passage qu'après écriture réussie (RG3.2) → dialog « Dépôt enregistré » → accueil (RG3.3). Sinon enregistrement direct. |
 | `SaisieSignalementScreen` | Événement + commentaire (max 50) + photos → signalement en BDD (offline-first) |
@@ -96,10 +96,10 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `ContratEvenementEntity` | Événements liés aux contrats |
 | `LastSynchroHistoryEntity` | Historique de synchronisation (ENVOI / RECEPTION), stats par site |
 | `UsagerCarteEntity` | Liaison usager↔carte (dates début/fin) |
-| `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*`. **#487** : `isAlerte` (avertissement) **et** `isBloquant` (blocage, **rechargements inclus**) — tout calculé par le back |
+| `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*`. **#487** : `isAlerte` = **plafond NON atteint** (`true` = sous le quota, **rechargements inclus**) ; `isBloquant` = **flag de config du seuil** (bloque vs avertit seulement). Tout calculé/fourni par le back. ⚠️ « usager bloqué » = `!isAlerte && isBloquant` ; « averti » = `!isAlerte && !isBloquant` |
 | `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID, `userTpId` (user connecté), `sentAt` (RG3) |
 | `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) — `quantite`, `tarif`, **`points`** (= quantité×tarif, stocké à l'enregistrement) |
-| `PassageSeuilEntity` | **#487/#484** : seuils **avertis** (`isAlerte`) et/ou **bloquants** (`isBloquant`) au moment du passage (FK passage CASCADE). Capturés à l'enregistrement (état affiché au technicien, relu depuis `SeuilEtatEntity` par `usagerId`) → remontés dans `CreerPassageRequest.seuilsAvertis` |
+| `PassageSeuilEntity` | **#487/#484** : seuils **dont le plafond est atteint** (`!isAlerte`, bloquants ou non) au moment du passage (FK passage CASCADE). Capturés à l'enregistrement (état affiché au technicien, relu depuis `SeuilEtatEntity` par `usagerId`) → remontés dans `CreerPassageRequest.seuilsAvertis` (`seuilId` + `libelle`=`nom`) |
 | `PassageDocumentEntity` | Photos/signature d'un passage en base64 (FK passage CASCADE) |
 | `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) — `transactionId`, `agentId` (user connecté), `sentAt` (RG3) |
 | `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |

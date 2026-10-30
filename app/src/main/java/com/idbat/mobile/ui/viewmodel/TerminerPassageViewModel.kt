@@ -239,13 +239,14 @@ class TerminerPassageViewModel @Inject constructor(
             }
         )
 
-        // 2bis. #487/#484 : seuils avertis (isAlerte) et/ou bloquants (isBloquant) au moment du
-        // passage — on remonte au BO exactement l'état affiché au technicien (SeuilEtatEntity,
-        // chargé par le même usagerId que PassageInfoScreen). Les seuils ne changent pas en local
-        // entre l'affichage et l'enregistrement (recalculés uniquement par la synchro descendante).
+        // 2bis. #487/#484 : seuils dont le plafond est atteint au moment du passage, remontés au BO
+        // dans CreerPassageRequest.seuilsAvertis. Sémantique back : isAlerte == false = plafond
+        // atteint (rechargements inclus). On capture tous les seuils atteints (bloquants ET non
+        // bloquants) — exactement l'état affiché au technicien (même usagerId que PassageInfoScreen).
+        // Les seuils ne changent pas en local entre l'affichage et l'enregistrement (recalcul back only).
         if (usagerId != null) {
             val seuils = database.seuilEtatDao().getSeuilsByUsager(usagerId)
-                .filter { it.isAlerte || it.isBloquant }
+                .filter { !it.isAlerte }
             if (seuils.isNotEmpty()) {
                 database.passageSeuilDao().insertSeuils(
                     seuils.map { s ->

@@ -132,10 +132,11 @@ fun PassageInfoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             val isListeNoire = listeNoire != null;
-            // Passage bloqué : carte en liste noire OU au moins un seuil atteint (isAlerte == false)
-            // #487 : blocage = carte en liste noire OU au moins un seuil bloquant (isBloquant,
-            // calculé par le back rechargements inclus). isAlerte = simple avertissement.
-            val usagerBloque = isListeNoire || seuils.any { it.isBloquant }
+            // Passage bloqué : carte en liste noire OU un seuil BLOQUANT dont le plafond est atteint.
+            // Sémantique back (UsagersMapper) : isAlerte = plafond NON atteint (true = sous le quota,
+            // rechargements inclus) ; isBloquant = flag de config du seuil (bloque vs avertit seulement).
+            // #487/#484 : un seuil atteint mais non bloquant n'empêche pas le passage (simple avertissement).
+            val usagerBloque = isListeNoire || seuils.any { !it.isAlerte && it.isBloquant }
 
             // RG1/RG3 : dès que le refus s'affiche, on enregistre le passage refusé (une seule fois),
             // pour que l'info survive même si l'utilisateur kill l'app avant de fermer l'écran.
@@ -365,7 +366,8 @@ private fun seuilMessage(seuil: SeuilEtatEntity): String {
     val periode = if (seuil.seuilDetailPeriode.equals("annuel", ignoreCase = true)) "sur l'année" else ""
     // #487 : nombre autorisé = valeur calculée par le back (rechargements inclus)
     val nbAutorises = seuil.nbPassagesAutorises
-    return if (seuil.isBloquant) {
+    // Même logique que le message calculé par le back (UsagersMapper) : clé sur le plafond atteint.
+    return if (!seuil.isAlerte) {
         "Seuil ${seuil.nom} atteint, ${seuil.nbPassagesEffectues} passages ${periode} pour ${nbAutorises} autorisés"
     } else {
         "Le seuil ${seuil.nom} autorise ${nbAutorises} passages ${periode}, ${seuil.nbPassagesEffectues} déjà effectués"
@@ -373,13 +375,13 @@ private fun seuilMessage(seuil: SeuilEtatEntity): String {
 }
 
 /**
- * RG3 : commentaire justifiant un passage refusé — reprend le(s) message(s) d'alerte affiché(s)
- * (liste noire + seuils bloquants isAlerte == false).
+ * RG3 : commentaire justifiant un passage refusé — reprend le(s) message(s) des seuils qui bloquent
+ * réellement (plafond atteint ET seuil bloquant) + la liste noire.
  */
 private fun buildRefusComment(isListeNoire: Boolean, seuils: List<SeuilEtatEntity>): String {
     val lignes = mutableListOf<String>()
     if (isListeNoire) lignes.add("Cette carte est en liste noire")
-    seuils.filter { it.isBloquant }.forEach { lignes.add(seuilMessage(it)) }
+    seuils.filter { !it.isAlerte && it.isBloquant }.forEach { lignes.add(seuilMessage(it)) }
     return lignes.joinToString("\n")
 }
 
