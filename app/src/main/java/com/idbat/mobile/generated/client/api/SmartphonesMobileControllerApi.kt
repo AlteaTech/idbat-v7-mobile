@@ -1,9 +1,13 @@
 package com.idbat.mobile.generated.client.api
 
+import org.openapitools.client.infrastructure.CollectionFormats.*
+import retrofit2.http.*
+import retrofit2.Response
+import okhttp3.RequestBody
+import com.squareup.moshi.Json
+
 import com.idbat.mobile.generated.client.model.CreerSmartphoneMobileRequest
 import com.idbat.mobile.generated.client.model.UpdateSmartphoneLocationRequest
-import retrofit2.Response
-import retrofit2.http.*
 
 interface SmartphonesMobileControllerApi {
     /**

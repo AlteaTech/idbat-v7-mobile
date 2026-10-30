@@ -23,7 +23,14 @@
 
 package com.idbat.mobile.generated.client.model
 
+import com.idbat.mobile.generated.client.model.ContratEvenementDmo
+import com.idbat.mobile.generated.client.model.ContratSiteDmo
+import com.idbat.mobile.generated.client.model.ContratUnitePassageDmo
+import com.idbat.mobile.generated.client.model.ContratUsagerDmo
+import com.idbat.mobile.generated.client.model.ContratUtilisateursTpsDmo
+
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 /**
  * 
@@ -49,6 +56,8 @@ import com.squareup.moshi.Json
  * @param hasGratuitProfessionels 
  * @param hasPaimentComptantProfessionels 
  * @param hasPaimentComptantParticuliers 
+ * @param hasDecompteunites 
+ * @param unitesPassagePossibles 
  */
 
 
@@ -115,7 +124,13 @@ data class ContratDmo (
     val hasPaimentComptantProfessionels: kotlin.Boolean,
 
     @Json(name = "hasPaimentComptantParticuliers")
-    val hasPaimentComptantParticuliers: kotlin.Boolean
+    val hasPaimentComptantParticuliers: kotlin.Boolean,
+
+    @Json(name = "hasDecompteunites")
+    val hasDecompteunites: kotlin.Boolean,
+
+    @Json(name = "unitesPassagePossibles")
+    val unitesPassagePossibles: kotlin.collections.List<ContratUnitePassageDmo>
 
 ) {
 

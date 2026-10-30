@@ -23,7 +23,11 @@
 
 package com.idbat.mobile.generated.client.model
 
+import com.idbat.mobile.generated.client.model.CarteDmo
+import com.idbat.mobile.generated.client.model.SeuilEtatDmo
+
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 /**
  * 

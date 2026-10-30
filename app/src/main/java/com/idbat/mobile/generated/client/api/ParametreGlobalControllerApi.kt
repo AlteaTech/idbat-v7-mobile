@@ -1,8 +1,12 @@
 package com.idbat.mobile.generated.client.api
 
-import com.idbat.mobile.generated.client.model.ParametreGlobalDmo
+import org.openapitools.client.infrastructure.CollectionFormats.*
+import retrofit2.http.*
 import retrofit2.Response
-import retrofit2.http.GET
+import okhttp3.RequestBody
+import com.squareup.moshi.Json
+
+import com.idbat.mobile.generated.client.model.ParametreGlobalDmo
 
 interface ParametreGlobalControllerApi {
     /**

@@ -23,7 +23,12 @@
 
 package com.idbat.mobile.generated.client.model
 
+import com.idbat.mobile.generated.client.model.PassageDocumentRequest
+import com.idbat.mobile.generated.client.model.PassageMatiereRequest
+import com.idbat.mobile.generated.client.model.PassageSeuilRequest
+
 import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 
 /**
  * 
@@ -39,6 +44,7 @@ import com.squareup.moshi.Json
  * @param valeurPoints 
  * @param ancienSoldePoints 
  * @param nouveauSoldePoints 
+ * @param seuilsAvertis 
  * @param usagerId 
  * @param carteId 
  * @param commentaire 
@@ -81,6 +87,9 @@ data class CreerPassageRequest (
 
     @Json(name = "nouveauSoldePoints")
     val nouveauSoldePoints: java.math.BigDecimal,
+
+    @Json(name = "seuilsAvertis")
+    val seuilsAvertis: kotlin.collections.List<PassageSeuilRequest>,
 
     @Json(name = "usagerId")
     val usagerId: kotlin.Long? = null,
