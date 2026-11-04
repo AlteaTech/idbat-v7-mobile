@@ -82,22 +82,22 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 49
+**Nom :** `idbat_bdd` — **Version actuelle :** 50
 
 | Entité | Description |
 |---|---|
 | `UtilisateurTPEntity` | Techniciens (login, PIN, token) |
-| `ContratEntity` | Contrats (trigramme, nom, flags `hasPuce`/`hasCodebarres`/`hasImmatriculation`/`hasSelectionusager`/signatures) |
+| `ContratEntity` | Contrats (trigramme, nom, flags `hasPuce`/`hasCodebarres`/`hasImmatriculation`/`hasSelectionusager`/signatures, **`hasDecompteunites`** #489) |
 | `SiteEntity` | Sites de collecte (adresse, horaires, imprimante…) — DAO en `@Upsert` (pas `REPLACE`, voir note cascade) |
 | `MatiereSiteEntity` | Matières collectées par site (clé composite matiereId+siteId) |
-| `CarteContratEntity` | Cartes/passes par contrat + **liste noire** (`isEnListeNoire`, `dtEntreeListeNoire`, `dtSortieListeNoire`, `motifListeNoireContratId`, `motifListeNoireLibelle`) |
+| `CarteContratEntity` | Cartes/passes par contrat + **liste noire** (`isEnListeNoire`, `dtEntreeListeNoire`, `dtSortieListeNoire`, `motifListeNoireContratId`, `motifListeNoireLibelle`) + **`nbUnitesADecompter`** (#489, nullable, cartes 'I' sur contrat à décompte) |
 | `MotifListeNoireContratEntity` | Motifs de liste noire par contrat |
 | `UsagerEntity` | Usagers/clients (import en batch de 2000) |
 | `ContratEvenementEntity` | Événements liés aux contrats |
 | `LastSynchroHistoryEntity` | Historique de synchronisation (ENVOI / RECEPTION), stats par site |
 | `UsagerCarteEntity` | Liaison usager↔carte (dates début/fin) |
 | `SeuilEtatEntity` | Seuils/plafonds par usager (PK composite usagerId+seuilId, FK usager CASCADE) + champs `seuilDetail*`. **#487** : `isAlerte` = **plafond NON atteint** (`true` = sous le quota, **rechargements inclus**) ; `isBloquant` = **flag de config du seuil** (bloque vs avertit seulement). Tout calculé/fourni par le back. ⚠️ « usager bloqué » = `!isAlerte && isBloquant` ; « averti » = `!isAlerte && !isBloquant` |
-| `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID, `userTpId` (user connecté), `sentAt` (RG3) |
+| `PassageEntity` | Passage déchetterie (outbox) — `transactionId` UUID, `userTpId` (user connecté), `sentAt` (RG3), **`nbUnitesDecomptees`** (#489, défaut 1, cf. `DecompteUnites`) |
 | `PassageMatiereEntity` | Matières d'un passage (FK passage CASCADE) — `quantite`, `tarif`, **`points`** (= quantité×tarif, stocké à l'enregistrement) |
 | `PassageSeuilEntity` | **#487/#484** : seuils **dont le plafond est atteint** (`!isAlerte`, bloquants ou non) au moment du passage (FK passage CASCADE). Capturés à l'enregistrement (état affiché au technicien, relu depuis `SeuilEtatEntity` par `usagerId`) → remontés dans `CreerPassageRequest.seuilsAvertis` (`seuilId` + `libelle`=`nom`) |
 | `PassageDocumentEntity` | Photos/signature d'un passage en base64 (FK passage CASCADE) |
@@ -106,7 +106,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `CarteCreeeEntity` | Journal des cartes créées (outbox, **sans FK**) — `userTpId` (user connecté), `sentAt` (RG3) |
 | `ParametreEntity` | Paramètres globaux (`id` back, `clef` **unique**, `valeur`, `description`) — rafraîchis à chaque synchro descendante (remplacement complet via `ParametreDao.replaceAll`) |
 
-**Migrations :** trajet complet (**version actuelle : 49**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
+**Migrations :** trajet complet (**version actuelle : 50**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
 
 > **Piège cascade Room** : `ContratDao`/`SiteDao` utilisent `@Upsert` (et non `@Insert(REPLACE)`). `REPLACE` fait DELETE+INSERT → déclenche `ON DELETE CASCADE` et efface l'historique de synchro / sous-entités. `@Upsert` met à jour en place sans cascade.
 
@@ -193,6 +193,8 @@ syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées),
 - `transactionId` (UUID) sur `PassageEntity`/`SignalementEntity` → anti-doublon si la réponse réseau est perdue (le back doit dédupliquer dessus).
 
 > **Ajouter un nouveau type d'opération outbox** (ex. rechargement carte, maj e-mail usager, maj uid RFID) : (1) entité avec `userTpId` + `sentAt` ; (2) migration Room (+ bump version) ; (3) DAO `getUnsent` / `markSent` / `countUnsent` / `count` / `deleteSentOlderThan` ; (4) envoi dans `synchroMontante` (markSent, pas delete) ; (5) purge dans `purgeOldSyncedData()` ; (6) ajouter `count()`/`countUnsent()` aux sommes du Suivi (`MainViewModel.getSuiviContentAsync`).
+
+**Décompte des unités de passage (#489)** : chaque passage porte `nbUnitesDecomptees` (→ `CreerPassageRequest.nbUnitesDecomptees`), calculé à l'enregistrement par `DecompteUnites.nbUnitesDecomptees(contrat, carte)` (`data/model`) : `carte.nbUnitesADecompter` **si** `contrat.hasDecompteunites` (RG1) **et** carte type `'I'` (RG2), sinon **1** (RG4.2 — aussi si la valeur carte est null/< 1). Valeur figée au moment du passage, le back ne recalcule pas.
 
 **Première synchro** : `AuthManager.saveContractToDatabase()` (chemin séparé de `applyDiff`) — toute modif de mapping DMO→entité doit être répercutée **dans les deux** (`AuthManager` ET `SyncManager.applyDiff`).
 

@@ -51,5 +51,7 @@ data class PassageEntity(
     val modePaiement: Int = 0,
     val transactionId: String = java.util.UUID.randomUUID().toString(),
     // RG3 : horodatage de l'envoi réussi au BO (null = non envoyé). Sert à différer la purge.
-    val sentAt: Long? = null
+    val sentAt: Long? = null,
+    // #489 RG3/RG4 : unités décomptées pour ce passage (1 par défaut, cf. DecompteUnites)
+    val nbUnitesDecomptees: Int = 1
 )

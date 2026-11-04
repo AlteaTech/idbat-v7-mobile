@@ -34,5 +34,7 @@ data class CarteContratEntity(
     val dtEntreeListeNoire: Date? = null,
     val dtSortieListeNoire: Date? = null,
     val motifListeNoireContratId: Long? = null,
-    val motifListeNoireLibelle: String? = null
+    val motifListeNoireLibelle: String? = null,
+    // #489 RG4.1 : nb d'unités à décompter par passage (cartes 'I' sur contrat à décompte)
+    val nbUnitesADecompter: Int? = null
 )

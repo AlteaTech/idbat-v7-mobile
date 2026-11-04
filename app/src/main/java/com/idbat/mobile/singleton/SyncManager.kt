@@ -357,6 +357,8 @@ class SyncManager @Inject constructor(
                 ancienSoldePoints = BigDecimal(passage.soldePointsAvant ?: 0.0),
                 nouveauSoldePoints = BigDecimal(passage.nouveauSoldePoints ?: 0.0),
                 modePaiementId = passage.modePaiement,
+                // #489 : unités décomptées (1 par défaut)
+                nbUnitesDecomptees = passage.nbUnitesDecomptees,
                 // #487/#484 : seuils avertis/bloquants au moment du passage
                 seuilsAvertis = seuilsAvertisPassage.map { s ->
                     PassageSeuilRequest(seuilId = s.seuilId, libelle = s.libelle)
@@ -573,7 +575,8 @@ class SyncManager @Inject constructor(
             hasGratuitParticuliers = dmo.hasGratuitParticuliers,
             hasGratuitProfessionels = dmo.hasGratuitProfessionels,
             hasPaimentComptantParticuliers = dmo.hasPaimentComptantParticuliers,
-            hasPaimentComptantProfessionels = dmo.hasPaimentComptantProfessionels
+            hasPaimentComptantProfessionels = dmo.hasPaimentComptantProfessionels,
+            hasDecompteunites = dmo.hasDecompteunites
         )
         contratDao.insertContrat(contratEntity)
 
@@ -637,7 +640,8 @@ class SyncManager @Inject constructor(
                         Date.from(it.atStartOfDay(ZoneId.systemDefault()).toInstant())
                     },
                     motifListeNoireContratId = carteDmo.motifslistenoireContratId,
-                    motifListeNoireLibelle = carteDmo.motifslistenoireLibelle
+                    motifListeNoireLibelle = carteDmo.motifslistenoireLibelle,
+                    nbUnitesADecompter = carteDmo.nbUnitesADecompter
                 )
             }
         }
