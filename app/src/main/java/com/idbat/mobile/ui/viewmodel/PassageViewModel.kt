@@ -6,6 +6,7 @@ import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageEntity
 import com.idbat.mobile.data.entities.PassageRefuseEntity
 import com.idbat.mobile.data.entities.SeuilEtatEntity
+import com.idbat.mobile.data.model.DecompteUnites
 import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -83,6 +84,10 @@ class PassageViewModel @Inject constructor(
                 val dateSuffix = SimpleDateFormat("yyyyMMddHHmmss", Locale.FRANCE).format(Date(dateHeure))
                 val numeroBonPassage = "${contrat.trigramme}${site.trigramme}$dateSuffix"
 
+                // #489 : unités décomptées (carte 'I' sur contrat à décompte, sinon 1)
+                val carte = carteId?.let { database.carteContratDao().getCarteById(it) }
+                val nbUnitesDecomptees = DecompteUnites.nbUnitesDecomptees(contrat, carte)
+
                 database.passageDao().insertPassage(
                     PassageEntity(
                         dateHeure = dateHeure,
@@ -98,7 +103,8 @@ class PassageViewModel @Inject constructor(
                         nouveauSoldePoints = soldePointsAvant,
                         // RG1.1 : passage accès simple → mode de paiement 0 (Accès simple)
                         modePaiement = 0,
-                        transactionId = java.util.UUID.randomUUID().toString()
+                        transactionId = java.util.UUID.randomUUID().toString(),
+                        nbUnitesDecomptees = nbUnitesDecomptees
                     )
                 )
                 _saveState.value = PassageSaveState.Success

@@ -30,7 +30,7 @@ class CollectionFormats {
         }
     }
 
-    open class TSVParams : CSVParams {
+    class TSVParams : CSVParams {
 
         constructor(params: List<String>) : super(params)
 
@@ -41,7 +41,7 @@ class CollectionFormats {
         }
     }
 
-    open class PIPESParams : CSVParams {
+    class PIPESParams : CSVParams {
 
         constructor(params: List<String>) : super(params)
 
@@ -52,5 +52,5 @@ class CollectionFormats {
         }
     }
 
-    open class SPACEParams : SSVParams()
+    class SPACEParams : SSVParams()
 }

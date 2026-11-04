@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.idbat.mobile.data.model.DecompteUnites
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageDocumentEntity
 import com.idbat.mobile.data.entities.PassageEntity
@@ -203,6 +204,10 @@ class TerminerPassageViewModel @Inject constructor(
         val valeurPoints = lignes.sumOf { (it.quantite.toDoubleOrNull() ?: 0.0) * it.matiere.tarif }
         val nouveauSoldePoints = soldePointsAvant?.let { it - valeurPoints }
 
+        // #489 : unités décomptées (carte 'I' sur contrat à décompte, sinon 1)
+        val carte = carteId?.let { database.carteContratDao().getCarteById(it) }
+        val nbUnitesDecomptees = DecompteUnites.nbUnitesDecomptees(contrat, carte)
+
         // 1. Enregistrement du passage
         val passageId = database.passageDao().insertPassage(
             PassageEntity(
@@ -219,7 +224,8 @@ class TerminerPassageViewModel @Inject constructor(
                 valeurPoints = valeurPoints,
                 nouveauSoldePoints = nouveauSoldePoints,
                 modePaiement = modePaiement,
-                transactionId = java.util.UUID.randomUUID().toString()
+                transactionId = java.util.UUID.randomUUID().toString(),
+                nbUnitesDecomptees = nbUnitesDecomptees
             )
         )
 

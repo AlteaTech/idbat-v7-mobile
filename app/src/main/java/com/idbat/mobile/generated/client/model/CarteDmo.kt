@@ -39,6 +39,7 @@ import com.squareup.moshi.JsonClass
  * @param uidRfid 
  * @param carteGriseJ1 
  * @param carteGriseF3 
+ * @param nbUnitesADecompter 
  * @param dateFinAffectation 
  * @param dtEntreeListeNoire 
  * @param dtSortieListeNoire 
@@ -75,6 +76,9 @@ data class CarteDmo (
 
     @Json(name = "carteGriseF3")
     val carteGriseF3: kotlin.Int? = null,
+
+    @Json(name = "nbUnitesADecompter")
+    val nbUnitesADecompter: kotlin.Int? = null,
 
     @Json(name = "dateFinAffectation")
     val dateFinAffectation: java.time.LocalDate? = null,

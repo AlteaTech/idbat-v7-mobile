@@ -376,7 +376,8 @@ class AuthManager @Inject constructor(
                 hasGratuitParticuliers = contratDmo.hasGratuitParticuliers,
                 hasGratuitProfessionels = contratDmo.hasGratuitProfessionels,
                 hasPaimentComptantParticuliers = contratDmo.hasPaimentComptantParticuliers,
-                hasPaimentComptantProfessionels = contratDmo.hasPaimentComptantProfessionels
+                hasPaimentComptantProfessionels = contratDmo.hasPaimentComptantProfessionels,
+                hasDecompteunites = contratDmo.hasDecompteunites
             )
 
             contratDao.insertContrat(contratEntity)
@@ -527,7 +528,8 @@ class AuthManager @Inject constructor(
                                         )
                                     },
                                     motifListeNoireContratId = carteDmo.motifslistenoireContratId,
-                                    motifListeNoireLibelle = carteDmo.motifslistenoireLibelle
+                                    motifListeNoireLibelle = carteDmo.motifslistenoireLibelle,
+                                    nbUnitesADecompter = carteDmo.nbUnitesADecompter
                                 )
                             }
                         }
