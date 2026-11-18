@@ -3,11 +3,13 @@ Génération de call api
 2. commande
 
 Remove-Item -Recurse -Force "app\src\main\java\com\idbat\mobile\generated\client"
+Remove-Item -Recurse -Force "app\src\main\java\org\openapitools"
+
 npx @openapitools/openapi-generator-cli generate -i http://localhost:8091/v3/api-docs -g kotlin -o api_temp --api-package com.idbat.mobile.generated.client.api --model-package com.idbat.mobile.generated.client.model --additional-properties=library=jvm-retrofit2,useCoroutines=true,serializationLibrary=moshi
 New-Item -ItemType Directory -Force -Path "app\src\main\java\com\idbat\mobile\generated\client"
 Copy-Item -Path "api_temp\src\main\kotlin\com\idbat\mobile\generated\*" -Destination "app\src\main\java\com\idbat\mobile\generated\" -Recurse -Force
 New-Item -ItemType Directory -Force -Path "app\src\main\java\org\openapitools\client\infrastructure"
-Copy-Item -Path "api_temp\src\main\kotlin\org\openapitools\client\infrastructure\*" -Destination "app\src\main\java\org\openapitools\client\infrastructure\" -Recurse -Force
+Copy-Item -Path "api_temp\src\main\kotlin\org\openapitools\client\infrastructure\CollectionFormats.kt" -Destination "app\src\main\java\org\openapitools\client\infrastructure\" -Force
 Remove-Item -Recurse -Force "api_temp"
 
 3. nettoyers les import

@@ -17,6 +17,7 @@ import com.idbat.mobile.data.entities.PassageEntity
 import com.idbat.mobile.data.entities.PassageMatiereEntity
 import com.idbat.mobile.data.entities.PassageSeuilEntity
 import com.idbat.mobile.data.model.SaisieMatiereLigne
+import com.idbat.mobile.data.model.SeuilEvalue
 import com.idbat.mobile.data.nfc.NfcRepository
 import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -250,22 +251,29 @@ class TerminerPassageViewModel @Inject constructor(
         // atteint (rechargements inclus). On capture tous les seuils atteints (bloquants ET non
         // bloquants) — exactement l'état affiché au technicien (même usagerId que PassageInfoScreen).
         // Les seuils ne changent pas en local entre l'affichage et l'enregistrement (recalcul back only).
+        // #513 : « atteint » évalué pour la carte présentée (unités de passage) — même règle que l'écran.
         if (usagerId != null) {
             val seuils = database.seuilEtatDao().getSeuilsByUsager(usagerId)
-                .filter { !it.isAlerte }
+                .map { SeuilEvalue.evaluer(it, contrat, carte) }
+                .filter { it.atteint }
             if (seuils.isNotEmpty()) {
                 database.passageSeuilDao().insertSeuils(
-                    seuils.map { s ->
+                    seuils.map { e ->
+                        val s = e.seuil
                         PassageSeuilEntity(
                             passageId = passageId,
                             seuilId = s.seuilId,
-                            libelle = s.nom,
+                            // #513 RG3.2 : atteint par les unités → libellé « atteint » affiché.
+                            // Hors RG3 : inchangé (nom du seuil).
+                            libelle = if (e.atteintParUnites) e.message else s.nom,
                             isAlerte = s.isAlerte,
                             isBloquant = s.isBloquant
                         )
                     }
                 )
             }
+            // #513 : compteurs locaux mis à jour APRÈS la capture (seuilsAvertis = état affiché avant le passage)
+            database.seuilEtatDao().appliquerPassage(usagerId, nbUnitesDecomptees)
         }
 
         // 3. Documents (photos + signature) → base64

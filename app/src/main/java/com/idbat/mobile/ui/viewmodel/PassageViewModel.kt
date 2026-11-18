@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.PassageEntity
 import com.idbat.mobile.data.entities.PassageRefuseEntity
-import com.idbat.mobile.data.entities.SeuilEtatEntity
 import com.idbat.mobile.data.model.DecompteUnites
 import com.idbat.mobile.data.model.PassageSaveState
+import com.idbat.mobile.data.model.SeuilEvalue
 import com.idbat.mobile.singleton.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,21 +27,25 @@ class PassageViewModel @Inject constructor(
     private val _saveState = MutableStateFlow<PassageSaveState>(PassageSaveState.Idle)
     val saveState: StateFlow<PassageSaveState> = _saveState.asStateFlow()
 
-    private val _seuils = MutableStateFlow<List<SeuilEtatEntity>>(emptyList())
-    val seuils: StateFlow<List<SeuilEtatEntity>> = _seuils.asStateFlow()
+    // #513 : seuils de l'usager évalués pour la carte présentée (unités de passage, cf. SeuilAtteint)
+    private val _seuils = MutableStateFlow<List<SeuilEvalue>>(emptyList())
+    val seuils: StateFlow<List<SeuilEvalue>> = _seuils.asStateFlow()
 
     // Liste noire de la carte présentée (null = pas en liste noire / carte inconnue)
     data class ListeNoireInfo(val libelle: String?)
     private val _listeNoire = MutableStateFlow<ListeNoireInfo?>(null)
     val listeNoire: StateFlow<ListeNoireInfo?> = _listeNoire.asStateFlow()
 
-    fun loadSeuils(usagerId: Long?) {
+    fun loadSeuils(usagerId: Long?, contratId: Long, carteId: Long?) {
         if (usagerId == null) {
             _seuils.value = emptyList()
             return
         }
         viewModelScope.launch {
-            _seuils.value = database.seuilEtatDao().getSeuilsByUsager(usagerId)
+            val seuils = database.seuilEtatDao().getSeuilsByUsager(usagerId)
+            val contrat = database.contratDao().getContratById(contratId)
+            val carte = carteId?.let { database.carteContratDao().getCarteById(it) }
+            _seuils.value = seuils.map { SeuilEvalue.evaluer(it, contrat, carte) }
         }
     }
 
@@ -65,7 +69,8 @@ class PassageViewModel @Inject constructor(
         siteId: Long,
         carteId: Long?,
         uidCarte: String? = null,
-        soldePointsAvant: Double? = null
+        soldePointsAvant: Double? = null,
+        usagerId: Long? = null
     ) {
         if (_saveState.value == PassageSaveState.Saving) return
         viewModelScope.launch {
@@ -107,6 +112,8 @@ class PassageViewModel @Inject constructor(
                         nbUnitesDecomptees = nbUnitesDecomptees
                     )
                 )
+                // #513 : compteurs de seuils locaux en attendant la synchro (back = source de vérité)
+                usagerId?.let { database.seuilEtatDao().appliquerPassage(it, nbUnitesDecomptees) }
                 _saveState.value = PassageSaveState.Success
             } catch (e: Exception) {
                 _saveState.value = PassageSaveState.Error(e.message ?: "Erreur inconnue")

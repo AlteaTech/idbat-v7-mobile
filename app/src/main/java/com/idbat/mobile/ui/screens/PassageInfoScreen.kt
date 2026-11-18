@@ -28,9 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.idbat.mobile.data.entities.SeuilEtatEntity
 import com.idbat.mobile.data.model.InfoCartePassage
 import com.idbat.mobile.data.model.PassageSaveState
+import com.idbat.mobile.data.model.SeuilEvalue
 import com.idbat.mobile.ui.theme.VeoliaAlertOrange
 import com.idbat.mobile.ui.theme.VeoliaErrorDark
 import com.idbat.mobile.ui.theme.VeoliaGradientTop
@@ -59,7 +59,10 @@ fun PassageInfoScreen(
     val seuils by viewModel.seuils.collectAsStateWithLifecycle()
     val listeNoire by viewModel.listeNoire.collectAsStateWithLifecycle()
 
-    LaunchedEffect(info.usagerId) { viewModel.loadSeuils(info.usagerId) }
+    // #513 : seuils évalués pour la carte présentée (unités de passage)
+    LaunchedEffect(info.usagerId, info.carteId, contratId) {
+        viewModel.loadSeuils(info.usagerId, contratId, info.carteId)
+    }
     LaunchedEffect(info.carteId) { viewModel.loadListeNoire(info.carteId) }
 
     // Back système = back de l'écran (bouton haut-gauche)
@@ -136,7 +139,8 @@ fun PassageInfoScreen(
             // Sémantique back (UsagersMapper) : isAlerte = plafond NON atteint (true = sous le quota,
             // rechargements inclus) ; isBloquant = flag de config du seuil (bloque vs avertit seulement).
             // #487/#484 : un seuil atteint mais non bloquant n'empêche pas le passage (simple avertissement).
-            val usagerBloque = isListeNoire || seuils.any { !it.isAlerte && it.isBloquant }
+            // #513 : « atteint » = !isAlerte OU carte 'I' dont les unités dépassent les unités restantes.
+            val usagerBloque = isListeNoire || seuils.any { it.bloque }
 
             // RG1/RG3 : dès que le refus s'affiche, on enregistre le passage refusé (une seule fois),
             // pour que l'info survive même si l'utilisateur kill l'app avant de fermer l'écran.
@@ -206,7 +210,9 @@ fun PassageInfoScreen(
                 // Liste noire : affichée au-dessus des seuils si la carte est blacklistée
                 listeNoire?.let { ListeNoireCard(libelle = it.libelle) }
 
-                SeuilsCard(seuils = seuils, isListeNoire)
+                // #513 : un seuil sous la prévention (isPreventionAtteinte = false) et non atteint
+                // pour cette carte n'est pas une alerte → non affiché.
+                SeuilsCard(seuils = seuils.filter { it.visible }, isListeNoire)
             }
 
 
@@ -237,7 +243,8 @@ fun PassageInfoScreen(
                                 if (!isSaving) viewModel.enregistrerPassage(
                                     contratId, siteId, info.carteId,
                                     uidCarte = info.uid,
-                                    soldePointsAvant = info.soldePoints
+                                    soldePointsAvant = info.soldePoints,
+                                    usagerId = info.usagerId
                                 )
                             },
                             modifier = Modifier
@@ -335,7 +342,7 @@ private fun ListeNoireCard(libelle: String?) {
 }
 
 @Composable
-private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean) {
+private fun SeuilsCard(seuils: List<SeuilEvalue>, usagerListeNoire: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -362,32 +369,25 @@ private fun SeuilsCard(seuils: List<SeuilEtatEntity>, usagerListeNoire: Boolean)
     }
 }
 
-private fun seuilMessage(seuil: SeuilEtatEntity): String {
-    val periode = if (seuil.seuilDetailPeriode.equals("annuel", ignoreCase = true)) "sur l'année" else ""
-    // #487 : nombre autorisé = valeur calculée par le back (rechargements inclus)
-    val nbAutorises = seuil.nbPassagesAutorises
-    // Même logique que le message calculé par le back (UsagersMapper) : clé sur le plafond atteint.
-    return if (!seuil.isAlerte) {
-        "Seuil ${seuil.nom} atteint, ${seuil.nbPassagesEffectues} passages ${periode} pour ${nbAutorises} autorisés"
-    } else {
-        "Le seuil ${seuil.nom} autorise ${nbAutorises} passages ${periode}, ${seuil.nbPassagesEffectues} déjà effectués"
-    }
-}
-
 /**
  * RG3 : commentaire justifiant un passage refusé — reprend le(s) message(s) des seuils qui bloquent
- * réellement (plafond atteint ET seuil bloquant) + la liste noire.
+ * réellement (atteint pour cette carte ET seuil bloquant, #513 inclus) + la liste noire.
  */
-private fun buildRefusComment(isListeNoire: Boolean, seuils: List<SeuilEtatEntity>): String {
+private fun buildRefusComment(isListeNoire: Boolean, seuils: List<SeuilEvalue>): String {
     val lignes = mutableListOf<String>()
     if (isListeNoire) lignes.add("Cette carte est en liste noire")
-    seuils.filter { !it.isAlerte && it.isBloquant }.forEach { lignes.add(seuilMessage(it)) }
+    seuils.filter { it.bloque }.forEach { lignes.add(it.message) }
     return lignes.joinToString("\n")
 }
 
 @Composable
-private fun SeuilRow(seuil: SeuilEtatEntity) {
-    val message = seuilMessage(seuil)
+private fun SeuilRow(seuilEvalue: SeuilEvalue) {
+    // #487 : nombre autorisé = valeur back (rechargements inclus). #513 RG3.2 : libellé « atteint »
+    // aussi quand le seuil n'est atteint qu'à cause des unités de la carte.
+    val message = seuilEvalue.message
+    // Orange = avertissement (zone de prévention) ; rouge = erreur (seuil atteint pour cette carte,
+    // #513 inclus), même rouge que la liste noire. Texte gras de la couleur du picto.
+    val couleur = if (seuilEvalue.atteint) VeoliaErrorDark else VeoliaAlertOrange
     Row(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -395,15 +395,14 @@ private fun SeuilRow(seuil: SeuilEtatEntity) {
         Icon(
             imageVector = Icons.Default.Warning,
             contentDescription = null,
-            tint = VeoliaAlertOrange,
+            tint = couleur,
             modifier = Modifier.size(20.dp)
         )
         Text(
-            // RG1 : texte du seuil en orange (couleur du picto) + gras, comme la liste noire (rouge gras)
             text = message,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = VeoliaAlertOrange
+            color = couleur
         )
     }
 }

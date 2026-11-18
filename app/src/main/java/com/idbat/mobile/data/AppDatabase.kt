@@ -36,7 +36,7 @@ import com.idbat.mobile.data.entities.*
         SuiviSynchroEntity::class,
         PassageRefuseEntity::class
     ],
-    version = 50,
+    version = 51,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -100,8 +100,17 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
             MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44, MIGRATION_44_45,
             MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48, MIGRATION_48_49,
-            MIGRATION_49_50
+            MIGRATION_49_50, MIGRATION_50_51
         )
+
+        // #513 : seuils transmis sous la prévention (contrat à décompte) + libellé « atteint » du back.
+        // DEFAULT 1 : une ligne existante garde le comportement d'avant (seuil présent = à afficher).
+        private val MIGRATION_50_51 = object : Migration(50, 51) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE seuil_etat ADD COLUMN isPreventionAtteinte INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE seuil_etat ADD COLUMN messageAtteint TEXT")
+            }
+        }
 
         // #489 : décompte des unités de passage (contrat / carte immatriculation / passage)
         private val MIGRATION_49_50 = object : Migration(49, 50) {

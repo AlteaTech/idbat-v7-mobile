@@ -31,5 +31,11 @@ data class SeuilEtatEntity(
     val seuilDetailPeriode: String,
     val seuilDetailNbPassage: Int?,
     val seuilDetailSeuilPrevention: Int,
-    val seuilDetailContratId: Long
+    val seuilDetailContratId: Long,
+    // #513 : false = usager sous la prévention (seuil transmis seulement pour les unités restantes,
+    // contrat à décompte) → rien à afficher sauf si la carte dépasse les unités restantes.
+    // true par défaut = comportement d'avant (lignes locales antérieures à la colonne).
+    val isPreventionAtteinte: Boolean = true,
+    // #513 RG3.2 : libellé « Seuil X atteint… » calculé par le back (période exacte). null = ancienne ligne.
+    val messageAtteint: String? = null
 )

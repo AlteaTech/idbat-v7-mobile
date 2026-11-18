@@ -571,7 +571,10 @@ class AuthManager @Inject constructor(
                                     seuilDetailPeriode = seuilDmo.seuilDetailPeriode,
                                     seuilDetailNbPassage = seuilDmo.seuilDetailNbPassage,
                                     seuilDetailSeuilPrevention = seuilDmo.seuilDetailSeuilPrevention,
-                                    seuilDetailContratId = seuilDmo.seuilDetailContratId
+                                    seuilDetailContratId = seuilDmo.seuilDetailContratId,
+                                    // #513 : à mapper explicitement (sinon retombe sur le défaut true / null)
+                                    isPreventionAtteinte = seuilDmo.isPreventionAtteinte,
+                                    messageAtteint = seuilDmo.messageAtteint
                                 )
                             }
                         }

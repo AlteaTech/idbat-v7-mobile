@@ -35,6 +35,7 @@ import com.squareup.moshi.JsonClass
  * @param nbPassagesAutorises 
  * @param nbPassagesEffectues 
  * @param isAlerte 
+ * @param isPreventionAtteinte 
  * @param isBloquant 
  * @param seuilDetailNom 
  * @param seuilDetailType 
@@ -42,6 +43,7 @@ import com.squareup.moshi.JsonClass
  * @param seuilDetailSeuilPrevention 
  * @param seuilDetailContratId 
  * @param message 
+ * @param messageAtteint 
  * @param seuilDetailNbPassage 
  */
 
@@ -63,6 +65,9 @@ data class SeuilEtatDmo (
     @Json(name = "isAlerte")
     val isAlerte: kotlin.Boolean,
 
+    @Json(name = "isPreventionAtteinte")
+    val isPreventionAtteinte: kotlin.Boolean,
+
     @Json(name = "isBloquant")
     val isBloquant: kotlin.Boolean,
 
@@ -83,6 +88,9 @@ data class SeuilEtatDmo (
 
     @Json(name = "message")
     val message: kotlin.String,
+
+    @Json(name = "messageAtteint")
+    val messageAtteint: kotlin.String,
 
     @Json(name = "seuilDetailNbPassage")
     val seuilDetailNbPassage: kotlin.Int? = null
