@@ -12,7 +12,7 @@ object ConfigSingleton {
     const val BASE_URL_INT      = "https://idbat-portail-int.recyclage.veolia.fr/mobile/"
     const val BASE_URL_PROD      = "https://idbat-portail.recyclage.veolia.fr/mobile/"
 
-    val baseUrl = BASE_URL_REC
+    val baseUrl = BASE_URL_LOCAL
 
     // Feature flags : affichage des boutons de dev dans CarteActionSheet
     val pocEnable = false          // bouton "POC"
