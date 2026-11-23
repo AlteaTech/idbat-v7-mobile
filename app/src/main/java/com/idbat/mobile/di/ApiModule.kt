@@ -129,6 +129,17 @@ object ApiModule {
     fun providePassagesRefusesApi(retrofit: Retrofit): PassagesRefusesControllerApi =
         retrofit.create(PassagesRefusesControllerApi::class.java)
 
+    // #533 : passages d'immatriculations inconnues (acceptés / refusés)
+    @Provides
+    @Singleton
+    fun providePassagesInconnusApi(retrofit: Retrofit): PassagesInconnusControllerApi =
+        retrofit.create(PassagesInconnusControllerApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providePassagesInconnusRefusesApi(retrofit: Retrofit): PassagesInconnusRefusesControllerApi =
+        retrofit.create(PassagesInconnusRefusesControllerApi::class.java)
+
     @Provides
     @Singleton
     fun provideParametreGlobalApi(retrofit: Retrofit): ParametreGlobalControllerApi =

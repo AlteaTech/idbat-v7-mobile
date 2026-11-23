@@ -23,7 +23,9 @@
 
 package com.idbat.mobile.generated.client.model
 
+import com.idbat.mobile.generated.client.model.CarteInconnueDmo
 import com.idbat.mobile.generated.client.model.ContratEvenementDmo
+import com.idbat.mobile.generated.client.model.ContratMotifAutorisationDmo
 import com.idbat.mobile.generated.client.model.ContratSiteDmo
 import com.idbat.mobile.generated.client.model.ContratUnitePassageDmo
 import com.idbat.mobile.generated.client.model.ContratUsagerDmo
@@ -58,6 +60,9 @@ import com.squareup.moshi.JsonClass
  * @param hasPaimentComptantParticuliers 
  * @param hasDecompteunites 
  * @param unitesPassagePossibles 
+ * @param nbPassagesinconnusacceptes 
+ * @param motifsAutorisation 
+ * @param cartesInconnues 
  */
 
 
@@ -130,7 +135,16 @@ data class ContratDmo (
     val hasDecompteunites: kotlin.Boolean,
 
     @Json(name = "unitesPassagePossibles")
-    val unitesPassagePossibles: kotlin.collections.List<ContratUnitePassageDmo>
+    val unitesPassagePossibles: kotlin.collections.List<ContratUnitePassageDmo>,
+
+    @Json(name = "nbPassagesinconnusacceptes")
+    val nbPassagesinconnusacceptes: kotlin.Int,
+
+    @Json(name = "motifsAutorisation")
+    val motifsAutorisation: kotlin.collections.List<ContratMotifAutorisationDmo>,
+
+    @Json(name = "cartesInconnues")
+    val cartesInconnues: kotlin.collections.List<CarteInconnueDmo>
 
 ) {
 

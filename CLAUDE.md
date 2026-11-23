@@ -60,6 +60,7 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `CreationCarteScreen` | Scan QR (192 car.) pour créer une carte à puce |
 | `CarteCreationInfoScreen` | Affiche les infos parsées du QR + bouton Valider |
 | `EcriturePuceScreen` | Écriture NFC de la carte (reader mode + états Idle/Writing/Success/Error) |
+| `PassageInconnuScreen` | **#533** : immatriculation inconnue acceptée en contrôle d'accès (cf. « Passages inconnus ») |
 | `PocScreen` | Page POC (bac à sable NFC/CB/photo/signature) |
 
 **Actions du HomeScreen :**
@@ -82,12 +83,12 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 
 ## Base de données locale (Room)
 
-**Nom :** `idbat_bdd` — **Version actuelle :** 51
+**Nom :** `idbat_bdd` — **Version actuelle :** 52
 
 | Entité | Description |
 |---|---|
 | `UtilisateurTPEntity` | Techniciens (login, PIN, token) |
-| `ContratEntity` | Contrats (trigramme, nom, flags `hasPuce`/`hasCodebarres`/`hasImmatriculation`/`hasSelectionusager`/signatures, **`hasDecompteunites`** #489) |
+| `ContratEntity` | Contrats (trigramme, nom, flags `hasPuce`/`hasCodebarres`/`hasImmatriculation`/`hasSelectionusager`/signatures, **`hasDecompteunites`** #489, **`nbPassagesInconnusAcceptes`** #533 défaut 0) |
 | `SiteEntity` | Sites de collecte (adresse, horaires, imprimante…) — DAO en `@Upsert` (pas `REPLACE`, voir note cascade) |
 | `MatiereSiteEntity` | Matières collectées par site (clé composite matiereId+siteId) |
 | `CarteContratEntity` | Cartes/passes par contrat + **liste noire** (`isEnListeNoire`, `dtEntreeListeNoire`, `dtSortieListeNoire`, `motifListeNoireContratId`, `motifListeNoireLibelle`) + **`nbUnitesADecompter`** (#489, nullable, cartes 'I' sur contrat à décompte) |
@@ -104,9 +105,13 @@ Les Managers (`AuthManager`, `SyncManager`) exposent des `StateFlow` consommés 
 | `SignalementEntity` | Signalement (outbox, **sans FK** pour survivre aux diffs) — `transactionId`, `agentId` (user connecté), `sentAt` (RG3) |
 | `SignalementDocumentEntity` | Photos d'un signalement en base64 (FK signalement CASCADE) |
 | `CarteCreeeEntity` | Journal des cartes créées (outbox, **sans FK**) — `userTpId` (user connecté), `sentAt` (RG3) |
+| `MotifAutorisationContratEntity` | **#533** : motifs d'autorisation exceptionnelle du contrat (`id`, `contratId`, `libelle`) — table `motif_autorisation_contrat`, sans FK, vidée/réinsérée à chaque synchro descendante |
+| `CarteInconnueEntity` | **#533** : immatriculations inconnues déjà passées (`valeur` = PK, `id` back nullable, `motifAutorisationContratId`, `motifAutorisationLibelle`, `nbPassages`) — table `carte_inconnue`, sans FK. Miroir du back (remplacé à chaque descendante) + tenu à jour localement : créé à 1 au 1er passage (RG4), +1 aux suivants (RG7) |
+| `PassageInconnuEntity` | **#533** : passage d'une immatriculation inconnue (outbox, sans FK) — `immatriculation`, `motifAutorisationContratId`, `numeroBonPassage`, `transactionId`, `userTpId`, `sentAt` → `CreerPassageInconnuRequest` (`POST api/passages-inconnus`). Le back crée/incrémente sa `cartesinconnues` à la réception |
+| `PassageInconnuRefuseEntity` | **#533 RG8.3** : passage inconnu refusé (max atteint, outbox, sans FK) — `immatriculation`, `motifAutorisationContratId`, `commentaire`, `transactionId`, `sentAt` → `CreerPassageInconnuRefuseRequest` (`POST api/passages-inconnus-refuses`) |
 | `ParametreEntity` | Paramètres globaux (`id` back, `clef` **unique**, `valeur`, `description`) — rafraîchis à chaque synchro descendante (remplacement complet via `ParametreDao.replaceAll`) |
 
-**Migrations :** trajet complet (**version actuelle : 51**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
+**Migrations :** trajet complet (**version actuelle : 52**) documenté dans `AppDatabase.kt`. **Règle : migration non bloquante** — tout `ADD COLUMN NOT NULL` doit avoir un `DEFAULT` (les colonnes `sentAt` RG3 sont nullable, donc sans `DEFAULT`).  
 
 > **Piège cascade Room** : `ContratDao`/`SiteDao` utilisent `@Upsert` (et non `@Insert(REPLACE)`). `REPLACE` fait DELETE+INSERT → déclenche `ON DELETE CASCADE` et efface l'historique de synchro / sous-entités. `@Upsert` met à jour en place sans cascade.
 
@@ -197,6 +202,14 @@ syncError, lastEnvoiSuccess  // null=jamais, true=tout OK (réussies==tentées),
 **Décompte des unités de passage (#489)** : chaque passage porte `nbUnitesDecomptees` (→ `CreerPassageRequest.nbUnitesDecomptees`), calculé à l'enregistrement par `DecompteUnites.nbUnitesDecomptees(contrat, carte)` (`data/model`) : `carte.nbUnitesADecompter` **si** `contrat.hasDecompteunites` (RG1) **et** carte type `'I'` (RG2), sinon **1** (RG4.2 — aussi si la valeur carte est null/< 1). Valeur figée au moment du passage, le back ne recalcule pas.
 
 **Seuils en unités de passage (#513)** : « seuil atteint » est évalué **pour la carte présentée** par `SeuilAtteint` / `SeuilEvalue.evaluer(seuil, contrat, carte)` (`data/model/SeuilAtteint.kt`, miroir de `SeuilAtteintHelper.estAtteintPourCarte` back #512) : `atteint = !isAlerte || (contrat.hasDecompteunites && carte.type == "I" && carte.nbUnitesADecompter != null && nbUnitesADecompter > nbPassagesAutorises − nbPassagesEffectues)`. `bloque = atteint && isBloquant`. Utilisé par `PassageViewModel.loadSeuils(usagerId, contratId, carteId)` (→ `seuils: List<SeuilEvalue>`, blocage + commentaire du passage refusé dans `PassageInfoScreen`) et par `TerminerPassageViewModel` (capture `PassageSeuilEntity`). Atteint uniquement par RG3 (`atteintParUnites`) → libellé « Seuil X atteint, N passages … pour M autorisés » (`SeuilAtteint.messageAtteint`, construit localement, `SeuilEtatDmo.messageAtteint` n'est pas stocké) et `libelle` envoyé dans `seuilsAvertis` = ce message ; hors RG3, `libelle` reste `nom`. **Complément #513 (BDD v51)** : `SeuilEtatEntity.isPreventionAtteinte` (défaut `true`, migration 50→51 `DEFAULT 1`) + `messageAtteint` (nullable, libellé back avec la période exacte). Contrat à décompte : le back envoie **tous** les seuils, même sous la prévention (`isPreventionAtteinte = false`) — ⚠️ **la présence d'un seuil ne veut plus dire « en alerte »** : n'afficher que `SeuilEvalue.visible` (= `atteint || isPreventionAtteinte`). RG3 → libellé = `messageAtteint` back (repli local). Mapping dans `AuthManager` **et** `SyncManager`. **Compteurs locaux entre deux synchros** : après chaque passage enregistré (`PassageViewModel.enregistrerPassage` et `TerminerPassageViewModel.persistPassage`, après la capture `seuilsAvertis`), `SeuilEtatDao.appliquerPassage(usagerId, nbUnitesDecomptees)` ajoute les unités aux seuils de type passage (`seuilDetailType` « Periode ») et recalcule comme le back : `isAlerte = effectués < autorisés`, `isPreventionAtteinte = !isAlerte || effectués >= floor(prévention × autorisés / 100)`, `messageAtteint = null` (périmé → libellé local). La descendante écrase tout (back = source de vérité) et elle est refusée tant que des passages restent à envoyer. Les passages refusés n'incrémentent rien. **Affichage** : picto + texte **rouge** (`VeoliaErrorDark`) si seuil atteint pour la carte, **orange** (`VeoliaAlertOrange`) si prévention. Libellés locaux avec la période du back (Annuel/Semestriel/Trimestriel/Mensuel/Quotidien → « sur l'année / le semestre / le trimestre / le mois / la journée »). Pas de confirmation de l'agent pour un seuil non bloquant (voulu). Tests : `app/src/test/.../SeuilAtteintTest.kt`.
+
+**Passages inconnus (#533, back #532)** : s'applique **uniquement** si `contrat.nbPassagesInconnusAcceptes > 0` **et** saisie d'une immatriculation (carte 'I') non trouvée parmi les cartes actives (`getActiveCarteIByImmatriculation`). Sinon : dialog « Carte inconnue » comme avant. `AutresCartesViewModel` cherche alors l'immatriculation dans `carte_inconnue` (insensible à la casse) et expose un `PassageInconnuInfo` (`data/model`) → `PassageInconnuScreen` (`PassageInconnuViewModel`) :
+- Bloc « Immatriculation inconnue » : Immatriculation + « Passages » = « N passages déjà enregistrés sur M autorisés pour une immatriculation inconnue » (N = 0 au 1er passage). Pas de titulaire / type d'apporteur / contact, ni liste noire ni seuils (RG1.2/RG1.4).
+- **1er passage** (absente de `carte_inconnue`) : bloc « Motif » (picto ?) avec liste déroulante **obligatoire** des `motif_autorisation_contrat` (RG2). « Valider » → `passage_inconnu` (RG3) + création `carte_inconnue` à 1 (RG4), dans une transaction.
+- **Passages suivants, max non atteint** (`nbPassages < nbPassagesInconnusAcceptes`) : motif en lecture seule (celui du 1er passage, RG5.2). « Valider » → `passage_inconnu` (RG6) + `nbPassages + 1` (RG7).
+- **Max atteint** (`nbPassages >= nbPassagesInconnusAcceptes`) : bloc rouge « Nombre de passages exceptionnels autorisés atteints » + bouton « Fermer » ; un `passage_inconnu_refuse` est enregistré **une fois** dès l'affichage (RG8.3, comme les passages refusés).
+- Pas de saisie de matières (contrôle d'accès seul, RG1.5), `modePaiement` 0, `nbUnitesDecomptees` 1, pas de seuil.
+- La descendante est **refusée** tant qu'il reste des `passage_inconnu` non envoyés (sinon elle écraserait les compteurs locaux de `carte_inconnue` par des valeurs périmées).
 
 **Première synchro** : `AuthManager.saveContractToDatabase()` (chemin séparé de `applyDiff`) — toute modif de mapping DMO→entité doit être répercutée **dans les deux** (`AuthManager` ET `SyncManager.applyDiff`).
 
@@ -377,6 +390,6 @@ Les dépendances de test sont configurées (JUnit 4, Espresso, Compose UI Test) 
 
 L'émulateur doit cibler API 24+ et avoir accès à `10.0.2.2:8091` (back-end local) pour que la synchro fonctionne en dev.
 
-**Livraison multi-environnements** : `build-apks.ps1` (racine) crée/vide `Apk/`, demande la version et l'écrit dans `versionName` (`app/build.gradle.kts`, recherche par regex), puis, pour chaque `BASE_URL_OVH` / `REC` / `INT` / `PROD`, remplace `baseUrl` dans `ConfigSingleton`, lance `assembleDebug` et copie l'APK sous `Apk/[VERSION]-OVH.apk`, `-REC.apk`, `-INT.apk`, `[VERSION].apk`. `ConfigSingleton` est remis à l'identique à la fin, même en cas d'échec (`finally`). `versionName` garde la nouvelle valeur.
+**Livraison multi-environnements** : `build-apks.ps1` (racine) crée/vide `Apk/`, demande la version et l'écrit dans `versionName` (`app/build.gradle.kts`, recherche par regex), puis, pour chaque `BASE_URL_OVH` / `REC` / `INT` / `PROD`, remplace `baseUrl` dans `ConfigSingleton`, fait un **Gradle sync** (`gradlew --refresh-dependencies help`), lance `assembleDebug` et copie l'APK sous `Apk/[VERSION]-OVH.apk`, `-REC.apk`, `-INT.apk`, `[VERSION].apk`. `ConfigSingleton` est remis à l'identique à la fin, même en cas d'échec (`finally`). `versionName` garde la nouvelle valeur.
 
 **Sur device physique USB** : lancer `adb-reverse.ps1` (à la racine) pour rediriger `localhost:8091` du téléphone vers la machine. À refaire à chaque débranchement/redémarrage du serveur adb. Vérifier avec `adb reverse --list` (doit afficher `UsbFfs tcp:8091 tcp:8091`).

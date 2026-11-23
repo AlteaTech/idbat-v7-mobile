@@ -58,6 +58,7 @@ fun AutresCartesScreen(
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val passageInfo by viewModel.passageInfo.collectAsStateWithLifecycle()
     val carteInconnue by viewModel.carteInconnue.collectAsStateWithLifecycle()
+    val passageInconnu by viewModel.passageInconnu.collectAsStateWithLifecycle()
 
     var codebarresValue by remember { mutableStateOf("") }
     var immatriculationValue by remember { mutableStateOf("") }
@@ -101,6 +102,23 @@ fun AutresCartesScreen(
                 onNavigateToHome()
             },
             onSaisirMatieres = { showSaisieMatiere = true }
+        )
+        return
+    }
+
+    // #533 : immatriculation inconnue sur un contrat qui accepte des passages inconnus
+    passageInconnu?.let { inconnu ->
+        PassageInconnuScreen(
+            siteName = siteName,
+            siteId = siteId,
+            contratId = contratId,
+            info = inconnu,
+            onBack = { viewModel.clearPassageInconnu() },
+            onNavigateToHome = {
+                viewModel.clearPassageInconnu()
+                immatriculationValue = ""
+                onNavigateToHome()
+            }
         )
         return
     }

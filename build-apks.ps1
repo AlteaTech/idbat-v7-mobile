@@ -56,6 +56,11 @@ try {
 
         if (Test-Path $apkOutput) { Remove-Item $apkOutput -Force }
 
+        # Équivalent CLI d'un "Gradle sync" : (re)configure le projet et rafraîchit les dépendances
+        Write-Host "--- Gradle sync ---" -ForegroundColor DarkCyan
+        & $gradlew -p $root --refresh-dependencies help
+        if ($LASTEXITCODE -ne 0) { throw "Échec du Gradle sync pour $($t.Const) (code $LASTEXITCODE)" }
+
         & $gradlew -p $root assembleDebug
         if ($LASTEXITCODE -ne 0) { throw "Échec du build pour $($t.Const) (code $LASTEXITCODE)" }
         if (-not (Test-Path $apkOutput)) { throw "APK introuvable après build : $apkOutput" }

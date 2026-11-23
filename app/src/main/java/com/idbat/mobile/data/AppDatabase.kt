@@ -34,9 +34,13 @@ import com.idbat.mobile.data.entities.*
         RechargeCarteEntity::class,
         ParametreEntity::class,
         SuiviSynchroEntity::class,
-        PassageRefuseEntity::class
+        PassageRefuseEntity::class,
+        MotifAutorisationContratEntity::class,
+        CarteInconnueEntity::class,
+        PassageInconnuEntity::class,
+        PassageInconnuRefuseEntity::class
     ],
-    version = 51,
+    version = 52,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -64,6 +68,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun parametreDao(): ParametreDao
     abstract fun suiviSynchroDao(): SuiviSynchroDao
     abstract fun passageRefuseDao(): PassageRefuseDao
+    abstract fun motifAutorisationContratDao(): MotifAutorisationContratDao
+    abstract fun carteInconnueDao(): CarteInconnueDao
+    abstract fun passageInconnuDao(): PassageInconnuDao
+    abstract fun passageInconnuRefuseDao(): PassageInconnuRefuseDao
 
     companion object {
         private const val DATABASE_NAME = "idbat_bdd"
@@ -100,8 +108,72 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_37_38, MIGRATION_38_39, MIGRATION_39_40, MIGRATION_40_41,
             MIGRATION_41_42, MIGRATION_42_43, MIGRATION_43_44, MIGRATION_44_45,
             MIGRATION_45_46, MIGRATION_46_47, MIGRATION_47_48, MIGRATION_48_49,
-            MIGRATION_49_50, MIGRATION_50_51
+            MIGRATION_49_50, MIGRATION_50_51, MIGRATION_51_52
         )
+
+        // #533 : passages inconnus (immatriculation inconnue) — motifs d'autorisation, cartes inconnues,
+        // outbox passages inconnus + refusés. Nouvelles tables sans FK ; colonne contrat avec DEFAULT.
+        private val MIGRATION_51_52 = object : Migration(51, 52) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE contrats ADD COLUMN nbPassagesInconnusAcceptes INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `motif_autorisation_contrat` (
+                        `id` INTEGER NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `libelle` TEXT NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_motif_autorisation_contrat_contratId` ON `motif_autorisation_contrat` (`contratId`)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `carte_inconnue` (
+                        `valeur` TEXT NOT NULL,
+                        `id` INTEGER,
+                        `motifAutorisationContratId` INTEGER NOT NULL,
+                        `motifAutorisationLibelle` TEXT,
+                        `nbPassages` INTEGER NOT NULL,
+                        PRIMARY KEY(`valeur`)
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `passage_inconnu` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `dateHeure` INTEGER NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `userTpId` INTEGER NOT NULL,
+                        `immatriculation` TEXT NOT NULL,
+                        `motifAutorisationContratId` INTEGER NOT NULL,
+                        `numeroBonPassage` TEXT NOT NULL,
+                        `commentaire` TEXT,
+                        `modePaiement` INTEGER NOT NULL,
+                        `nbUnitesDecomptees` INTEGER NOT NULL,
+                        `transactionId` TEXT NOT NULL,
+                        `sentAt` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_inconnu_contratId` ON `passage_inconnu` (`contratId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_inconnu_siteId` ON `passage_inconnu` (`siteId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_inconnu_userTpId` ON `passage_inconnu` (`userTpId`)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `passage_inconnu_refuse` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `dateHeure` INTEGER NOT NULL,
+                        `contratId` INTEGER NOT NULL,
+                        `siteId` INTEGER NOT NULL,
+                        `userTpId` INTEGER NOT NULL,
+                        `immatriculation` TEXT NOT NULL,
+                        `motifAutorisationContratId` INTEGER NOT NULL,
+                        `commentaire` TEXT,
+                        `transactionId` TEXT NOT NULL,
+                        `sentAt` INTEGER
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_inconnu_refuse_contratId` ON `passage_inconnu_refuse` (`contratId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_inconnu_refuse_siteId` ON `passage_inconnu_refuse` (`siteId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_passage_inconnu_refuse_userTpId` ON `passage_inconnu_refuse` (`userTpId`)")
+            }
+        }
 
         // #513 : seuils transmis sous la prévention (contrat à décompte) + libellé « atteint » du back.
         // DEFAULT 1 : une ligne existante garde le comportement d'avant (seuil présent = à afficher).

@@ -17,6 +17,8 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
+import com.idbat.mobile.data.model.toCarteInconnueEntities
+import com.idbat.mobile.data.model.toMotifAutorisationEntities
 import com.idbat.mobile.generated.client.api.AuthMobileControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.SmartphonesMobileControllerApi
@@ -377,10 +379,17 @@ class AuthManager @Inject constructor(
                 hasGratuitProfessionels = contratDmo.hasGratuitProfessionels,
                 hasPaimentComptantParticuliers = contratDmo.hasPaimentComptantParticuliers,
                 hasPaimentComptantProfessionels = contratDmo.hasPaimentComptantProfessionels,
-                hasDecompteunites = contratDmo.hasDecompteunites
+                hasDecompteunites = contratDmo.hasDecompteunites,
+                nbPassagesInconnusAcceptes = contratDmo.nbPassagesinconnusacceptes
             )
 
             contratDao.insertContrat(contratEntity)
+
+            // #533 : motifs d'autorisation + immatriculations inconnues (même mapping que SyncManager.applyDiff)
+            database.motifAutorisationContratDao().clear()
+            database.motifAutorisationContratDao().insertAll(contratDmo.motifsAutorisation.toMotifAutorisationEntities(contratEntity.id))
+            database.carteInconnueDao().clear()
+            database.carteInconnueDao().insertAll(contratDmo.cartesInconnues.toCarteInconnueEntities())
             Log.d("AUTH_MANAGER", "Contrat sauvegardé: ${contratEntity.nom}")
 
             withContext(Dispatchers.IO) {
