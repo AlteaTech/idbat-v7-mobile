@@ -377,4 +377,6 @@ Les dépendances de test sont configurées (JUnit 4, Espresso, Compose UI Test) 
 
 L'émulateur doit cibler API 24+ et avoir accès à `10.0.2.2:8091` (back-end local) pour que la synchro fonctionne en dev.
 
+**Livraison multi-environnements** : `build-apks.ps1` (racine) crée/vide `Apk/`, demande la version et l'écrit dans `versionName` (`app/build.gradle.kts`, recherche par regex), puis, pour chaque `BASE_URL_OVH` / `REC` / `INT` / `PROD`, remplace `baseUrl` dans `ConfigSingleton`, lance `assembleDebug` et copie l'APK sous `Apk/[VERSION]-OVH.apk`, `-REC.apk`, `-INT.apk`, `[VERSION].apk`. `ConfigSingleton` est remis à l'identique à la fin, même en cas d'échec (`finally`). `versionName` garde la nouvelle valeur.
+
 **Sur device physique USB** : lancer `adb-reverse.ps1` (à la racine) pour rediriger `localhost:8091` du téléphone vers la machine. À refaire à chaque débranchement/redémarrage du serveur adb. Vérifier avec `adb reverse --list` (doit afficher `UsbFfs tcp:8091 tcp:8091`).
