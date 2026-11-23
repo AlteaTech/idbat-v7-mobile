@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.UsagerEntity
 import com.idbat.mobile.data.model.InfoCartePassage
+import com.idbat.mobile.data.model.PassageInconnuInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,10 +20,13 @@ class AutresCartesViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     private val _passageInfo = MutableStateFlow<InfoCartePassage?>(null)
     private val _carteInconnue = MutableStateFlow(false)
+    private val _passageInconnu = MutableStateFlow<PassageInconnuInfo?>(null)
 
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
     val passageInfo: StateFlow<InfoCartePassage?> = _passageInfo.asStateFlow()
     val carteInconnue: StateFlow<Boolean> = _carteInconnue.asStateFlow()
+    // #533 : immatriculation inconnue acceptée en passage exceptionnel (null = pas ce cas)
+    val passageInconnu: StateFlow<PassageInconnuInfo?> = _passageInconnu.asStateFlow()
 
     val usagers: StateFlow<List<UsagerEntity>> = _contratId
         .filterNotNull()
@@ -61,6 +65,10 @@ class AutresCartesViewModel @Inject constructor(
         _carteInconnue.value = false
     }
 
+    fun clearPassageInconnu() {
+        _passageInconnu.value = null
+    }
+
     fun valider(usager: UsagerEntity?, codebarres: String, immatriculation: String) {
         viewModelScope.launch {
             val info = when {
@@ -97,7 +105,10 @@ class AutresCartesViewModel @Inject constructor(
         val now = System.currentTimeMillis()
         val carte = database.carteContratDao().getActiveCarteIByImmatriculation(immatriculation, now)
         if (carte == null) {
-            _carteInconnue.value = true
+            // #533 : contrat acceptant des passages inconnus → écran dédié plutôt que « Carte inconnue »
+            val inconnu = buildPassageInconnu(immatriculation)
+            if (inconnu != null) _passageInconnu.value = inconnu
+            else _carteInconnue.value = true
             return null
         }
         val usager = database.usagerDao().getUsagerByCarte(carte.id)
@@ -110,6 +121,24 @@ class AutresCartesViewModel @Inject constructor(
             carteId = carte.id,
             typeApporteurIsPro = usager?.typeApporteurIsPro,
             usagerId = usager?.id
+        )
+    }
+
+    /**
+     * #533 RG1/RG5/RG8 : null si le contrat n'accepte pas de passages inconnus
+     * (`nbPassagesInconnusAcceptes <= 0`) → comportement « Carte inconnue » inchangé.
+     */
+    private suspend fun buildPassageInconnu(immatriculation: String): PassageInconnuInfo? {
+        val contratId = _contratId.value ?: return null
+        val contrat = database.contratDao().getContratById(contratId) ?: return null
+        if (contrat.nbPassagesInconnusAcceptes <= 0) return null
+        val connue = database.carteInconnueDao().getByImmatriculation(immatriculation)
+        return PassageInconnuInfo(
+            immatriculation = immatriculation.uppercase(),
+            nbPassagesDeja = connue?.nbPassages ?: 0,
+            nbPassagesAutorises = contrat.nbPassagesInconnusAcceptes,
+            motifAutorisationContratId = connue?.motifAutorisationContratId,
+            motifAutorisationLibelle = connue?.motifAutorisationLibelle
         )
     }
 

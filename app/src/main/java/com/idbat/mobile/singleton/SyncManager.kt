@@ -13,10 +13,14 @@ import androidx.room.withTransaction
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.idbat.mobile.data.AppDatabase
 import com.idbat.mobile.data.entities.*
+import com.idbat.mobile.data.model.toCarteInconnueEntities
+import com.idbat.mobile.data.model.toMotifAutorisationEntities
 import com.idbat.mobile.generated.client.api.CarteCreationControllerApi
 import com.idbat.mobile.generated.client.api.ContratsControllerApi
 import com.idbat.mobile.generated.client.api.ParametreGlobalControllerApi
 import com.idbat.mobile.generated.client.api.PassagesControllerApi
+import com.idbat.mobile.generated.client.api.PassagesInconnusControllerApi
+import com.idbat.mobile.generated.client.api.PassagesInconnusRefusesControllerApi
 import com.idbat.mobile.generated.client.api.PassagesRefusesControllerApi
 import com.idbat.mobile.generated.client.api.RechargesCarteControllerApi
 import com.idbat.mobile.generated.client.api.SignalementsControllerApi
@@ -48,6 +52,8 @@ class SyncManager @Inject constructor(
     private val carteCreationApi: CarteCreationControllerApi,
     private val rechargesCarteApi: RechargesCarteControllerApi,
     private val passagesRefusesApi: PassagesRefusesControllerApi,
+    private val passagesInconnusApi: PassagesInconnusControllerApi,
+    private val passagesInconnusRefusesApi: PassagesInconnusRefusesControllerApi,
     private val parametreGlobalApi: ParametreGlobalControllerApi,
     private val suiviSynchroApi: SuiviSynchroControllerApi,
     private val parametreManager: ParametreManager
@@ -118,6 +124,8 @@ class SyncManager @Inject constructor(
                 parametreManager.dataRetentionDays.value * 24L * 60L * 60L * 1000L
         database.passageDao().deleteSentOlderThan(threshold)
         database.passageRefuseDao().deleteSentOlderThan(threshold)
+        database.passageInconnuDao().deleteSentOlderThan(threshold)
+        database.passageInconnuRefuseDao().deleteSentOlderThan(threshold)
         database.signalementDao().deleteSentOlderThan(threshold)
         database.carteCreeeDao().deleteSentOlderThan(threshold)
         database.rechargeCarteDao().deleteSentOlderThan(threshold)
@@ -135,6 +143,8 @@ class SyncManager @Inject constructor(
         val carteCreeeDao   = database.carteCreeeDao()
         val rechargeDao     = database.rechargeCarteDao()
         val passageRefuseDao = database.passageRefuseDao()
+        val passageInconnuDao = database.passageInconnuDao()
+        val passageInconnuRefuseDao = database.passageInconnuRefuseDao()
         val histoDao        = database.lastSynchroHistoryDao()
         val suiviDao        = database.suiviSynchroDao()
 
@@ -146,7 +156,9 @@ class SyncManager @Inject constructor(
         val allCartesCreees = carteCreeeDao.getUnsent()
         val allRecharges    = rechargeDao.getUnsent()
         val allRefuses      = passageRefuseDao.getUnsent()
-        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) + ${allRecharges.size} rechargement(s) + ${allRefuses.size} passage(s) refusé(s) à envoyer")
+        val allInconnus     = passageInconnuDao.getUnsent()
+        val allInconnusRefuses = passageInconnuRefuseDao.getUnsent()
+        Log.d("SYNC_MANAGER", "Synchro montante : ${allPassages.size} passage(s) + ${allSignalements.size} signalement(s) + ${allCartesCreees.size} carte(s) créée(s) + ${allRecharges.size} rechargement(s) + ${allRefuses.size} passage(s) refusé(s) + ${allInconnus.size} passage(s) inconnu(s) + ${allInconnusRefuses.size} passage(s) inconnu(s) refusé(s) à envoyer")
 
         // Suivi : UNE ligne PAR SITE (chacune avec son propre idTransaction). Les listes `all*`
         // couvrent tous les sites → on compte le nombre à envoyer par site. On trace tous les sites
@@ -157,7 +169,9 @@ class SyncManager @Inject constructor(
                     allSignalements.map { it.siteId } +
                     allCartesCreees.map { it.siteId } +
                     allRecharges.map { it.siteId } +
-                    allRefuses.map { it.siteId })
+                    allRefuses.map { it.siteId } +
+                    allInconnus.map { it.siteId } +
+                    allInconnusRefuses.map { it.siteId })
                 .groupingBy { it }
                 .eachCount()
 
@@ -318,6 +332,73 @@ class SyncManager @Inject constructor(
             }
         }
 
+        // ── Passages inconnus (#533 RG3/RG6) ────────────────────────────────────
+        for (inconnu in allInconnus) {
+            val request = CreerPassageInconnuRequest(
+                contratId                  = inconnu.contratId,
+                siteId                     = inconnu.siteId,
+                immatriculation            = inconnu.immatriculation,
+                motifAutorisationContratId = inconnu.motifAutorisationContratId,
+                datePassage                = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(inconnu.dateHeure), ZoneId.systemDefault()
+                ),
+                transactionId              = inconnu.transactionId,
+                numeroBonPassage           = inconnu.numeroBonPassage,
+                userTpId                   = inconnu.userTpId,
+                commentaire                = inconnu.commentaire,
+                modePaiementId             = inconnu.modePaiement,
+                nbUnitesDecomptees         = inconnu.nbUnitesDecomptees
+            )
+
+            val prev = statsBySite.getOrDefault(inconnu.siteId, 0L to 0L)
+            try {
+                val response = passagesInconnusApi.creerPassageInconnu(request)
+                if (response.isSuccessful) {
+                    passageInconnuDao.markSent(inconnu.id, nowMillis)
+                    statsBySite[inconnu.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Passage inconnu ${inconnu.id} envoyé (site ${inconnu.siteId})")
+                } else {
+                    statsBySite[inconnu.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Passage inconnu ${inconnu.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[inconnu.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi passage inconnu ${inconnu.id}", e)
+            }
+        }
+
+        // ── Passages inconnus refusés (#533 RG8.3) ──────────────────────────────
+        for (refuse in allInconnusRefuses) {
+            val request = CreerPassageInconnuRefuseRequest(
+                contratId                  = refuse.contratId,
+                siteId                     = refuse.siteId,
+                userTpId                   = refuse.userTpId,
+                immatriculation            = refuse.immatriculation,
+                motifAutorisationContratId = refuse.motifAutorisationContratId,
+                datePassage                = OffsetDateTime.ofInstant(
+                    Instant.ofEpochMilli(refuse.dateHeure), ZoneId.systemDefault()
+                ),
+                transactionId              = refuse.transactionId,
+                commentaire                = refuse.commentaire
+            )
+
+            val prev = statsBySite.getOrDefault(refuse.siteId, 0L to 0L)
+            try {
+                val response = passagesInconnusRefusesApi.creerPassageInconnuRefuse(request)
+                if (response.isSuccessful) {
+                    passageInconnuRefuseDao.markSent(refuse.id, nowMillis)
+                    statsBySite[refuse.siteId] = (prev.first + 1) to (prev.second + 1)
+                    Log.d("SYNC_MANAGER", "Passage inconnu refusé ${refuse.id} envoyé (site ${refuse.siteId})")
+                } else {
+                    statsBySite[refuse.siteId] = (prev.first + 1) to prev.second
+                    Log.w("SYNC_MANAGER", "Passage inconnu refusé ${refuse.id} refusé — code ${response.code()}")
+                }
+            } catch (e: Exception) {
+                statsBySite[refuse.siteId] = (prev.first + 1) to prev.second
+                Log.e("SYNC_MANAGER", "Erreur envoi passage inconnu refusé ${refuse.id}", e)
+            }
+        }
+
         for (passage in allPassages) {
             val matieres  = matiereDao.getMatieresByPassage(passage.id)
             val documents = getDocumentsForSync(passage.id)
@@ -449,6 +530,15 @@ class SyncManager @Inject constructor(
             )
             return
         }
+        // #533 : la descendante remplace carte_inconnue (compteurs) → refusée tant que des passages
+        // inconnus locaux n'ont pas été transmis au back.
+        val passageInconnuCount = database.passageInconnuDao().countUnsent()
+        if (passageInconnuCount > 0) {
+            _syncState.value = _syncState.value.copy(
+                syncError = "Impossible de synchroniser : $passageInconnuCount passage(s) inconnu(s) en attente de transfert.\nVeuillez d'abord envoyer les passages."
+            )
+            return
+        }
 
         // Suivi : une ligne par descendante (nbAEnvoyer = 0 pour une descendante), clôturée en fin
         // de traitement avec le nombre de lignes insérées/modifiées en base (marquerFin).
@@ -576,7 +666,8 @@ class SyncManager @Inject constructor(
             hasGratuitProfessionels = dmo.hasGratuitProfessionels,
             hasPaimentComptantParticuliers = dmo.hasPaimentComptantParticuliers,
             hasPaimentComptantProfessionels = dmo.hasPaimentComptantProfessionels,
-            hasDecompteunites = dmo.hasDecompteunites
+            hasDecompteunites = dmo.hasDecompteunites,
+            nbPassagesInconnusAcceptes = dmo.nbPassagesinconnusacceptes
         )
         contratDao.insertContrat(contratEntity)
 
@@ -719,6 +810,12 @@ class SyncManager @Inject constructor(
         }
         allEvenements.chunked(500).forEach { lot -> contratEvenementDao.insertEvenements(lot) }
 
+        // #533 : motifs d'autorisation + immatriculations inconnues (back = source de vérité)
+        database.motifAutorisationContratDao().clear()
+        database.motifAutorisationContratDao().insertAll(dmo.motifsAutorisation.toMotifAutorisationEntities(contratEntity.id))
+        database.carteInconnueDao().clear()
+        database.carteInconnueDao().insertAll(dmo.cartesInconnues.toCarteInconnueEntities())
+
         // ── SUPPRESSION DES LIGNES OBSOLÈTES ────────────────────────────────────
 
         val newCarteIds = allCartes.map { it.id }
@@ -746,7 +843,8 @@ class SyncManager @Inject constructor(
         val usagerCartes = cartes
         val evenements   = dmo.evenementsContrat.size.toLong()
         val seuils       = dmo.contratUsagers.sumOf { it.seuils.size }.toLong()
-        return 1L + sites + utilisateurs + usagers + cartes + matieres + usagerCartes + evenements + seuils
+        val inconnus     = dmo.motifsAutorisation.size.toLong() + dmo.cartesInconnues.size.toLong()
+        return 1L + sites + utilisateurs + usagers + cartes + matieres + usagerCartes + evenements + seuils + inconnus
     }
 
     private suspend fun getDocumentsForSync(passageId: Long): List<PassageDocumentEntity> =

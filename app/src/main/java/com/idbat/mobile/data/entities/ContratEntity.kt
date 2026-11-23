@@ -24,5 +24,7 @@ data class ContratEntity(
     val hasGratuitProfessionels: Boolean = false,
     val hasPaimentComptantProfessionels: Boolean = false,
     // #489 RG1 : décompte des unités de passage (cartes immatriculation)
-    val hasDecompteunites: Boolean = false
+    val hasDecompteunites: Boolean = false,
+    // #533 : nb de passages acceptés pour une immatriculation inconnue (0 = fonctionnalité inactive)
+    val nbPassagesInconnusAcceptes: Int = 0
 )
