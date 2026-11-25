@@ -30,7 +30,10 @@ import com.idbat.mobile.data.model.PassageSaveState
 import com.idbat.mobile.ui.theme.*
 import com.idbat.mobile.ui.viewmodel.PassageInconnuViewModel
 
-private const val MESSAGE_MAX_ATTEINT = "Nombre de passages exceptionnels autorisés atteints"
+private const val MESSAGE_MAX_ATTEINT = "Nombre de passages exceptionnels autorisés atteint"
+
+/** "s" du pluriel français : uniquement à partir de 2 (0 et 1 restent au singulier). */
+private fun pluriel(n: Int): String = if (n >= 2) "s" else ""
 
 /**
  * #533 : passage d'une immatriculation inconnue (contrat avec `nbPassagesInconnusAcceptes > 0`).
@@ -155,8 +158,11 @@ fun PassageInconnuScreen(
                     InconnuInfoRow(label = "Immatriculation", value = info.immatriculation)
                     InconnuInfoRow(
                         label = "Passages",
-                        value = "${info.nbPassagesDeja} passages déjà enregistrés sur " +
-                                "${info.nbPassagesAutorises} autorisés pour une immatriculation inconnue"
+                        // Accords : pluriel seulement à partir de 2 (0/1 passage enregistré, 1 autorisé)
+                        value = "${info.nbPassagesDeja} passage${pluriel(info.nbPassagesDeja)} " +
+                                "déjà enregistré${pluriel(info.nbPassagesDeja)} sur " +
+                                "${info.nbPassagesAutorises} autorisé${pluriel(info.nbPassagesAutorises)} " +
+                                "pour une immatriculation inconnue"
                     )
                 }
 
